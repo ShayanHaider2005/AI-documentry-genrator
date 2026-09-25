@@ -136,13 +136,17 @@ function parseAiJson(content) {
 function isValidScene(scene) {
 	const text = String(scene?.narratorText || '').trim();
 	const wordCount = text.split(/\s+/).filter(Boolean).length;
+	const keywordWords = String(scene?.imageKeyword || '')
+		.trim()
+		.split(/\s+/)
+		.filter(Boolean);
 	return (
 		Number.isInteger(scene?.sceneNumber) &&
-		wordCount >= 18 &&
-		wordCount <= 50 &&
+		wordCount >= 25 &&
+		wordCount <= 40 &&
 		/[.!?]$/.test(text) &&
-		typeof scene?.imageKeyword === 'string' &&
-		scene.imageKeyword.trim().length > 0
+		keywordWords.length >= 2 &&
+		keywordWords.length <= 3
 	);
 }
 
