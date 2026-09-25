@@ -12,6 +12,40 @@ function logStep(step, message, startedAt) {
 	console.log(`[${step}] ${message} (${elapsedMilliseconds} ms)`);
 }
 
+async function getAudioDurationInFrames(audioPath) {
+	const { parseFile } = await import('music-metadata');
+	const metadata = await parseFile(audioPath);
+	const durationInSeconds = metadata.format.duration;
+
+	if (!durationInSeconds || durationInSeconds <= 0) {
+		throw new Error(`Audio duration is unavailable for ${audioPath}`);
+	}
+
+	return Math.ceil(durationInSeconds * 30);
+}
+
+async function finalizeSceneDurations(videoScript) {
+	const scenes = [];
+
+	for (const scene of videoScript.scenes) {
+		const audioPath = path.resolve(__dirname, '../public', scene.audioUrl);
+		const durationInFrames = await getAudioDurationInFrames(audioPath);
+		scenes.push({ ...scene, durationInFrames });
+		console.log(
+			`[PIPELINE] ${scene.id}: ${durationInFrames} frames from ${scene.audioUrl}`,
+		);
+	}
+
+	return {
+		...videoScript,
+		scenes,
+		totalDurationInFrames: scenes.reduce(
+			(totalDuration, scene) => totalDuration + scene.durationInFrames,
+			0,
+		),
+	};
+}
+
 async function runPipeline(pdfPath = path.resolve(__dirname, 'sample.pdf')) {
 	const pipelineStartedAt = performance.now();
 	console.log(`[PIPELINE] Starting documentary pipeline for ${pdfPath}`);
@@ -28,8 +62,9 @@ async function runPipeline(pdfPath = path.resolve(__dirname, 'sample.pdf')) {
 
 	const audioStartedAt = performance.now();
 	console.log('[3/4] Synthesizing scene audio...');
-	const finalizedScript = await synthesizeVideoScript(videoScript);
-	logStep('3/4', 'Generated scene audio and measured durations', audioStartedAt);
+	const synthesizedScript = await synthesizeVideoScript(videoScript);
+	const finalizedScript = await finalizeSceneDurations(synthesizedScript);
+	logStep('3/4', 'Generated scene audio and measured exact durations', audioStartedAt);
 
 	const writeStartedAt = performance.now();
 	console.log(`[4/4] Writing processed JSON to ${outputPath}...`);
