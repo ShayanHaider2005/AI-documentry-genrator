@@ -24,7 +24,7 @@
     "imageKeyword": "cyber security network",
     "imageUrl": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-3.mp3",
-    "durationInFrames": 800
+    "durationInFrames": 515
   },
   {
     "sceneNumber": 4,
@@ -79,5 +79,32 @@
     "imageUrl": "https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-9.mp3",
     "durationInFrames": 347
+  },
+  {
+    "sceneNumber": 10,
+    "narratorText": "Risk-based testing helps teams spend their strongest attention where failure would matter most, balancing technical evidence, user impact, and operational uncertainty before each release reaches the public.",
+    "visualPrompt": "Cinematic operations center with engineers studying risk maps and release readiness indicators",
+    "imageKeyword": "risk analysis technology",
+    "imageUrl": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80",
+    "audioPath": "audio/scene-10.mp3",
+    "durationInFrames": 386
+  },
+  {
+    "sceneNumber": 11,
+    "narratorText": "Continuous integration turns quality into a daily practice. Small changes are assembled, tested, and measured repeatedly, allowing teams to discover regression early while the source of a problem remains visible.",
+    "visualPrompt": "Automated deployment pipeline visualized as luminous connected stages across a modern control room",
+    "imageKeyword": "continuous integration pipeline",
+    "imageUrl": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1920&q=80",
+    "audioPath": "audio/scene-11.mp3",
+    "durationInFrames": 420
+  },
+  {
+    "sceneNumber": 12,
+    "narratorText": "When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build.",
+    "visualPrompt": "Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails",
+    "imageKeyword": "future technology city",
+    "imageUrl": "https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?auto=format&fit=crop&w=1920&q=80",
+    "audioPath": "audio/scene-12.mp3",
+    "durationInFrames": 426
   }
 ]

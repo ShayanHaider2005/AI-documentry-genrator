@@ -220,6 +220,27 @@ function generateExtendedThematicScenes(cleanText) {
 			visualPrompt: 'Wide panoramic sunrise over a modern smart metropolis connected by streams of light and data',
 			imageKeyword: 'modern smart city',
 		},
+		{
+			sceneNumber: 10,
+			narratorText:
+				'Risk-based testing helps teams spend their strongest attention where failure would matter most, balancing technical evidence, user impact, and operational uncertainty before each release reaches the public.',
+			visualPrompt: 'Cinematic operations center with engineers studying risk maps and release readiness indicators',
+			imageKeyword: 'risk analysis technology',
+		},
+		{
+			sceneNumber: 11,
+			narratorText:
+				'Continuous integration turns quality into a daily practice. Small changes are assembled, tested, and measured repeatedly, allowing teams to discover regression early while the source of a problem remains visible.',
+			visualPrompt: 'Automated deployment pipeline visualized as luminous connected stages across a modern control room',
+			imageKeyword: 'continuous integration pipeline',
+		},
+		{
+			sceneNumber: 12,
+			narratorText:
+				'When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build.',
+			visualPrompt: 'Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails',
+			imageKeyword: 'future technology city',
+		},
 	];
 }
 
