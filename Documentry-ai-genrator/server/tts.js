@@ -4,33 +4,11 @@ const path = require('path');
 const FRAMES_PER_SECOND = 30;
 const DEFAULT_VOICE = 'en-US-AriaNeural';
 
-function estimateDurationInSeconds(text) {
-	return Math.max(2, Math.ceil(text.trim().split(/\s+/).length / 2.5));
-}
-
-function createSilentWav(durationInSeconds) {
-	const sampleRate = 8000;
-	const channelCount = 1;
-	const bytesPerSample = 2;
-	const sampleCount = Math.ceil(sampleRate * durationInSeconds);
-	const dataSize = sampleCount * channelCount * bytesPerSample;
-	const buffer = Buffer.alloc(44 + dataSize);
-
-	buffer.write('RIFF', 0);
-	buffer.writeUInt32LE(36 + dataSize, 4);
-	buffer.write('WAVE', 8);
-	buffer.write('fmt ', 12);
-	buffer.writeUInt32LE(16, 16);
-	buffer.writeUInt16LE(1, 20);
-	buffer.writeUInt16LE(channelCount, 22);
-	buffer.writeUInt32LE(sampleRate, 24);
-	buffer.writeUInt32LE(sampleRate * channelCount * bytesPerSample, 28);
-	buffer.writeUInt16LE(channelCount * bytesPerSample, 32);
-	buffer.writeUInt16LE(bytesPerSample * 8, 34);
-	buffer.write('data', 36);
-	buffer.writeUInt32LE(dataSize, 40);
-
-	return buffer;
+function sanitizeNarratorText(text) {
+	return text
+		.replace(/[^\p{L}\p{N}\s]/gu, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
 }
 
 async function synthesizeWithEdgeTts(text, outputPath, voice) {
@@ -60,42 +38,32 @@ async function readAudioDurationInFrames(audioPath) {
 
 async function synthesizeSceneAudio(scene, audioDirectory, options = {}) {
 	const voice = options.voice || DEFAULT_VOICE;
-	const offline = options.offline ?? process.env.OFFLINE_MODE === 'true';
-	console.log(`[TTS] Processing scene ${scene.id} (${offline ? 'offline' : voice})`);
-
-	if (offline) {
-		const durationInSeconds = estimateDurationInSeconds(scene.narrationText);
-		const fileName = `${scene.id}.wav`;
-		const filePath = path.join(audioDirectory, fileName);
-		await fs.promises.writeFile(filePath, createSilentWav(durationInSeconds));
-		console.log(`[TTS] Wrote offline audio: ${filePath}`);
-		return {
-			audioUrl: path.posix.join('audio', fileName),
-			durationInFrames: durationInSeconds * FRAMES_PER_SECOND,
-		};
+	const narratorText = sanitizeNarratorText(
+		scene.narratorText || scene.narrationText || '',
+	);
+	if (!narratorText) {
+		throw new Error(`Scene ${scene.id} has no usable narrator text`);
 	}
 
+	console.log(`[TTS] Processing scene ${scene.id} (${voice})`);
 	const fileName = `${scene.id}.mp3`;
 	const filePath = path.join(audioDirectory, fileName);
 
 	try {
-		await synthesizeWithEdgeTts(scene.narrationText, filePath, voice);
+		await synthesizeWithEdgeTts(narratorText, filePath, voice);
+		const { size } = await fs.promises.stat(filePath);
+		if (size <= 0) {
+			throw new Error('Generated MP3 file is empty');
+		}
+
 		console.log(`[TTS] Wrote synthesized audio: ${filePath}`);
 		return {
 			audioUrl: path.posix.join('audio', fileName),
 			durationInFrames: await readAudioDurationInFrames(filePath),
 		};
 	} catch (error) {
-		const durationInSeconds = estimateDurationInSeconds(scene.narrationText);
-		const fallbackName = `${scene.id}.wav`;
-		const fallbackPath = path.join(audioDirectory, fallbackName);
-		await fs.promises.writeFile(fallbackPath, createSilentWav(durationInSeconds));
-		console.warn(`[TTS] Unavailable for ${scene.id}; using offline audio: ${error.message}`);
-		console.log(`[TTS] Wrote fallback audio: ${fallbackPath}`);
-		return {
-			audioUrl: path.posix.join('audio', fallbackName),
-			durationInFrames: durationInSeconds * FRAMES_PER_SECOND,
-		};
+		console.error(`[TTS] Synthesis failed for ${scene.id}: ${error.message}`);
+		throw error;
 	}
 }
 
@@ -120,4 +88,4 @@ async function synthesizeVideoScript(videoScript, options = {}) {
 	};
 }
 
-module.exports = { synthesizeVideoScript };
+module.exports = { sanitizeNarratorText, synthesizeVideoScript };
