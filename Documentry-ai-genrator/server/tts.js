@@ -1,13 +1,16 @@
 'use strict';
 
 /**
- * tts.js — Text-to-Speech synthesis.
+ * tts.js — Text-to-Speech synthesis with Runtime Client Voice Cloning.
  *
- * Primary:  ElevenLabs API  (requires ELEVENLABS_API_KEY + ELEVENLABS_VOICE_ID)
- * Fallback: msedge-tts with en-US-AndrewNeural (high-quality neural voice)
+ * Primary:  ElevenLabs API (Instant Voice Cloning + Timestamp Word Alignment)
+ * Fallback: msedge-tts with en-US-AndrewNeural (high-quality neural teacher voice)
  *
  * Exports:
- *   generateSceneAudio(text, outputPath) → Promise<void>
+ *   generateSceneAudio(text, outputPath, options?) → Promise<{wordTimings: Array|null}>
+ *   cloneClientVoice(voiceSamplePath) → Promise<{voiceId, status, voiceName}>
+ *   computeProportionalWordTimings(text, totalDurationInFrames) → Array
+ *   extractTimingsFromAlignment(alignment, fps?) → Array|null
  *   synthesizeVideoScript(videoScript, options?) → Promise<VideoScript>
  */
 
@@ -41,21 +44,171 @@ function buildSsml(text, voice = DEFAULT_EDGE_VOICE) {
 		.replace(/,/g, ',<break time="300ms"/>')
 		.replace(/\.\.\./g, '...<break time="600ms"/>')
 		.replace(/(?<!\.)\. *(?!\.)/g, '.<break time="600ms"/>');
-	return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US"><voice name="${voice}"><prosody rate="-5%" pitch="-2Hz">${escaped}</prosody></voice></speak>`;
+	return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US"><voice name="${voice}"><prosody rate="-4%" pitch="-1Hz">${escaped}</prosody></voice></speak>`;
 }
 
 // ---------------------------------------------------------------------------
-// ElevenLabs synthesis (primary)
+// Word Timing Alignment Helpers
 // ---------------------------------------------------------------------------
-async function synthesizeWithElevenLabs(text, outputPath) {
-	const apiKey = process.env.ELEVENLABS_API_KEY;
-	const voiceId = process.env.ELEVENLABS_VOICE_ID;
+function extractTimingsFromAlignment(alignment, fps = 30) {
+	if (!alignment || !Array.isArray(alignment.characters)) return null;
 
-	if (!apiKey || !voiceId) {
-		throw new Error('ElevenLabs env vars missing (ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID)');
+	const { characters, character_start_times_seconds, character_end_times_seconds } = alignment;
+	const words = [];
+	let currentWord = '';
+	let wordStart = null;
+	let wordEnd = null;
+
+	for (let i = 0; i < characters.length; i++) {
+		const char = characters[i];
+		const start = character_start_times_seconds[i];
+		const end = character_end_times_seconds[i];
+
+		if (/\s/.test(char)) {
+			if (currentWord) {
+				words.push({
+					word: currentWord,
+					startFrame: Math.round(wordStart * fps),
+					endFrame: Math.max(Math.round(wordStart * fps) + 1, Math.round(wordEnd * fps)),
+				});
+				currentWord = '';
+				wordStart = null;
+				wordEnd = null;
+			}
+		} else {
+			if (wordStart === null) wordStart = start;
+			wordEnd = end;
+			currentWord += char;
+		}
+	}
+	if (currentWord) {
+		words.push({
+			word: currentWord,
+			startFrame: Math.round((wordStart || 0) * fps),
+			endFrame: Math.max(Math.round((wordStart || 0) * fps) + 1, Math.round((wordEnd || 0) * fps)),
+		});
+	}
+	return words;
+}
+
+function computeProportionalWordTimings(text, totalDurationInFrames) {
+	const rawWords = text.trim().split(/\s+/).filter(Boolean);
+	if (rawWords.length === 0) return [];
+
+	const weights = rawWords.map((w) => {
+		let weight = Math.max(1, w.length);
+		if (/[,;:]$/.test(w)) weight += 3;
+		if (/[.!?]$/.test(w)) weight += 6;
+		return weight;
+	});
+	const totalWeight = weights.reduce((sum, val) => sum + val, 0);
+
+	let currentFrame = 0;
+	return rawWords.map((word, idx) => {
+		const duration = Math.max(2, Math.round((weights[idx] / totalWeight) * totalDurationInFrames));
+		const startFrame = currentFrame;
+		const endFrame =
+			idx === rawWords.length - 1
+				? totalDurationInFrames
+				: Math.min(totalDurationInFrames, startFrame + duration);
+		currentFrame = endFrame;
+		return {
+			word,
+			startFrame,
+			endFrame,
+		};
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Client Voice Cloning (Runtime)
+// ---------------------------------------------------------------------------
+async function cloneClientVoice(voiceSamplePath) {
+	if (!voiceSamplePath || !fs.existsSync(voiceSamplePath)) {
+		throw new Error(`Voice sample file not found: ${voiceSamplePath}`);
 	}
 
-	const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+	const apiKey = process.env.ELEVENLABS_API_KEY;
+	if (!apiKey) {
+		console.warn(`\n[VOICE SETUP] ⚠️  Client voice sample specified: "${voiceSamplePath}"`);
+		console.warn('[VOICE SETUP] Notice: ELEVENLABS_API_KEY is not set in environment.');
+		console.warn('[VOICE SETUP] To clone the client voice with ElevenLabs, set ELEVENLABS_API_KEY in your .env or environment.');
+		console.warn('[VOICE SETUP] Proceeding with high-quality neural teacher voice (en-US-AndrewNeural).\n');
+		return { voiceId: null, status: 'fallback', voiceName: DEFAULT_EDGE_VOICE };
+	}
+
+	console.log(`[VOICE SETUP] 🎙️  Cloning client voice from "${path.basename(voiceSamplePath)}"...`);
+	const fileName = path.basename(voiceSamplePath);
+	const fileBuffer = await fs.promises.readFile(voiceSamplePath);
+	const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
+
+	const formData = new FormData();
+	formData.append('name', `Client Voice (${fileName})`);
+	formData.append('description', `Cloned from client voice sample ${fileName} at runtime`);
+	formData.append('files', blob, fileName);
+
+	const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
+		method: 'POST',
+		headers: {
+			'xi-api-key': apiKey,
+		},
+		body: formData,
+	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		throw new Error(`ElevenLabs Voice Cloning HTTP ${response.status}: ${errorText.slice(0, 300)}`);
+	}
+
+	const data = await response.json();
+	const voiceId = data.voice_id;
+	console.log(`[VOICE SETUP] ✅  Client voice cloned successfully! Cloned Voice ID: ${voiceId}\n`);
+	return { voiceId, status: 'cloned', voiceName: `Client Voice (${voiceId})` };
+}
+
+// ---------------------------------------------------------------------------
+// ElevenLabs synthesis
+// ---------------------------------------------------------------------------
+async function synthesizeWithElevenLabs(text, outputPath, voiceId) {
+	const apiKey = process.env.ELEVENLABS_API_KEY;
+	const targetVoiceId = voiceId || process.env.ELEVENLABS_VOICE_ID;
+
+	if (!apiKey || !targetVoiceId) {
+		throw new Error('ElevenLabs env vars missing (ELEVENLABS_API_KEY / target voice ID)');
+	}
+
+	const sanitized = sanitizeNarratorText(text);
+
+	// Attempt with-timestamps for exact word alignment
+	try {
+		const url = `https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}/with-timestamps`;
+		const response = await fetch(url, {
+			method: 'POST',
+			headers: {
+				'xi-api-key': apiKey,
+				'Content-Type': 'application/json',
+				Accept: 'application/json',
+			},
+			body: JSON.stringify({
+				text: sanitized,
+				model_id: 'eleven_multilingual_v2',
+				voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.0 },
+			}),
+		});
+
+		if (response.ok) {
+			const payload = await response.json();
+			const audioBuffer = Buffer.from(payload.audio_base64, 'base64');
+			await fs.promises.writeFile(outputPath, audioBuffer);
+			const timings = extractTimingsFromAlignment(payload.alignment);
+			return { wordTimings: timings };
+		}
+	} catch (timestampErr) {
+		console.warn(`[TTS] Timestamps notice: ${timestampErr.message}, trying standard endpoint`);
+	}
+
+	// Standard synthesis fallback
+	const url = `https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}`;
 	const response = await fetch(url, {
 		method: 'POST',
 		headers: {
@@ -64,7 +217,7 @@ async function synthesizeWithElevenLabs(text, outputPath) {
 			Accept: 'audio/mpeg',
 		},
 		body: JSON.stringify({
-			text: sanitizeNarratorText(text),
+			text: sanitized,
 			model_id: 'eleven_turbo_v2_5',
 			voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.0 },
 		}),
@@ -77,6 +230,7 @@ async function synthesizeWithElevenLabs(text, outputPath) {
 
 	const arrayBuffer = await response.arrayBuffer();
 	await fs.promises.writeFile(outputPath, Buffer.from(arrayBuffer));
+	return { wordTimings: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -101,7 +255,6 @@ async function synthesizeWithEdgeTts(text, outputPath, voice = DEFAULT_EDGE_VOIC
 		await writeStream(ssml);
 	} catch (err) {
 		if (!String(err.message).includes('turn.end')) throw err;
-		// Some Edge TTS endpoints reject break tags — retry without them
 		console.warn('[TTS] Edge TTS rejected break tags; retrying without pause markup');
 		await writeStream(ssml.replace(/<break time="(?:300|600)ms"\/>/g, ''));
 	}
@@ -113,29 +266,34 @@ async function synthesizeWithEdgeTts(text, outputPath, voice = DEFAULT_EDGE_VOIC
 
 /**
  * Generate an MP3 audio file for a single narration text string.
- * Tries ElevenLabs first; falls back to Edge TTS (en-US-AndrewNeural).
+ * Tries ElevenLabs (or cloned voice) first; falls back to Edge TTS (en-US-AndrewNeural).
  *
  * @param {string} text        Spoken narrator text.
  * @param {string} outputPath  Absolute path to write the .mp3 file.
- * @returns {Promise<void>}
+ * @param {object} [options]   Optional: { voiceId, voice }
+ * @returns {Promise<{wordTimings: Array|null}>}
  */
-async function generateSceneAudio(text, outputPath) {
+async function generateSceneAudio(text, outputPath, options = {}) {
 	const clean = sanitizeNarratorText(text);
 	if (!clean) throw new Error('generateSceneAudio: text is empty after sanitization');
 
 	await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
 
-	// ── Attempt 1: ElevenLabs ─────────────────────────────────────────────
+	let result = { wordTimings: null };
+
+	// ── Attempt 1: ElevenLabs (with custom voiceId if provided) ─────────────
 	try {
-		await synthesizeWithElevenLabs(clean, outputPath);
+		result = await synthesizeWithElevenLabs(clean, outputPath, options.voiceId);
 		console.log(`[TTS] ElevenLabs ✓  ${outputPath}`);
 	} catch (elevenErr) {
-		console.warn(`[TTS] ElevenLabs unavailable (${elevenErr.message}) — falling back to Edge TTS`);
+		if (options.voiceId || process.env.ELEVENLABS_VOICE_ID) {
+			console.warn(`[TTS] ElevenLabs unavailable (${elevenErr.message}) — falling back to Edge TTS`);
+		}
 
 		// ── Attempt 2: Edge TTS ───────────────────────────────────────────
 		try {
-			await synthesizeWithEdgeTts(clean, outputPath, DEFAULT_EDGE_VOICE);
-			console.log(`[TTS] Edge TTS (${DEFAULT_EDGE_VOICE}) ✓  ${outputPath}`);
+			await synthesizeWithEdgeTts(clean, outputPath, options.voice || DEFAULT_EDGE_VOICE);
+			console.log(`[TTS] Edge TTS (${options.voice || DEFAULT_EDGE_VOICE}) ✓  ${outputPath}`);
 		} catch (edgeErr) {
 			throw new Error(
 				`Both TTS providers failed.\n  ElevenLabs: ${elevenErr.message}\n  Edge TTS: ${edgeErr.message}`,
@@ -146,20 +304,13 @@ async function generateSceneAudio(text, outputPath) {
 	// Validate file size > 0
 	const { size } = await fs.promises.stat(outputPath);
 	if (size <= 0) throw new Error(`Generated MP3 is empty: ${outputPath}`);
+
+	return result;
 }
 
 // ---------------------------------------------------------------------------
 // Convenience: synthesize every scene in a video-script object
 // ---------------------------------------------------------------------------
-
-/**
- * Synthesize audio for all scenes in a videoScript object.
- * Scene audio files are written to `public/audio/scene-N.mp3`.
- *
- * @param {object} videoScript   Script object with a `.scenes` array.
- * @param {object} [options]     Optional: { audioDirectory, voice }
- * @returns {Promise<object>}    Updated script with per-scene audioUrl.
- */
 async function synthesizeVideoScript(videoScript, options = {}) {
 	const audioDirectory =
 		options.audioDirectory || path.resolve(__dirname, '../public/audio');
@@ -179,10 +330,11 @@ async function synthesizeVideoScript(videoScript, options = {}) {
 		const filePath = path.join(audioDirectory, fileName);
 
 		console.log(`[TTS] Synthesizing: ${scene.id}`);
-		await generateSceneAudio(narratorText, filePath);
+		const ttsResult = await generateSceneAudio(narratorText, filePath, options);
 		scenes.push({
 			...scene,
 			audioUrl: `audio/${fileName}`,
+			wordTimings: ttsResult?.wordTimings || null,
 		});
 	}
 
@@ -201,4 +353,7 @@ module.exports = {
 	synthesizeVideoScript,
 	sanitizeNarratorText,
 	buildSsml,
+	cloneClientVoice,
+	computeProportionalWordTimings,
+	extractTimingsFromAlignment,
 };

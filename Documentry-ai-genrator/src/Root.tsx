@@ -38,14 +38,28 @@ sampleProps.totalDurationInFrames = totalDurationInFrames;
 
 export const RemotionRoot = () => {
 	return (
-		<Composition<any, DocumentaryProps & Record<string, unknown>>
+		<Composition<any, any>
 			id="Documentary"
 			component={DocumentaryVideo}
 			fps={30}
 			width={1920}
 			height={1080}
-			durationInFrames={totalDurationInFrames}
+			durationInFrames={Math.max(1, totalDurationInFrames)}
 			defaultProps={sampleProps}
+			calculateMetadata={({ props }: { props: any }) => {
+				const scenes = Array.isArray(props)
+					? props
+					: props?.scenes && Array.isArray(props.scenes)
+					? props.scenes
+					: [];
+				const duration = scenes.reduce(
+					(sum: number, s: any) => sum + (s.durationInFrames || 150),
+					0,
+				);
+				return {
+					durationInFrames: Math.max(1, duration),
+				};
+			}}
 		/>
 	);
 };

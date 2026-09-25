@@ -148,9 +148,20 @@ async function parseAndCleanPdf(pdfPath) {
 	}
 
 	try {
-		const pdfParse = require('pdf-parse');
-		const pdfData = await pdfParse(fileBuffer);
-		const cleanText = sanitizeRawText(pdfData.text);
+		const pdfParseModule = require('pdf-parse');
+		let rawText = '';
+		if (typeof pdfParseModule === 'function') {
+			const pdfData = await pdfParseModule(fileBuffer);
+			rawText = pdfData.text || '';
+		} else if (pdfParseModule.PDFParse) {
+			const parser = new pdfParseModule.PDFParse({ data: fileBuffer });
+			const result = await parser.getText();
+			rawText = result.text || '';
+		} else {
+			throw new Error('Unrecognized pdf-parse export structure');
+		}
+
+		const cleanText = sanitizeRawText(rawText);
 		console.log(`[PDF] Extracted ${cleanText.length} usable characters from: ${pdfPath}`);
 		return cleanText;
 	} catch (err) {
