@@ -1,39 +1,54 @@
 const fs = require('fs');
 const path = require('path');
 
-const FRAMES_PER_SECOND = 30;
-const DEFAULT_VOICE = 'en-US-AriaNeural';
+const DEFAULT_VOICE = 'en-US-AndrewNeural';
 
 function sanitizeNarratorText(text) {
-	return text
-		.replace(/[^\p{L}\p{N}\s]/gu, ' ')
+	return String(text)
+		.replace(/<[^>]*>/g, ' ')
+		.replace(/[\[\]{}()<>|*_#•▪◦‣]/gu, ' ')
+		.replace(/[^\p{L}\p{N}\s.,!?;:'"\-]/gu, ' ')
 		.replace(/\s+/g, ' ')
 		.trim();
+}
+
+function createSsml(text, voice = DEFAULT_VOICE) {
+	const escapedText = sanitizeNarratorText(text)
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;')
+		.replace(/,/g, ',<break time="300ms"/>')
+		.replace(/\.\.\./g, '...<break time="600ms"/>')
+		.replace(/(?<!\.)\.(?!\.)/g, '.<break time="600ms"/>');
+	return `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US"><voice name="${voice}"><prosody rate="-5%" pitch="-2Hz">${escapedText}</prosody></voice></speak>`;
 }
 
 async function synthesizeWithEdgeTts(text, outputPath, voice) {
 	const { MsEdgeTTS, OUTPUT_FORMAT } = await import('msedge-tts');
 	const tts = new MsEdgeTTS();
 	await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-	const { audioStream } = await tts.toStream(text);
-	const chunks = [];
+	const ssml = createSsml(text, voice);
 
-	for await (const chunk of audioStream) {
-		chunks.push(chunk);
+	async function writeStream(requestSsml) {
+		const { audioStream } = tts.rawToStream(requestSsml);
+		const chunks = [];
+		for await (const chunk of audioStream) {
+			chunks.push(chunk);
+		}
+		await fs.promises.writeFile(outputPath, Buffer.concat(chunks));
 	}
 
-	await fs.promises.writeFile(outputPath, Buffer.concat(chunks));
-}
-
-async function readAudioDurationInFrames(audioPath) {
-	const { parseFile } = await import('music-metadata');
-	const metadata = await parseFile(audioPath);
-
-	if (!metadata.format.duration || metadata.format.duration <= 0) {
-		throw new Error(`Audio duration is unavailable for ${audioPath}`);
+	try {
+		await writeStream(ssml);
+	} catch (error) {
+		if (!String(error.message).includes('turn.end')) {
+			throw error;
+		}
+		console.warn('[TTS] Provider rejected break tags; retrying with punctuation pauses');
+		await writeStream(ssml.replace(/<break time="(?:300|600)ms"\/>/g, ''));
 	}
-
-	return Math.ceil(metadata.format.duration * FRAMES_PER_SECOND);
 }
 
 async function synthesizeSceneAudio(scene, audioDirectory, options = {}) {
@@ -59,7 +74,6 @@ async function synthesizeSceneAudio(scene, audioDirectory, options = {}) {
 		console.log(`[TTS] Wrote synthesized audio: ${filePath}`);
 		return {
 			audioUrl: path.posix.join('audio', fileName),
-			durationInFrames: await readAudioDurationInFrames(filePath),
 		};
 	} catch (error) {
 		console.error(`[TTS] Synthesis failed for ${scene.id}: ${error.message}`);
@@ -88,4 +102,4 @@ async function synthesizeVideoScript(videoScript, options = {}) {
 	};
 }
 
-module.exports = { sanitizeNarratorText, synthesizeVideoScript };
+module.exports = { sanitizeNarratorText, createSsml, synthesizeVideoScript };
