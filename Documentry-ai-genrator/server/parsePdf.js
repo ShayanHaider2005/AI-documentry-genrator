@@ -63,8 +63,9 @@ async function extractTextFromPdf(pdfPath) {
 					.replace(/^\s*(?:[-*+•▪◦‣]|\d+[.)])\s+/, '')
 					.replace(/[^\p{L}\p{N}\s.,!?;:'"()\-/]/gu, ' '),
 			)
-			.join(' ')
-			.replace(/\s+/g, ' ')
+			.join('\n')
+			.replace(/[ \t]+/g, ' ')
+			.replace(/\n{2,}/g, '\n')
 			.trim();
 		console.log(`[PDF] Extracted ${text.length} characters from: ${pdfPath}`);
 		return text;

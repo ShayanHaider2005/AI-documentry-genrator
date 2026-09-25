@@ -14,8 +14,38 @@ Return JSON only in the shape {"title": string, "scenes": [{"narratorText": stri
 Each scene must contain one or two powerful, conversational sentences and no more than 30 words total. Use at least 15 words when the source supports it.
 Use commas for breath pauses, ellipses (...) for dramatic tension, and clear sentence structure in every narratorText.`;
 
+const SKIP_LINE_PATTERNS = [
+	/^\s*(?:slide|page)\s*\d+(?:\s+of\s+\d+)?\s*$/i,
+	/^\s*(?:agenda|outline|table of contents|contents|overview|learning objectives?|key takeaways?)\s*:?$/i,
+	/^\s*(?:office\s+hours?|room|building|course|section|semester|instructor|professor|teacher|email|phone|contact|website|url|copyright|references?)\b/i,
+	/^\s*(?:chapter|unit|module|lesson)\s*[\w.-]+\s*$/i,
+	/^\s*(?:[A-Z]{2,}[A-Z0-9]*-\d{2,}|\d{1,4}[.)])\s*$/,
+];
+
+function isNarrationWorthyLine(line) {
+	const normalizedLine = line.replace(/\s+/g, ' ').trim();
+	if (!normalizedLine || SKIP_LINE_PATTERNS.some((pattern) => pattern.test(normalizedLine))) {
+		return false;
+	}
+
+	const words = normalizedLine.split(/\s+/).filter(Boolean);
+	const metadataMatches = normalizedLine.match(
+		/\b(?:office\s+hours?|room|building|course\s*(?:code|number)?|section|semester|instructor|professor|email|phone|contact|grading|assignment|due|quiz|exam|attendance|copyright|page|slide)\b/gi,
+	) || [];
+	const identifierMatches = normalizedLine.match(/\b(?:[A-Z]{2,}[A-Z0-9]*-\d{2,}|\d{5,}|\S+@\S+)\b/g) || [];
+	const metadataRatio = (metadataMatches.length + identifierMatches.length) / Math.max(words.length, 1);
+
+	if (metadataRatio >= 0.25) {
+		return false;
+	}
+	if (words.length <= 3 && !/[.!?]/.test(normalizedLine)) {
+		return false;
+	}
+	return true;
+}
+
 function cleanSourceText(pdfText) {
-	return pdfText
+	const lines = pdfText
 		.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')
 		.split(/\r?\n/)
 		.map((line) =>
@@ -23,9 +53,11 @@ function cleanSourceText(pdfText) {
 				.replace(/^\s*(?:slide\s*)?\d+(?:\s*of\s*\d+)?\s*[-:]?\s*/i, '')
 				.replace(/^\s*(?:[-*+]|\u2022|\u25AA|\u25E6|\u2023|\d+[.)])\s+/, '')
 				.replace(/\b[A-Z]{2,}[A-Z0-9]*-\d{2,}\b/g, ' ')
-				.replace(/\b(?:office\s+hours?|room\s+\w+|course\s+code|email|grading\s+policy)\b[^.!?]*(?:[.!?]|$)/gi, ' ')
 				.replace(/[^\p{L}\p{N}\s.,!?;:'"()\-/]/gu, ' '),
 		)
+		.filter(isNarrationWorthyLine);
+
+	return lines
 		.join(' ')
 		.replace(/\s+/g, ' ')
 		.trim();
@@ -224,4 +256,10 @@ if (require.main === module) {
 	});
 }
 
-module.exports = { runPipeline, generateVideoScript, cleanSourceText, SCRIPT_SYSTEM_PROMPT };
+module.exports = {
+	runPipeline,
+	generateVideoScript,
+	cleanSourceText,
+	isNarrationWorthyLine,
+	SCRIPT_SYSTEM_PROMPT,
+};
