@@ -237,7 +237,7 @@ function generateExtendedThematicScenes(cleanText) {
 		{
 			sceneNumber: 12,
 			narratorText:
-				'When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build.',
+				'When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build with confidence, clarity, and accountability.',
 			visualPrompt: 'Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails',
 			imageKeyword: 'future technology city',
 		},
