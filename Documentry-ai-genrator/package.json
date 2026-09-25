@@ -1,0 +1,17 @@
+{
+	"name": "documentary-ai-generator",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"build": "tsc --noEmit"
+	},
+	"dependencies": {
+		"react": "^19.3.0",
+		"remotion": "^4.0.529"
+	},
+	"devDependencies": {
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"typescript": "^7.0.2"
+	}
+}
