@@ -7,7 +7,7 @@ export interface Scene {
 	bRollImageUrl: string;
 }
 
-export interface VideoScript {
+export interface VideoScript extends Record<string, unknown> {
 	title: string;
 	clientAvatarUrl: string;
 	talkingHeadVideoUrl?: string;
