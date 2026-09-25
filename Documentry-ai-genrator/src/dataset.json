@@ -100,11 +100,11 @@
   },
   {
     "sceneNumber": 12,
-    "narratorText": "When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build.",
+    "narratorText": "When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build with confidence, clarity, and accountability.",
     "visualPrompt": "Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails",
     "imageKeyword": "future technology city",
     "imageUrl": "https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-12.mp3",
-    "durationInFrames": 426
+    "durationInFrames": 516
   }
 ]
