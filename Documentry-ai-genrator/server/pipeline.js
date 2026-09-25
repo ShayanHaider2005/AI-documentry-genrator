@@ -116,43 +116,89 @@ function createVideoScript(narratorScenes, title = 'Untitled Documentary') {
 	};
 }
 
+function getAiProvider() {
+	if (process.env.GROK_API_KEY || process.env.XAI_API_KEY) {
+		return {
+			name: 'Grok',
+			apiKey: process.env.GROK_API_KEY || process.env.XAI_API_KEY,
+			baseUrl: process.env.GROK_BASE_URL || 'https://api.x.ai/v1/chat/completions',
+			model: process.env.GROK_MODEL || 'grok-3-mini',
+		};
+	}
+	if (process.env.GROQ_API_KEY) {
+		return {
+			name: 'Groq',
+			apiKey: process.env.GROQ_API_KEY,
+			baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
+			model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+		};
+	}
+	if (process.env.OPENAI_API_KEY) {
+		return {
+			name: 'OpenAI-compatible',
+			apiKey: process.env.OPENAI_API_KEY,
+			baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1/chat/completions',
+			model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+		};
+	}
+	return null;
+}
+
+function parseAiJson(content) {
+	const unwrappedContent = String(content || '')
+		.replace(/^```(?:json)?\s*/i, '')
+		.replace(/\s*```$/i, '')
+		.trim();
+	return JSON.parse(unwrappedContent || '{}');
+}
+
+function isValidAiScene(scene) {
+	const narratorText = String(scene?.narratorText || '').trim();
+	const wordCount = narratorText.split(/\s+/).filter(Boolean).length;
+	return wordCount >= 8 && wordCount <= 30 && /[.!?]$/.test(narratorText);
+}
+
 async function requestLlmScript(sourceText) {
-	if (!process.env.OPENAI_API_KEY || typeof fetch !== 'function') {
+	const provider = getAiProvider();
+	if (!provider || typeof fetch !== 'function') {
 		return null;
 	}
 
-	const response = await fetch(
-		process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1/chat/completions',
-		{
-			method: 'POST',
-			headers: {
-				Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-				model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-				temperature: 0.7,
-				response_format: { type: 'json_object' },
-				messages: [
-					{ role: 'system', content: SCRIPT_SYSTEM_PROMPT },
-					{ role: 'user', content: sourceText.slice(0, 30000) },
-				],
-			}),
+	console.log(`[SCRIPT] Asking ${provider.name} to select and narrate the PDF content`);
+	const response = await fetch(provider.baseUrl, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${provider.apiKey}`,
+			'Content-Type': 'application/json',
 		},
-	);
+		body: JSON.stringify({
+			model: provider.model,
+			temperature: 0.7,
+			response_format: { type: 'json_object' },
+			messages: [
+				{ role: 'system', content: SCRIPT_SYSTEM_PROMPT },
+				{
+					role: 'user',
+					content: `Classify the following extracted PDF text. Silently discard anything that is not useful to a listener, then write only the strongest story in scenes.\n\n${sourceText.slice(0, 30000)}`,
+				},
+			],
+		}),
+	});
 	if (!response.ok) {
-		throw new Error(`LLM request failed with HTTP ${response.status}`);
+		const errorBody = await response.text();
+		throw new Error(`${provider.name} request failed with HTTP ${response.status}: ${errorBody.slice(0, 300)}`);
 	}
 
 	const payload = await response.json();
-	const content = payload.choices?.[0]?.message?.content;
-	const parsed = JSON.parse(content || '{}');
-	const scenes = Array.isArray(parsed.scenes)
-		? parsed.scenes
-			.map((scene) => String(scene.narratorText || '').trim())
-			.filter(Boolean)
-		: [];
-	return scenes.length > 0 ? createVideoScript(scenes, parsed.title || undefined) : null;
+	const parsed = parseAiJson(payload.choices?.[0]?.message?.content);
+	const scenes = Array.isArray(parsed.scenes) ? parsed.scenes.filter(isValidAiScene) : [];
+	if (scenes.length === 0) {
+		throw new Error(`${provider.name} returned no valid documentary scenes`);
+	}
+	return createVideoScript(
+		scenes.map((scene) => String(scene.narratorText).trim()),
+		String(parsed.title || 'Untitled Documentary').trim(),
+	);
 }
 
 async function generateVideoScript(pdfText) {
