@@ -17,7 +17,7 @@ async function getAudioDurationInFrames(audioPath) {
 	const metadata = await parseFile(audioPath);
 	const durationInSeconds = metadata.format.duration;
 
-	if (!durationInSeconds || durationInSeconds <= 0) {
+	if (!Number.isFinite(durationInSeconds) || durationInSeconds <= 0) {
 		throw new Error(`Audio duration is unavailable for ${audioPath}`);
 	}
 
