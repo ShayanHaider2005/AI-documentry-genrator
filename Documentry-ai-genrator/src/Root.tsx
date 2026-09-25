@@ -1,31 +1,9 @@
 import { Composition } from 'remotion';
 import { DocumentaryVideo } from './DocumentaryVideo';
 import type { Scene } from './types';
+import generatedScenes from './dataset.json';
 
-const defaultScenes: Scene[] = [
-	{
-		sceneNumber: 1,
-		narratorText:
-			'Every complex software system begins as an abstract architecture, demanding rigorous engineering standards to endure.',
-		visualPrompt: 'Cinematic visual of high-tech digital software architecture',
-		imageKeyword: 'digital software architecture',
-		imageUrl:
-			'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80',
-		audioPath: 'audio/scene-1.mp3',
-		durationInFrames: 210,
-	},
-	{
-		sceneNumber: 2,
-		narratorText:
-			'Quality is not an accidental triumph, but the deliberate outcome of structured testing and continuous verification.',
-		visualPrompt: 'Automated software testing matrix and data flow',
-		imageKeyword: 'software testing matrix',
-		imageUrl:
-			'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80',
-		audioPath: 'audio/scene-2.mp3',
-		durationInFrames: 240,
-	},
-];
+const defaultScenes: Scene[] = generatedScenes;
 
 const totalDurationInFrames = defaultScenes.reduce(
 	(totalDuration, scene) => totalDuration + scene.durationInFrames,
