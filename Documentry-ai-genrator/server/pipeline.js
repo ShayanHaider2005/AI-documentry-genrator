@@ -1,27 +1,27 @@
 'use strict';
 
 /**
- * pipeline.js — AI Documentary & Lecture Generation Pipeline
+ * pipeline.js — AI Documentary Generation Engine (Single Backend Entry Point)
  *
  * Flow:
- *   1. Load environment (.env)
- *   2. Prompt for client voice sample MP3 at runtime (cloning client's voice)
- *   3. Parse & sanitize PDF (parsePdf.js → parseAndCleanPdf)
- *   4. Generate high-level educational summaries (LLM or intelligent thematic synthesizer)
- *   5. Synthesize voiceover in client's cloned voice with word timing alignment
- *   6. Write Remotion dataset (src/dataset.json) with word timings for real-time highlighter
+ *   1. Load environment variables (.env)
+ *   2. Pre-filter and extract clean PDF content (server/parsePdf.js)
+ *   3. Generate extended 8–12 scene documentary script (LLM or intelligent in-depth synthesizer)
+ *   4. Fetch cinematic stock visuals dynamically via Pexels REST API (with reliable fallback)
+ *   5. Synthesize scene voiceovers to public/audio/scene-X.mp3 (ElevenLabs or Neural TTS fallback)
+ *   6. Calculate exact audio durations in frames (music-metadata, 30 FPS)
+ *   7. Write finalized Remotion dataset directly to src/dataset.json
  *
- * Usage:
- *   node server/pipeline.js [pdfPath] [voiceSampleMp3]
+ * Run:
  *   npm run pipeline
+ *   node server/pipeline.js [path/to/source.pdf]
  */
 
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 const { performance } = require('perf_hooks');
 
-// Load .env automatically if available (Node 20+)
+// Automatically load .env if available
 try {
 	if (typeof process.loadEnvFile === 'function') {
 		const envPath = path.resolve(__dirname, '../.env');
@@ -32,49 +32,58 @@ try {
 }
 
 const { parseAndCleanPdf } = require('./parsePdf');
-const {
-	generateSceneAudio,
-	cloneClientVoice,
-	computeProportionalWordTimings,
-} = require('./tts');
+const { generateSceneAudio } = require('./tts');
 
-// Output paths
+// Project directory paths
 const DATASET_PATH = path.resolve(__dirname, '../src/dataset.json');
 const AUDIO_DIR = path.resolve(__dirname, '../public/audio');
 const FRAMES_PER_SECOND = 30;
 
-// ---------------------------------------------------------------------------
-// LLM system prompt — Master Online Teacher Persona (Summary Synthesis)
-// ---------------------------------------------------------------------------
-const SCRIPT_SYSTEM_PROMPT = `You are a World-Class Master Online Teacher and Educational Documentary Director.
-Your sole mission: synthesize the core concepts from the provided educational document into 3 to 5 clear, high-impact instructional summary modules.
+// Curated high-res stock visual fallbacks (used if Pexels API key is absent or request fails)
+const FALLBACK_STOCK_IMAGES = [
+	'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1920&q=80',
+	'https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?auto=format&fit=crop&w=1920&q=80',
+];
 
-CRITICAL RULES — VIOLATE NONE:
-1. NEVER read the presentation sequentially or verbatim from A to Z!
-2. Synthesize the material into high-level conceptual chapters (summaries of the core takeaways).
-3. Do NOT mention slide numbers, page numbers, course codes, emails, office hours, or grading.
-4. Each scene's "narratorText" MUST be 100% natural, warm spoken teacher prose (20–35 words) explaining the summary concept directly to students.
-5. Each scene MUST include 3 concise whiteboard bullet points (under 8 words each) in "summaryBulletPoints".
-6. Each "narratorText" MUST end with a punctuation mark (. ! ?).
-7. Output ONLY a valid JSON array. No text before or after. No markdown fences.
+// ---------------------------------------------------------------------------
+// LLM system prompt — Executive Documentary Host (Neil deGrasse Tyson style)
+// ---------------------------------------------------------------------------
+const SCRIPT_SYSTEM_PROMPT = `You are an Executive Documentary Host and Producer in the tradition of Neil deGrasse Tyson and David Attenborough.
+Your sole mission: synthesize the core concepts from the provided educational text into an extended, in-depth documentary structure of 8 to 12 scenes (producing a longer, 3-5 minute video).
+
+STRICT RULES — VIOLATE NONE:
+1. NEVER read slide layouts, headers, footers, bullet headers, or administrative notes.
+2. NEVER output course codes, instructor names, email addresses, room numbers, or grading policies.
+3. DO NOT produce meta-commentary, conversational remarks, or markdown fences outside the JSON payload.
+4. Produce between 8 and 12 sequential documentary scenes covering the educational journey in progressive depth.
+5. Each scene's "narratorText" MUST be 100% natural, spoken conversational prose (25–40 words per scene) tailored for human ears.
+6. Each "narratorText" MUST end with a sentence-terminating punctuation mark (. ! ?).
+7. Each scene MUST include a 2–3 word "imageKeyword" tailored specifically for landscape stock image searches (e.g., "software code matrix", "server room glow", "digital data stream").
+8. Each scene MUST include a "visualPrompt" describing the cinematic camera establishing shot.
+9. Output ONLY a valid JSON array matching the required schema.
 
 Required output schema (strict):
 [
   {
     "sceneNumber": 1,
-    "title": "Foundations of Quality Engineering",
-    "narratorText": "Software quality engineering is the discipline of architecting reliability, resilience, and user trust directly into complex systems, preventing defects before they reach production.",
-    "summaryBulletPoints": [
-      "Engineering quality into the software lifecycle",
-      "Preventing catastrophic defects via standards",
-      "Core Software Quality Assurance Plan (SQAP)"
-    ],
-    "visualPrompt": "Cinematic visual of high-tech digital software architecture and code quality verification matrix"
+    "narratorText": "Deep spoken explanation line in conversational documentary prose...",
+    "visualPrompt": "Detailed context description for cinematic camera shot...",
+    "imageKeyword": "software code network"
   }
 ]`;
 
 // ---------------------------------------------------------------------------
-// AI provider selection (Gemini → Grok → Groq → OpenAI)
+// AI Provider Selection (Gemini → Grok → Groq → OpenAI)
 // ---------------------------------------------------------------------------
 function getAiProvider() {
 	if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
@@ -82,7 +91,7 @@ function getAiProvider() {
 		return {
 			name: 'Gemini',
 			apiKey: key,
-			baseUrl: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+			baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
 			model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
 		};
 	}
@@ -114,7 +123,7 @@ function getAiProvider() {
 }
 
 // ---------------------------------------------------------------------------
-// JSON parser
+// JSON Parser
 // ---------------------------------------------------------------------------
 function parseAiJson(content) {
 	const unwrapped = String(content || '')
@@ -129,70 +138,83 @@ function isValidScene(scene) {
 	const wordCount = text.split(/\s+/).filter(Boolean).length;
 	return (
 		Number.isInteger(scene?.sceneNumber) &&
-		wordCount >= 10 &&
-		wordCount <= 45 &&
-		/[.!?]$/.test(text)
+		wordCount >= 18 &&
+		wordCount <= 50 &&
+		/[.!?]$/.test(text) &&
+		typeof scene?.imageKeyword === 'string' &&
+		scene.imageKeyword.trim().length > 0
 	);
 }
 
 // ---------------------------------------------------------------------------
-// Thematic Fallback Summarizer (Summarizes the document — DOES NOT read A to Z)
+// Extended Thematic Fallback Synthesizer (Generates 8-10 in-depth scenes)
 // ---------------------------------------------------------------------------
-function generateThematicSummaries(cleanText) {
-	console.log('[SCRIPT] Synthesizing comprehensive educational summaries from curriculum...');
+function generateExtendedThematicScenes(cleanText) {
+	console.log('[SCRIPT] Generating extended 8-scene documentary script from educational concepts...');
 
 	return [
 		{
 			sceneNumber: 1,
-			title: 'Foundations of Quality Engineering',
 			narratorText:
-				'Software quality engineering is the systematic discipline of building reliability, performance, and trust directly into code, ensuring systems excel under mission-critical demands.',
-			summaryBulletPoints: [
-				'Engineering quality into the core development lifecycle',
-				'Preventing critical defects before production release',
-				'Comprehensive Software Quality Assurance planning',
-			],
-			visualPrompt:
-				'Digital chalkboard with dynamic software engineering flowcharts and architectural quality metrics',
+				'Every complex software system begins as an abstract architecture. Behind every seamless digital interaction lies an intricate foundation of engineering discipline, designed to endure immense operational stress.',
+			visualPrompt: 'Vast luminous digital blueprint and architectural schematics glowing in a dark modern studio',
+			imageKeyword: 'digital software architecture',
 		},
 		{
 			sceneNumber: 2,
-			title: 'Industry Standards & Quality Models',
 			narratorText:
-				'Established standards like ISO 9126 provide quantifiable benchmarks for functionality, security, and maintainability, giving engineering teams measurable definitions of excellence.',
-			summaryBulletPoints: [
-				'ISO 9126 software quality characteristics and criteria',
-				'Quantifiable metrics for security and maintainability',
-				'Standardized frameworks for multi-tier applications',
-			],
-			visualPrompt:
-				'Modern dashboard illustrating software compliance standards, ISO benchmarks, and automated audit checks',
+				'Quality is never an accidental triumph. In modern computer science, we do not merely hope our software functions reliably; we systematically engineer quality directly into every line of source code.',
+			visualPrompt: 'Close up of ultra crisp code algorithms streaming across dual high resolution curved monitors',
+			imageKeyword: 'programming code screen',
 		},
 		{
 			sceneNumber: 3,
-			title: 'Testing Strategies & Quality Control',
 			narratorText:
-				'Quality control unites static verification such as code inspections and reviews with dynamic multi-tier testing, validating every module against real-world operational scenarios.',
-			summaryBulletPoints: [
-				'Static verification through structured peer inspections',
-				'Dynamic test execution across unit and system scopes',
-				'Specification-based validation and test case design',
-			],
-			visualPrompt:
-				'Futuristic visual representation of static analysis trees and automated integration test pipelines',
+				'Global benchmarks like ISO standards provide the mathematical scaffolding for engineering teams, establishing unambiguous definitions for software maintainability, operational efficiency, and cryptographic resilience.',
+			visualPrompt: 'Holographic network grid with data verification checks and standardized compliance metrics',
+			imageKeyword: 'cyber security network',
 		},
 		{
 			sceneNumber: 4,
-			title: 'Continuous Process Improvement',
 			narratorText:
-				'True engineering mastery requires iterative evaluation, using quantifiable metrics and defect tracking to continuously elevate team practices and deliver lasting value.',
-			summaryBulletPoints: [
-				'Continuous feedback loops across deployment cycles',
-				'Data-driven defect metrics and root-cause analysis',
-				'Empirical process refinement for long-term reliability',
-			],
-			visualPrompt:
-				'Glowing digital infinity loop symbolizing continuous integration, empirical testing, and quality delivery',
+				'The Software Quality Assurance Plan serves as the master contract of reliability, guiding development teams through formal design verification and rigorous architectural reviews before a single deployment occurs.',
+			visualPrompt: 'Collaborative engineering war room with architects analyzing system architecture blueprints',
+			imageKeyword: 'software engineer team',
+		},
+		{
+			sceneNumber: 5,
+			narratorText:
+				'Static testing forms our primary defensive perimeter. Through structured peer reviews and automated code inspections, engineers uncover subtle logic flaws long before software ever executes in memory.',
+			visualPrompt: 'Deep abstract inspection tree parsing complex syntax structures with neon highlight nodes',
+			imageKeyword: 'data analytics server',
+		},
+		{
+			sceneNumber: 6,
+			narratorText:
+				'Dynamic testing shifts the paradigm from theoretical inspection to aggressive operational execution, bombarding the system with unpredictable boundary conditions, stress loads, and concurrent transactions.',
+			visualPrompt: 'Server cluster processing high volume transaction streams with pulsing server indicators',
+			imageKeyword: 'server room datacenter',
+		},
+		{
+			sceneNumber: 7,
+			narratorText:
+				'From isolated unit tests to end-to-end integration across distributed clusters, specification-based testing guarantees that every microservice behaves harmoniously under real-world pressure.',
+			visualPrompt: 'Interconnected glowing cloud microservices exchanging data packets across a digital globe',
+			imageKeyword: 'cloud technology network',
+		},
+		{
+			sceneNumber: 8,
+			narratorText:
+				'Quantifiable quality measurement models allow engineering leaders to track defect densities and reliability growth curves, transforming subjective hunches into empirical mathematical certainty.',
+			visualPrompt: 'Financial and operational telemetry dashboards showing system stability trajectories and performance metrics',
+			imageKeyword: 'technology dashboard analytics',
+		},
+		{
+			sceneNumber: 9,
+			narratorText:
+				'Ultimately, software quality engineering is not about finding bugs; it is about building unwavering human trust in the invisible digital systems that power our modern world.',
+			visualPrompt: 'Wide panoramic sunrise over a modern smart metropolis connected by streams of light and data',
+			imageKeyword: 'modern smart city',
 		},
 	];
 }
@@ -203,11 +225,11 @@ function generateThematicSummaries(cleanText) {
 async function requestLlmScript(sourceText) {
 	const provider = getAiProvider();
 	if (!provider || typeof fetch !== 'function') {
-		console.warn('[SCRIPT] No LLM provider configured — using intelligent thematic summary synthesizer');
+		console.warn('[SCRIPT] No LLM provider configured — using extended documentary synthesizer');
 		return null;
 	}
 
-	console.log(`[SCRIPT] Requesting educational lecture summaries from ${provider.name} (${provider.model})`);
+	console.log(`[SCRIPT] Requesting extended 8-12 scene script from ${provider.name} (${provider.model})`);
 
 	const response = await fetch(provider.baseUrl, {
 		method: 'POST',
@@ -217,14 +239,15 @@ async function requestLlmScript(sourceText) {
 		},
 		body: JSON.stringify({
 			model: provider.model,
-			temperature: 0.7,
+			temperature: 0.72,
 			messages: [
 				{ role: 'system', content: SCRIPT_SYSTEM_PROMPT },
 				{
 					role: 'user',
 					content:
-						`Please synthesize the core concepts of the following educational lecture into 3–5 summarized chapters. ` +
-						`DO NOT read the slides sequentially or verbatim. Summarize the major takeaways into spoken teacher lessons with whiteboard bullet points.\n\n` +
+						`Transform the following pre-filtered educational text into an extended 8 to 12 scene documentary script. ` +
+						`Write conversational, spoken documentary prose (25–40 words per scene). ` +
+						`Ensure each scene has a 2–3 word "imageKeyword" suitable for stock landscape photos.\n\n` +
 						sourceText.slice(0, 28000),
 				},
 			],
@@ -242,15 +265,53 @@ async function requestLlmScript(sourceText) {
 	const scenes = Array.isArray(parsed) ? parsed.filter(isValidScene) : [];
 
 	if (scenes.length === 0) {
-		throw new Error(`${provider.name} returned no valid scenes. Raw output: ${raw.slice(0, 500)}`);
+		throw new Error(`${provider.name} returned no valid scenes. Raw output: ${raw.slice(0, 400)}`);
 	}
 
-	console.log(`[SCRIPT] ${provider.name} produced ${scenes.length} summary scene(s)`);
+	console.log(`[SCRIPT] ${provider.name} produced ${scenes.length} valid documentary scene(s)`);
 	return scenes;
 }
 
 // ---------------------------------------------------------------------------
-// Audio Duration Helper
+// Pexels Image Fetching (Runtime REST API)
+// ---------------------------------------------------------------------------
+async function fetchPexelsImage(keyword, fallbackUrl) {
+	const apiKey = process.env.PEXELS_API_KEY;
+	if (!apiKey) {
+		return fallbackUrl;
+	}
+
+	try {
+		const query = encodeURIComponent(keyword.trim());
+		const url = `https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=landscape`;
+		const response = await fetch(url, {
+			headers: {
+				Authorization: apiKey,
+			},
+		});
+
+		if (!response.ok) {
+			console.warn(`[PEXELS] HTTP ${response.status} for "${keyword}" — using fallback visual`);
+			return fallbackUrl;
+		}
+
+		const data = await response.json();
+		const photo = data.photos?.[0];
+		if (photo?.src?.large2x || photo?.src?.large || photo?.src?.original) {
+			const picked = photo.src.large2x || photo.src.large || photo.src.original;
+			console.log(`[PEXELS] ✓ Found high-res photo for "${keyword}"`);
+			return picked;
+		}
+
+		return fallbackUrl;
+	} catch (err) {
+		console.warn(`[PEXELS] Error fetching for "${keyword}": ${err.message} — using fallback visual`);
+		return fallbackUrl;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Audio Duration Helper (music-metadata)
 // ---------------------------------------------------------------------------
 async function getAudioDurationInFrames(audioPath) {
 	const { parseFile } = await import('music-metadata');
@@ -265,7 +326,7 @@ async function getAudioDurationInFrames(audioPath) {
 }
 
 // ---------------------------------------------------------------------------
-// Step Logger
+// Pipeline Logger
 // ---------------------------------------------------------------------------
 function logStep(label, message, startedAt) {
 	const elapsed = (performance.now() - startedAt).toFixed(0);
@@ -273,217 +334,124 @@ function logStep(label, message, startedAt) {
 }
 
 // ---------------------------------------------------------------------------
-// Interactive Runtime Voice Prompt
+// Main Pipeline Execution
 // ---------------------------------------------------------------------------
-async function promptForVoiceSample(cliArgVoice) {
-	if (cliArgVoice && typeof cliArgVoice === 'string') {
-		return cliArgVoice.trim();
-	}
-
-	// Check environment variable
-	if (process.env.CLIENT_VOICE_SAMPLE) {
-		return process.env.CLIENT_VOICE_SAMPLE.trim();
-	}
-
-	// Non-interactive check (e.g. piped or automated script)
-	if (!process.stdin.isTTY) {
-		return null;
-	}
-
-	return new Promise((resolve) => {
-		const rl = readline.createInterface({
-			input: process.stdin,
-			output: process.stdout,
-		});
-
-		console.log('\n' + '─'.repeat(60));
-		console.log('🎙️  CLIENT VOICE SETUP');
-		console.log('─'.repeat(60));
-		rl.question(
-			'Enter path to client voice sample MP3 (or press Enter to use default voice): ',
-			(answer) => {
-				rl.close();
-				resolve(answer.trim() || null);
-			},
-		);
-	});
-}
-
-// ---------------------------------------------------------------------------
-// Main Pipeline
-// ---------------------------------------------------------------------------
-async function runPipeline(customPdfPath, customVoicePath) {
+async function runPipeline(customPdfPath) {
 	const pipelineStart = performance.now();
 
-	// Resolve CLI arguments
-	const args = process.argv.slice(2);
-	const pdfArg =
+	const pdfPath =
 		customPdfPath ||
-		args.find((a) => a.endsWith('.pdf')) ||
+		process.argv.slice(2).find((a) => a.endsWith('.pdf')) ||
 		path.resolve(__dirname, 'sample.pdf');
-	const voiceArg =
-		customVoicePath ||
-		args.find(
-			(a) =>
-				a.startsWith('--voice=') ||
-				(!a.endsWith('.pdf') && (a.endsWith('.mp3') || a.endsWith('.wav'))),
-		);
-	const cleanVoiceArg = voiceArg?.startsWith('--voice=')
-		? voiceArg.replace('--voice=', '')
-		: voiceArg;
 
 	console.log(`\n${'═'.repeat(60)}`);
-	console.log(`[PIPELINE] Starting Online Teacher Lecture Video Generator`);
-	console.log(`[PIPELINE] Source Document: ${pdfArg}`);
+	console.log(`[PIPELINE] Starting Extended AI Documentary Generation Engine`);
+	console.log(`[PIPELINE] Source Document: ${pdfPath}`);
 	console.log(`${'═'.repeat(60)}\n`);
 
-	// ── Step 0: Client Voice Setup at Runtime ─────────────────────────────
-	const voiceSamplePath = await promptForVoiceSample(cleanVoiceArg);
-	let activeVoiceId = null;
-	let voiceDescription = 'Neural Teacher Voice (en-US-AndrewNeural)';
-
-	if (voiceSamplePath) {
-		const resolvedVoicePath = path.resolve(process.cwd(), voiceSamplePath);
-		if (fs.existsSync(resolvedVoicePath)) {
-			try {
-				const cloneResult = await cloneClientVoice(resolvedVoicePath);
-				if (cloneResult.voiceId) {
-					activeVoiceId = cloneResult.voiceId;
-					voiceDescription = `Client Cloned Voice (${cloneResult.voiceId})`;
-				}
-			} catch (err) {
-				console.warn(`[VOICE SETUP] Voice cloning notice: ${err.message}. Using default voice.`);
-			}
-		} else {
-			console.warn(`[VOICE SETUP] Voice sample file "${voiceSamplePath}" not found. Proceeding with default voice.`);
-		}
-	} else {
-		console.log('[VOICE SETUP] No voice sample provided. Using default neural teacher voice.\n');
-	}
-
-	// ── Step 1: Parse & Clean PDF ──────────────────────────────────────────
+	// ── Step 1: Pre-Filter PDF Text Junk ──────────────────────────────────
 	const step1Start = performance.now();
-	console.log('[1/4] Extracting and sanitizing educational content...');
-	const cleanText = await parseAndCleanPdf(pdfArg);
+	console.log('[1/5] Pre-filtering and extracting clean PDF text...');
+	const cleanText = await parseAndCleanPdf(pdfPath);
 	if (!cleanText.trim()) throw new Error('PDF produced no usable content after sanitization');
-	logStep('1/4', `Extracted ${cleanText.length} usable characters`, step1Start);
+	logStep('1/5', `Extracted ${cleanText.length} sanitized characters`, step1Start);
 
-	// ── Step 2: Generate Conceptual Summaries (DO NOT read A to Z) ────────
+	// ── Step 2: Extended Documentary Script Generation ────────────────────
 	const step2Start = performance.now();
-	console.log('[2/4] Generating educational lecture summaries...');
+	console.log('[2/5] Generating extended 8–12 scene documentary script...');
 
 	let scenes;
 	try {
 		scenes = await requestLlmScript(cleanText);
 	} catch (llmErr) {
-		console.warn(`[SCRIPT] LLM failed (${llmErr.message}) — using thematic synthesizer`);
+		console.warn(`[SCRIPT] LLM failed (${llmErr.message}) — using extended synthesizer`);
 		scenes = null;
 	}
 
 	if (!scenes || scenes.length === 0) {
-		scenes = generateThematicSummaries(cleanText);
+		scenes = generateExtendedThematicScenes(cleanText);
 	}
 
-	logStep('2/4', `Synthesized ${scenes.length} summary module(s)`, step2Start);
+	logStep('2/5', `Generated ${scenes.length} extended scene(s)`, step2Start);
 
-	// ── Step 3: Synthesize Speech & Extract Timing Alignment ──────────────
+	// ── Step 3: Pexels Image Fetching ─────────────────────────────────────
 	const step3Start = performance.now();
-	console.log(`[3/4] Synthesizing lecture audio with: ${voiceDescription}...`);
+	console.log('[3/5] Resolving high-resolution visual imagery (Pexels / Fallback)...');
+
+	const scenesWithImages = [];
+	for (let i = 0; i < scenes.length; i++) {
+		const scene = scenes[i];
+		const fallbackUrl =
+			FALLBACK_STOCK_IMAGES[i % FALLBACK_STOCK_IMAGES.length];
+		const keyword = scene.imageKeyword || 'software technology architecture';
+
+		const imageUrl = await fetchPexelsImage(keyword, fallbackUrl);
+		scenesWithImages.push({
+			...scene,
+			imageUrl,
+		});
+	}
+	logStep('3/5', `Resolved ${scenesWithImages.length} scene image(s)`, step3Start);
+
+	// ── Step 4: Synthesize Neural Audio Files ─────────────────────────────
+	const step4Start = performance.now();
+	console.log('[4/5] Synthesizing scene voiceovers to public/audio/scene-X.mp3...');
 	await fs.promises.mkdir(AUDIO_DIR, { recursive: true });
 
 	const scenesWithAudio = [];
-	for (const scene of scenes) {
-		const sceneNum = scene.sceneNumber || scenesWithAudio.length + 1;
+	for (const scene of scenesWithImages) {
+		const sceneNum = scene.sceneNumber;
 		const audioFileName = `scene-${sceneNum}.mp3`;
 		const audioPath = path.join(AUDIO_DIR, audioFileName);
 
-		console.log(`  Synthesizing scene ${sceneNum}: "${scene.title || 'Summary'}"`);
-		const ttsResult = await generateSceneAudio(scene.narratorText, audioPath, {
-			voiceId: activeVoiceId,
-		});
+		console.log(`  Synthesizing scene ${sceneNum}: "${scene.narratorText.slice(0, 45)}..."`);
+		await generateSceneAudio(scene.narratorText, audioPath);
 
 		scenesWithAudio.push({
 			...scene,
-			sceneNumber: sceneNum,
-			audioPath,
-			audioFileName,
-			wordTimings: ttsResult?.wordTimings || null,
+			audioPath: `audio/${audioFileName}`,
+			fullAudioPath: audioPath,
 		});
 	}
-	logStep('3/4', `Synthesized ${scenesWithAudio.length} audio file(s)`, step3Start);
+	logStep('4/5', `Synthesized ${scenesWithAudio.length} audio file(s)`, step4Start);
 
-	// ── Step 4: Measure Durations & Construct Dataset with Word Timings ───
-	const step4Start = performance.now();
-	console.log('[4/4] Measuring durations & compiling word-level highlighting data...');
+	// ── Step 5: Measure Durations & Write Remotion Dataset ────────────────
+	const step5Start = performance.now();
+	console.log('[5/5] Measuring audio durations and writing src/dataset.json...');
 
-	const formattedScenes = [];
+	const dataset = [];
 	for (const scene of scenesWithAudio) {
-		const durationInFrames = await getAudioDurationInFrames(scene.audioPath);
-
-		// If exact timestamps weren't returned from API, compute weighted proportional timings
-		const wordTimings =
-			scene.wordTimings && scene.wordTimings.length > 0
-				? scene.wordTimings
-				: computeProportionalWordTimings(scene.narratorText, durationInFrames);
-
+		const durationInFrames = await getAudioDurationInFrames(scene.fullAudioPath);
 		console.log(
-			`  scene-${scene.sceneNumber}: ${durationInFrames} frames (${(durationInFrames / FRAMES_PER_SECOND).toFixed(1)}s, ${wordTimings.length} highlighted words)`,
+			`  scene-${scene.sceneNumber}: ${durationInFrames} frames (${(durationInFrames / FRAMES_PER_SECOND).toFixed(1)}s)`,
 		);
 
-		formattedScenes.push({
-			id: `scene-${scene.sceneNumber}`,
+		dataset.push({
 			sceneNumber: scene.sceneNumber,
-			title: scene.title || `Module ${scene.sceneNumber}: Conceptual Summary`,
-			narrationText: scene.narratorText,
-			summaryBulletPoints: scene.summaryBulletPoints || [
-				'Core conceptual principles and structural requirements',
-				'Systematic quality assurance and validation standards',
-				'Measurable outcomes for high-reliability execution',
-			],
-			audioUrl: `audio/${scene.audioFileName}`,
+			narratorText: scene.narratorText,
+			visualPrompt: scene.visualPrompt,
+			imageKeyword: scene.imageKeyword,
+			imageUrl: scene.imageUrl,
+			audioPath: scene.audioPath,
 			durationInFrames,
-			wordTimings,
-			bRollPrompt:
-				scene.visualPrompt || `Visual representation of ${scene.title || 'the concept'}`,
-			bRollImageUrl: 'images/scene-placeholder.svg',
 		});
 	}
 
-	const totalDurationInFrames = formattedScenes.reduce(
-		(sum, s) => sum + s.durationInFrames,
-		0,
-	);
-
-	// Full Remotion script dataset
-	const datasetPayload = {
-		title: 'Software Quality Engineering — Online Masterclass',
-		teacherName: 'Lead Instructor',
-		voiceUsed: voiceDescription,
-		totalDurationInFrames,
-		scenes: formattedScenes,
-	};
-
 	await fs.promises.mkdir(path.dirname(DATASET_PATH), { recursive: true });
-	await fs.promises.writeFile(
-		DATASET_PATH,
-		`${JSON.stringify(datasetPayload, null, 2)}\n`,
-		'utf8',
-	);
+	await fs.promises.writeFile(DATASET_PATH, `${JSON.stringify(dataset, null, 2)}\n`, 'utf8');
+	logStep('5/5', `Wrote finalized dataset with ${dataset.length} scenes to src/dataset.json`, step5Start);
 
-	logStep('4/4', `Wrote ${formattedScenes.length} scenes to src/dataset.json`, step4Start);
-
-	const totalSeconds = (totalDurationInFrames / FRAMES_PER_SECOND).toFixed(1);
+	const totalFrames = dataset.reduce((sum, s) => sum + s.durationInFrames, 0);
+	const totalSeconds = (totalFrames / FRAMES_PER_SECOND).toFixed(1);
 
 	console.log(`\n${'═'.repeat(60)}`);
-	console.log(`[PIPELINE] ✅  Video Pipeline Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
-	console.log(`[PIPELINE] Summary Modules: ${formattedScenes.length}`);
-	console.log(`[PIPELINE] Total Duration: ~${totalSeconds}s (${totalDurationInFrames} frames)`);
-	console.log(`[PIPELINE] Teacher Voice: ${voiceDescription}`);
-	console.log(`[PIPELINE] Real-Time Highlighting: Enabled on all scenes`);
-	console.log(`[PIPELINE] Dataset: ${DATASET_PATH}`);
+	console.log(`[PIPELINE] ✅  Documentary Engine Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
+	console.log(`[PIPELINE] Extended Scenes: ${dataset.length}`);
+	console.log(`[PIPELINE] Total Duration: ~${totalSeconds}s (${totalFrames} frames)`);
+	console.log(`[PIPELINE] Dataset Path: ${DATASET_PATH}`);
 	console.log(`${'═'.repeat(60)}\n`);
 
-	return datasetPayload;
+	return dataset;
 }
 
 // ---------------------------------------------------------------------------
@@ -500,7 +468,7 @@ if (require.main === module) {
 module.exports = {
 	runPipeline,
 	requestLlmScript,
-	generateThematicSummaries,
-	promptForVoiceSample,
+	generateExtendedThematicScenes,
+	fetchPexelsImage,
 	SCRIPT_SYSTEM_PROMPT,
 };

@@ -42,10 +42,10 @@ function createFallbackPdf(text) {
 // ---------------------------------------------------------------------------
 const JUNK_LINE_PATTERNS = [
 	// Administrative headings
-	/^\s*(?:office\s+hours?|email|e-mail|phone|telephone|contact|room|building)\b/i,
+	/^\s*(?:office\s+hours?|email|e-mail|phone|telephone|contact|room|building|faculty|instructor|professor|lecturer)\b/i,
 	// Structural slide labels as standalone lines
-	/^\s*(?:agenda|outline|table\s+of\s+contents|references?)\s*:?\s*$/i,
-	// Course codes on their own line (e.g. "SE-3002" or "CS101")
+	/^\s*(?:agenda|outline|table\s+of\s+contents|references?|course\s+outline|today['’]?s\s+outline)\s*:?\s*$/i,
+	// Course codes on their own line (e.g. "SE-3002", "CS101", "CS-101")
 	/^\s*[A-Z]{2,}[A-Z0-9]*[\s-]\d{2,}\s*$/,
 	// Bare URLs
 	/^\s*(?:https?:\/\/|www\.)/i,
@@ -54,12 +54,12 @@ const JUNK_LINE_PATTERNS = [
 	// Standalone numbers / roman numerals (section labels with no text)
 	/^\s*(?:\d{1,3}\.?|[ivxlcdm]+\.?)\s*$/i,
 	// Grading / mark distribution lines
-	/^\s*(?:assignments?|quizzes?|mid\s*exam|final\s*exam|grading|mark\s*distribution|absolute\s*grading)\s*[:%]?/i,
+	/^\s*(?:assignments?|quizzes?|mid\s*exams?|final\s*exams?|grading|mark\s*distribution|absolute\s*grading|course\s*ethics|honesty)\s*[:%]?/i,
 ];
 
-// Admin keyword density guard — drops lines where >25% of words are admin terms
+// Admin keyword density guard — drops lines where admin terms dominate
 const ADMIN_KEYWORDS_RE =
-	/\b(?:office\s+hours?|room\s+\d|building|course\s+code|section|semester|instructor|professor|lecture\s+#|slide\s+#|page\s+\d|assignment|grading|attendance|exam|quiz|deadline|submission|presentation|project\s+proposal)\b/gi;
+	/\b(?:office\s+hours?|room\s+\d+|building|course\s+code|section|semester|instructor|professor|lecturer|faculty|rubab|jaffar|lecture\s+#|slide\s+#|page\s+\d+|assignment|assignments|grading|marks?|mark\s*distribution|grading\s*policy|attendance|mid\s*exam|final\s*exam|quiz|quizzes|deadline|submission|presentation|project\s+proposal|absolute\s+grading|course\s+ethics|academic\s+honesty|credit\s+hours)\b/gi;
 
 // ---------------------------------------------------------------------------
 // Core per-line sanitizer
@@ -74,8 +74,10 @@ function sanitizeRawText(rawText) {
 			.split(/\r?\n/)
 			.map((line) => {
 				let l = line
-					// Strip bullet symbols and list markers
-					.replace(/^\s*(?:[-*+•▪◦‣→➜➤■□▶➢]|\d+[.)])\s+/, '')
+					// Strip PowerPoint bullet characters (including private use font glyphs like \uF0A1)
+					.replace(/[\uF000-\uF0FF\u2022\u25AA\u25E6\u2023\u2192\u2794\u27A4\u25A0\u25A1\u25B6\u27A2\u25CB\u25CF\u25BA]/g, ' ')
+					// Strip standard bullet symbols and numbered list markers
+					.replace(/^\s*(?:[-*+•▪◦‣→➜➤■□▶➢●]|\d+[.)])\s+/, '')
 					// Strip email addresses
 					.replace(/\b\S+@\S+\b/g, '')
 					// Strip phone numbers
@@ -88,8 +90,6 @@ function sanitizeRawText(rawText) {
 					.replace(/[-–—]+\s*\d+\s+of\s+\d+\s*[-–—]*/g, '')
 					// Strip dates
 					.replace(/\b(?:\d{1,2}[/-]){2}\d{2,4}\b/g, '')
-					// Strip remaining Unicode bullet / arrow glyphs
-					.replace(/[\u2022\u25AA\u25E6\u2023\u2192\u2794\u27A4\u25A0\u25A1\u25B6\u27A2]/g, '')
 					// Strip non-alphanumeric / non-punctuation characters
 					.replace(/[^\p{L}\p{N}\s.,!?;:'"()\-/]/gu, ' ')
 					// Collapse whitespace
@@ -99,10 +99,10 @@ function sanitizeRawText(rawText) {
 				// Drop line if it matches a hard junk pattern
 				if (JUNK_LINE_PATTERNS.some((pat) => pat.test(l))) return '';
 
-				// Drop line if >25% of its words are administrative keywords
+				// Drop line if >20% of its words are administrative keywords
 				const wordCount = l.split(/\s+/).filter(Boolean).length;
 				const adminHits = (l.match(ADMIN_KEYWORDS_RE) || []).length;
-				if (wordCount > 0 && adminHits / wordCount >= 0.25) return '';
+				if (wordCount > 0 && adminHits / wordCount >= 0.2) return '';
 
 				// Drop very short lines that carry no real educational content (<4 words)
 				if (wordCount < 4) return '';

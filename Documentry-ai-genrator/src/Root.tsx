@@ -1,40 +1,36 @@
 import { Composition } from 'remotion';
 import { DocumentaryVideo } from './DocumentaryVideo';
-import type { DocumentaryProps } from './types';
+import type { Scene } from './types';
 
-const sampleProps: DocumentaryProps = {
-	title: 'The Story of Our Coastline',
-	clientAvatarUrl: 'https://images.unsplash.com/photo-1500534623283-312aade485b7',
-	talkingHeadVideoUrl: undefined,
-	totalDurationInFrames: 0,
-	scenes: [
-		{
-			id: 'coastline-introduction',
-			narrationText: 'Every coastline carries a history shaped by wind, water, and time.',
-			audioUrl: 'audio/scene-1.mp3',
-			durationInFrames: 150,
-			bRollPrompt: 'A wide cinematic view of a rugged coastline at sunrise',
-			bRollImageUrl:
-				'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1920&q=80',
-		},
-		{
-			id: 'coastline-community',
-			narrationText: 'For generations, communities have built their lives around this changing edge.',
-			audioUrl: 'audio/scene-2.mp3',
-			durationInFrames: 180,
-			bRollPrompt: 'A fishing village beside calm blue water in soft afternoon light',
-			bRollImageUrl:
-				'https://images.unsplash.com/photo-1498623116890-37e912163d5d?auto=format&fit=crop&w=1920&q=80',
-		},
-	],
-};
+const defaultScenes: Scene[] = [
+	{
+		sceneNumber: 1,
+		narratorText:
+			'Every complex software system begins as an abstract architecture, demanding rigorous engineering standards to endure.',
+		visualPrompt: 'Cinematic visual of high-tech digital software architecture',
+		imageKeyword: 'digital software architecture',
+		imageUrl:
+			'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80',
+		audioPath: 'audio/scene-1.mp3',
+		durationInFrames: 210,
+	},
+	{
+		sceneNumber: 2,
+		narratorText:
+			'Quality is not an accidental triumph, but the deliberate outcome of structured testing and continuous verification.',
+		visualPrompt: 'Automated software testing matrix and data flow',
+		imageKeyword: 'software testing matrix',
+		imageUrl:
+			'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80',
+		audioPath: 'audio/scene-2.mp3',
+		durationInFrames: 240,
+	},
+];
 
-const totalDurationInFrames = sampleProps.scenes.reduce(
+const totalDurationInFrames = defaultScenes.reduce(
 	(totalDuration, scene) => totalDuration + scene.durationInFrames,
 	0,
 );
-
-sampleProps.totalDurationInFrames = totalDurationInFrames;
 
 export const RemotionRoot = () => {
 	return (
@@ -45,19 +41,20 @@ export const RemotionRoot = () => {
 			width={1920}
 			height={1080}
 			durationInFrames={Math.max(1, totalDurationInFrames)}
-			defaultProps={sampleProps}
+			defaultProps={defaultScenes}
 			calculateMetadata={({ props }: { props: any }) => {
-				const scenes = Array.isArray(props)
+				const scenes: Scene[] = Array.isArray(props)
 					? props
 					: props?.scenes && Array.isArray(props.scenes)
 					? props.scenes
-					: [];
+					: defaultScenes;
 				const duration = scenes.reduce(
 					(sum: number, s: any) => sum + (s.durationInFrames || 150),
 					0,
 				);
 				return {
 					durationInFrames: Math.max(1, duration),
+					props: Array.isArray(props) ? { scenes: props } : props,
 				};
 			}}
 		/>
