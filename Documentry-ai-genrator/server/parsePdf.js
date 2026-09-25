@@ -1,5 +1,5 @@
 const fs = require('fs');
-const pdfParse = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 
 async function extractTextFromPdf(pdfPath) {
 	if (typeof pdfPath !== 'string' || pdfPath.trim() === '') {
@@ -8,7 +8,9 @@ async function extractTextFromPdf(pdfPath) {
 
 	try {
 		const fileBuffer = fs.readFileSync(pdfPath);
-		const pdfData = await pdfParse(fileBuffer);
+		const parser = new PDFParse({ data: fileBuffer });
+		const pdfData = await parser.getText();
+		await parser.destroy();
 
 		return pdfData.text
 			.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')

@@ -29,6 +29,9 @@ function splitIntoScenes(text) {
 
 function createOfflineVideoScript(pdfText) {
 	const cleanedText = cleanPdfText(pdfText);
+	if (cleanedText === '') {
+		throw new Error('The PDF did not contain extractable text');
+	}
 	const narrationScenes = splitIntoScenes(cleanedText);
 	const scenes = narrationScenes.map((narrationText, index) => {
 		const sceneNumber = index + 1;

@@ -38,7 +38,7 @@ sampleProps.totalDurationInFrames = totalDurationInFrames;
 
 export const RemotionRoot = () => {
 	return (
-		<Composition
+		<Composition<DocumentaryProps>
 			id="Documentary"
 			component={DocumentaryVideo}
 			fps={30}

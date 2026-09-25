@@ -3,6 +3,7 @@ const path = require('path');
 const { performance } = require('perf_hooks');
 const { extractTextFromPdf } = require('./parsePdf');
 const { generateVideoScript } = require('./generateScript');
+const { synthesizeVideoScript } = require('./tts');
 
 const outputPath = path.resolve(__dirname, '../src/dataset.json');
 
@@ -25,16 +26,26 @@ async function runPipeline(pdfPath = './server/sample.pdf') {
 	const videoScript = await generateVideoScript(pdfText);
 	logStep('2/3', `Generated ${videoScript.scenes.length} scenes`, generationStartedAt);
 
+	const audioStartedAt = performance.now();
+	console.log('[3/4] Synthesizing scene audio...');
+	const finalizedScript = await synthesizeVideoScript(videoScript);
+	logStep('3/4', 'Generated scene audio and measured durations', audioStartedAt);
+
 	const writeStartedAt = performance.now();
-	console.log(`[3/3] Writing processed JSON to ${outputPath}...`);
-	fs.writeFileSync(outputPath, `${JSON.stringify(videoScript, null, 2)}\n`, 'utf8');
-	logStep('3/3', 'Wrote dataset.json', writeStartedAt);
+	console.log(`[4/4] Writing processed JSON to ${outputPath}...`);
+	await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
+	await fs.promises.writeFile(
+		outputPath,
+		`${JSON.stringify(finalizedScript, null, 2)}\n`,
+		'utf8',
+	);
+	logStep('4/4', 'Wrote dataset.json', writeStartedAt);
 
 	console.log(
 		`Pipeline complete in ${(performance.now() - pipelineStartedAt).toFixed(0)} ms`,
 	);
 
-	return videoScript;
+	return finalizedScript;
 }
 
 if (require.main === module) {

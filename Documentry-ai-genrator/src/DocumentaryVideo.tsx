@@ -42,6 +42,9 @@ const pictureInPictureStyle: CSSProperties = {
 	width: '22%',
 };
 
+const resolveAssetUrl = (assetUrl: string) =>
+	/^https?:\/\//.test(assetUrl) ? assetUrl : staticFile(assetUrl);
+
 const SceneContent = ({ scene }: { scene: Scene }) => {
 	const frame = useCurrentFrame();
 	const scale = interpolate(frame, [0, scene.durationInFrames], [1, 1.08], {
@@ -52,7 +55,7 @@ const SceneContent = ({ scene }: { scene: Scene }) => {
 	return (
 		<AbsoluteFill style={backgroundStyle}>
 			<Img
-				src={scene.bRollImageUrl}
+				src={resolveAssetUrl(scene.bRollImageUrl)}
 				style={{
 					height: '100%',
 					objectFit: 'cover',

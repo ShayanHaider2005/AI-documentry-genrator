@@ -3,16 +3,25 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"build": "tsc --noEmit"
+		"build": "tsc --noEmit",
+		"pipeline": "node server/pipeline.js",
+		"studio": "remotion studio src/index.ts",
+		"render": "remotion render src/index.ts Documentary out/video.mp4 --props=src/dataset.json"
 	},
 	"dependencies": {
+		"@remotion/cli": "^4.0.529",
+		"@remotion/player": "^4.0.529",
+		"@remotion/renderer": "^4.0.529",
+		"msedge-tts": "^2.0.8",
+		"music-metadata": "^11.16.1",
 		"pdf-parse": "^2.4.5",
 		"react": "^19.3.0",
 		"remotion": "^4.0.529"
 	},
 	"devDependencies": {
+		"@types/node": "^24.13.6",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
-		"typescript": "^7.0.2"
+		"typescript": "^5.9.3"
 	}
 }
