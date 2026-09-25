@@ -31,6 +31,47 @@ function createFallbackPdf(text) {
 	return Buffer.from(pdf, 'ascii');
 }
 
+const JUNK_LINE_PATTERNS = [
+	/^\s*(?:office\s+hours?|email|e-mail|phone|telephone|contact|room|building|course|section|semester|instructor|professor|lecture|slide|page)\b/i,
+	/^\s*(?:agenda|outline|table\s+of\s+contents|contents|references?)\s*:?$/i,
+	/^\s*(?:[A-Z]{2,}[A-Z0-9]*-\d{2,}|\d{1,4}[.)]?)\s*$/,
+	/^\s*(?:https?:\/\/|www\.)/i,
+];
+
+function preFilterPdfText(rawText) {
+	return String(rawText)
+		.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')
+		.replace(/-\s*\r?\n\s*/g, '')
+		.split(/\r?\n/)
+		.map((line) => {
+			let cleanedLine = line
+				.replace(/^\s*(?:[-*+•▪◦‣→➜➤■□▪]|\d+[.)])\s+/, '')
+				.replace(/\b\S+@\S+\b/g, ' ')
+				.replace(/\b(?:\+?\d[\d\s().-]{7,}\d)\b/g, ' ')
+				.replace(/\b[A-Z]{2,}[A-Z0-9]*-\d{2,}\b/g, ' ')
+				.replace(/\b(?:slide|lecture|page)\s*#?\s*\d+(?:\s+of\s+\d+)?\b/gi, ' ')
+				.replace(/\b(?:\d{1,2}[/-]){2}\d{2,4}\b/g, ' ')
+				.replace(/[\u2022\u25AA\u25E6\u2023\u2192\u2794\u27A4\u25A0\u25A1]/g, ' ')
+				.replace(/[^\p{L}\p{N}\s.,!?;:'"()\-/]/gu, ' ')
+				.replace(/\s+/g, ' ')
+				.trim();
+
+			if (JUNK_LINE_PATTERNS.some((pattern) => pattern.test(cleanedLine))) {
+				return '';
+			}
+			const words = cleanedLine.split(/\s+/).filter(Boolean);
+		const metadataMatches = cleanedLine.match(
+			/\b(?:office\s+hours?|room|building|course|section|semester|instructor|professor|lecture|slide|page|assignment|grading|attendance|exam|quiz)\b/gi,
+		) || [];
+		return metadataMatches.length / Math.max(words.length, 1) >= 0.25 ? '' : cleanedLine;
+		})
+		.filter(Boolean)
+		.join('\n')
+		.replace(/[ \t]+/g, ' ')
+		.replace(/\n{2,}/g, '\n')
+		.trim();
+}
+
 async function extractTextFromPdf(pdfPath) {
 	if (typeof pdfPath !== 'string' || pdfPath.trim() === '') {
 		throw new TypeError('pdfPath must be a non-empty file path');
@@ -53,20 +94,7 @@ async function extractTextFromPdf(pdfPath) {
 		const parser = new PDFParse({ data: fileBuffer });
 		const pdfData = await parser.getText();
 		await parser.destroy();
-		const text = pdfData.text
-			.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')
-			.replace(/-\s*\r?\n\s*/g, '')
-			.split(/\r?\n/)
-			.map((line) =>
-				line
-					.replace(/^\s*(?:slide\s*)?\d+\s*$/i, '')
-					.replace(/^\s*(?:[-*+•▪◦‣]|\d+[.)])\s+/, '')
-					.replace(/[^\p{L}\p{N}\s.,!?;:'"()\-/]/gu, ' '),
-			)
-			.join('\n')
-			.replace(/[ \t]+/g, ' ')
-			.replace(/\n{2,}/g, '\n')
-			.trim();
+		const text = preFilterPdfText(pdfData.text);
 		console.log(`[PDF] Extracted ${text.length} characters from: ${pdfPath}`);
 		return text;
 	} catch (error) {
@@ -76,4 +104,4 @@ async function extractTextFromPdf(pdfPath) {
 	}
 }
 
-module.exports = { extractTextFromPdf };
+module.exports = { extractTextFromPdf, preFilterPdfText };
