@@ -174,7 +174,7 @@ function generateExtendedThematicScenes(cleanText) {
 		{
 			sceneNumber: 3,
 			narratorText:
-				'Global benchmarks like ISO standards provide the mathematical scaffolding for engineering teams, establishing unambiguous definitions for software maintainability, operational efficiency, and cryptographic resilience.',
+				'Global benchmarks like ISO standards provide the mathematical scaffolding for engineering teams, establishing unambiguous definitions for software maintainability, operational efficiency, and cryptographic resilience across every stage of development and deployment.',
 			visualPrompt: 'Holographic network grid with data verification checks and standardized compliance metrics',
 			imageKeyword: 'cyber security network',
 		},
@@ -195,21 +195,21 @@ function generateExtendedThematicScenes(cleanText) {
 		{
 			sceneNumber: 6,
 			narratorText:
-				'Dynamic testing shifts the paradigm from theoretical inspection to aggressive operational execution, bombarding the system with unpredictable boundary conditions, stress loads, and concurrent transactions.',
+				'Dynamic testing shifts the paradigm from theoretical inspection to aggressive operational execution, bombarding the system with unpredictable boundary conditions, stress loads, and concurrent transactions while revealing weaknesses hidden beneath normal operating conditions.',
 			visualPrompt: 'Server cluster processing high volume transaction streams with pulsing server indicators',
 			imageKeyword: 'server room datacenter',
 		},
 		{
 			sceneNumber: 7,
 			narratorText:
-				'From isolated unit tests to end-to-end integration across distributed clusters, specification-based testing guarantees that every microservice behaves harmoniously under real-world pressure.',
+				'From isolated unit tests to end-to-end integration across distributed clusters, specification-based testing guarantees that every microservice behaves harmoniously under real-world pressure, so complex products feel coherent, responsive, and dependable.',
 			visualPrompt: 'Interconnected glowing cloud microservices exchanging data packets across a digital globe',
 			imageKeyword: 'cloud technology network',
 		},
 		{
 			sceneNumber: 8,
 			narratorText:
-				'Quantifiable quality measurement models allow engineering leaders to track defect densities and reliability growth curves, transforming subjective hunches into empirical mathematical certainty.',
+				'Quantifiable quality measurement models allow engineering leaders to track defect densities and reliability growth curves, transforming subjective hunches into empirical mathematical certainty across teams, releases, and changing operational conditions.',
 			visualPrompt: 'Financial and operational telemetry dashboards showing system stability trajectories and performance metrics',
 			imageKeyword: 'technology dashboard analytics',
 		},
