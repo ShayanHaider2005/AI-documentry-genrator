@@ -1,23 +1,117 @@
+'use strict';
+
+/**
+ * pipeline.js — AI Documentary Generation Pipeline (single backend entry point)
+ *
+ * Flow:
+ *   1. Parse & clean PDF  (parsePdf.js → parseAndCleanPdf)
+ *   2. Generate script    (LLM with cinematic system prompt)
+ *   3. Synthesize audio   (tts.js → generateSceneAudio, ElevenLabs → Edge TTS)
+ *   4. Measure durations  (music-metadata)
+ *   5. Write dataset      (src/dataset.json — flat array, Remotion-ready)
+ *
+ * Run: node server/pipeline.js [path/to/file.pdf]
+ * npm:  npm run pipeline
+ */
+
 const fs = require('fs');
 const path = require('path');
 const { performance } = require('perf_hooks');
-const { extractTextFromPdf, preFilterPdfText } = require('./parsePdf');
-const { synthesizeVideoScript } = require('./tts');
+const { parseAndCleanPdf } = require('./parsePdf');
+const { generateSceneAudio } = require('./tts');
 
-const outputPath = path.resolve(__dirname, '../src/dataset.json');
+// Output paths
+const DATASET_PATH = path.resolve(__dirname, '../src/dataset.json');
+const AUDIO_DIR = path.resolve(__dirname, '../public/audio');
 const FRAMES_PER_SECOND = 30;
 
-function cleanSourceText(pdfText) {
-	return preFilterPdfText(pdfText).replace(/\s+/g, ' ').trim();
+// ---------------------------------------------------------------------------
+// LLM system prompt — Executive Documentary Producer persona
+// ---------------------------------------------------------------------------
+const SCRIPT_SYSTEM_PROMPT = `You are an Executive Documentary Producer and Narrator in the tradition of Neil deGrasse Tyson and David Attenborough.
+Your sole mission: synthesize the core educational concepts from the provided text into 3–5 cinematic, emotionally resonant documentary scenes.
+
+STRICT RULES — violate none:
+1. NEVER read slide layouts, headers, footers, bullet points, or administrative notes.
+2. NEVER output course codes, instructor names, email addresses, room numbers, or grading policies.
+3. DO NOT produce meta-commentary, explanation, or markdown outside the JSON payload.
+4. Each scene's "narratorText" MUST be 100% natural spoken prose — conversational, vivid, made for human ears.
+5. Each "narratorText" MUST be 15–30 words. Use commas for breath pauses. Use ellipses (...) for dramatic tension.
+6. Each "narratorText" MUST end with a sentence-terminating punctuation mark (. ! ?).
+7. Each "visualPrompt" describes a cinematic visual — think IMAX documentary establishing shot.
+8. Output ONLY a valid JSON array. No text before or after. No markdown fences.
+
+Required output schema (strict):
+[
+  {
+    "sceneNumber": 1,
+    "narratorText": "Spoken documentary narration sentence here...",
+    "visualPrompt": "Cinematic context description for visual generation..."
+  }
+]`;
+
+// ---------------------------------------------------------------------------
+// AI provider selection (Grok → Groq → OpenAI-compatible)
+// ---------------------------------------------------------------------------
+function getAiProvider() {
+	if (process.env.GROK_API_KEY || process.env.XAI_API_KEY) {
+		return {
+			name: 'Grok',
+			apiKey: process.env.GROK_API_KEY || process.env.XAI_API_KEY,
+			baseUrl: process.env.GROK_BASE_URL || 'https://api.x.ai/v1/chat/completions',
+			model: process.env.GROK_MODEL || 'grok-3-mini',
+		};
+	}
+	if (process.env.GROQ_API_KEY) {
+		return {
+			name: 'Groq',
+			apiKey: process.env.GROQ_API_KEY,
+			baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
+			model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+		};
+	}
+	if (process.env.OPENAI_API_KEY) {
+		return {
+			name: 'OpenAI',
+			apiKey: process.env.OPENAI_API_KEY,
+			baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1/chat/completions',
+			model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+		};
+	}
+	return null;
 }
 
-const SCRIPT_SYSTEM_PROMPT = `You are a world-class documentary producer, not a slide reader.
-Synthesize the core educational concepts into dynamic narration. DO NOT summarize slide layouts. Ignore all administrative or surface-level slide details.
-The source has already been pre-filtered, but still discard anything that sounds like metadata, logistics, labels, identifiers, or presentation instructions.
-Return ONLY a strict JSON array, never markdown or an object. Every array item MUST contain exactly these fields: sceneNumber (number), narratorText (string), and visualPrompt (string).
-narratorText MUST be 100% natural, spoken documentary prose for human listening: one or two conversational sentences, 15–30 words per scene. Preserve important facts, mechanisms, examples, causes, and consequences. Use commas for breath pauses and occasional ellipses (...) for dramatic tension.`;
+// ---------------------------------------------------------------------------
+// JSON parser — strips accidental markdown fences from LLM output
+// ---------------------------------------------------------------------------
+function parseAiJson(content) {
+	const unwrapped = String(content || '')
+		.replace(/^```(?:json)?\s*/i, '')
+		.replace(/\s*```$/i, '')
+		.trim();
+	return JSON.parse(unwrapped || '[]');
+}
 
-function splitIntoNarrativeScenes(text) {
+// ---------------------------------------------------------------------------
+// Scene validator — enforces 15–30 word constraint + required fields
+// ---------------------------------------------------------------------------
+function isValidScene(scene) {
+	const text = String(scene?.narratorText || '').trim();
+	const wordCount = text.split(/\s+/).filter(Boolean).length;
+	return (
+		Number.isInteger(scene?.sceneNumber) &&
+		wordCount >= 10 && // slightly relaxed lower bound for robustness
+		wordCount <= 35 && // slightly relaxed upper bound
+		/[.!?]$/.test(text) &&
+		typeof scene?.visualPrompt === 'string' &&
+		scene.visualPrompt.trim() !== ''
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Fallback scene splitter (used when no LLM key is configured)
+// ---------------------------------------------------------------------------
+function splitIntoNarrativeScenes(text, maxScenes = 5) {
 	const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [];
 	const scenes = [];
 	let current = [];
@@ -38,95 +132,30 @@ function splitIntoNarrativeScenes(text) {
 			wordCount = 0;
 		}
 	}
+	if (current.length > 0) scenes.push(current.join(' ').trim());
 
-	if (current.length > 0) {
-		scenes.push(current.join(' ').trim());
-	}
-	return scenes.filter(Boolean);
-}
-
-function createVideoScript(narratorScenes, title = 'Untitled Documentary') {
-	const scenes = narratorScenes.map((sceneInput, index) => {
-		const sceneNumber = index + 1;
-		const narratorText = typeof sceneInput === 'string' ? sceneInput : sceneInput.narratorText;
-		const visualPrompt = typeof sceneInput === 'string'
-			? `Cinematic documentary footage illustrating ${narratorText}`
-			: sceneInput.visualPrompt || `Cinematic documentary footage illustrating ${narratorText}`;
-		return {
-			id: `scene-${sceneNumber}`,
+	return scenes
+		.filter(Boolean)
+		.slice(0, maxScenes)
+		.map((narratorText, idx) => ({
+			sceneNumber: idx + 1,
 			narratorText,
-			narrationText: narratorText,
-			visualPrompt,
-			bRollPrompt: visualPrompt,
-			audioUrl: `audio/scene-${sceneNumber}.mp3`,
-			durationInFrames: 1,
-			bRollImageUrl: 'images/scene-placeholder.svg',
-		};
-	});
-
-	return {
-		title,
-		clientAvatarUrl: 'images/client-avatar.png',
-		talkingHeadVideoUrl: undefined,
-		totalDurationInFrames: scenes.length,
-		scenes,
-	};
+			visualPrompt: `Cinematic documentary footage illustrating: ${narratorText}`,
+		}));
 }
 
-function getAiProvider() {
-	if (process.env.GROK_API_KEY || process.env.XAI_API_KEY) {
-		return {
-			name: 'Grok',
-			apiKey: process.env.GROK_API_KEY || process.env.XAI_API_KEY,
-			baseUrl: process.env.GROK_BASE_URL || 'https://api.x.ai/v1/chat/completions',
-			model: process.env.GROK_MODEL || 'grok-3-mini',
-		};
-	}
-	if (process.env.GROQ_API_KEY) {
-		return {
-			name: 'Groq',
-			apiKey: process.env.GROQ_API_KEY,
-			baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
-			model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-		};
-	}
-	if (process.env.OPENAI_API_KEY) {
-		return {
-			name: 'OpenAI-compatible',
-			apiKey: process.env.OPENAI_API_KEY,
-			baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1/chat/completions',
-			model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-		};
-	}
-	return null;
-}
-
-function parseAiJson(content) {
-	const unwrappedContent = String(content || '')
-		.replace(/^```(?:json)?\s*/i, '')
-		.replace(/\s*```$/i, '')
-		.trim();
-	return JSON.parse(unwrappedContent || '[]');
-}
-
-function isValidAiScene(scene) {
-	const narratorText = String(scene?.narratorText || '').trim();
-	const wordCount = narratorText.split(/\s+/).filter(Boolean).length;
-	return Number.isInteger(scene?.sceneNumber)
-		&& wordCount >= 15
-		&& wordCount <= 30
-		&& /[.!?]$/.test(narratorText)
-		&& typeof scene?.visualPrompt === 'string'
-		&& scene.visualPrompt.trim() !== '';
-}
-
+// ---------------------------------------------------------------------------
+// LLM script generation
+// ---------------------------------------------------------------------------
 async function requestLlmScript(sourceText) {
 	const provider = getAiProvider();
 	if (!provider || typeof fetch !== 'function') {
+		console.warn('[SCRIPT] No LLM provider configured — using sentence-splitter fallback');
 		return null;
 	}
 
-	console.log(`[SCRIPT] Asking ${provider.name} to select and narrate the PDF content`);
+	console.log(`[SCRIPT] Requesting cinematic script from ${provider.name} (${provider.model})`);
+
 	const response = await fetch(provider.baseUrl, {
 		method: 'POST',
 		headers: {
@@ -135,134 +164,171 @@ async function requestLlmScript(sourceText) {
 		},
 		body: JSON.stringify({
 			model: provider.model,
-			temperature: 0.7,
+			temperature: 0.72,
 			messages: [
 				{ role: 'system', content: SCRIPT_SYSTEM_PROMPT },
 				{
 					role: 'user',
-					content: `Classify the following extracted PDF text. Silently discard anything that is not useful to a listener, then write only the strongest story in scenes.\n\n${sourceText.slice(0, 30000)}`,
+					content:
+						`Transform the following pre-filtered educational text into 3–5 cinematic documentary scenes. ` +
+						`Silently discard anything that is not useful to a listener. ` +
+						`Write only the strongest narrative — make it feel like a BBC / National Geographic documentary.\n\n` +
+						sourceText.slice(0, 28000),
 				},
 			],
 		}),
 	});
+
 	if (!response.ok) {
-		const errorBody = await response.text();
-		throw new Error(`${provider.name} request failed with HTTP ${response.status}: ${errorBody.slice(0, 300)}`);
+		const body = await response.text();
+		throw new Error(`${provider.name} HTTP ${response.status}: ${body.slice(0, 300)}`);
 	}
 
 	const payload = await response.json();
-	const parsed = parseAiJson(payload.choices?.[0]?.message?.content);
-	const scenes = Array.isArray(parsed) ? parsed.filter(isValidAiScene) : [];
+	const raw = payload.choices?.[0]?.message?.content ?? '';
+	const parsed = parseAiJson(raw);
+	const scenes = Array.isArray(parsed) ? parsed.filter(isValidScene) : [];
+
 	if (scenes.length === 0) {
-		throw new Error(`${provider.name} returned no valid documentary scenes`);
+		throw new Error(`${provider.name} returned no valid scenes. Raw output: ${raw.slice(0, 500)}`);
 	}
-	return createVideoScript(scenes, 'Untitled Documentary');
+
+	console.log(`[SCRIPT] ${provider.name} produced ${scenes.length} valid scene(s)`);
+	return scenes;
 }
 
-async function generateVideoScript(pdfText) {
-	if (typeof pdfText !== 'string' || pdfText.trim() === '') {
-		throw new TypeError('pdfText must be a non-empty string');
-	}
-	const cleanedText = cleanSourceText(pdfText);
-	if (!cleanedText) {
-		throw new Error('The PDF did not contain usable documentary text');
-	}
-
-	console.log(`[SCRIPT] Generating scenes from ${cleanedText.length} filtered characters`);
-	let videoScript = await requestLlmScript(cleanedText);
-	if (!videoScript) {
-		videoScript = createVideoScript(splitIntoNarrativeScenes(cleanedText));
-	}
-	console.log(`[SCRIPT] Generated ${videoScript.scenes.length} scenes`);
-	return videoScript;
-}
-
-function logStep(step, message, startedAt) {
-	const elapsedMilliseconds = (performance.now() - startedAt).toFixed(0);
-	console.log(`[${step}] ${message} (${elapsedMilliseconds} ms)`);
-}
-
+// ---------------------------------------------------------------------------
+// Audio duration helper (music-metadata, lazy-imported ESM module)
+// ---------------------------------------------------------------------------
 async function getAudioDurationInFrames(audioPath) {
 	const { parseFile } = await import('music-metadata');
 	const metadata = await parseFile(audioPath);
 	const durationInSeconds = metadata.format.duration;
 
 	if (!Number.isFinite(durationInSeconds) || durationInSeconds <= 0) {
-		throw new Error(`Audio duration is unavailable for ${audioPath}`);
+		throw new Error(`Invalid audio duration for: ${audioPath}`);
 	}
 
 	return Math.ceil(durationInSeconds * FRAMES_PER_SECOND);
 }
 
-async function finalizeSceneDurations(videoScript) {
-	const scenes = [];
+// ---------------------------------------------------------------------------
+// Pipeline step logger
+// ---------------------------------------------------------------------------
+function logStep(label, message, startedAt) {
+	const elapsed = (performance.now() - startedAt).toFixed(0);
+	console.log(`[${label}] ${message} (${elapsed} ms)`);
+}
 
-	for (const scene of videoScript.scenes) {
-		const audioPath = path.resolve(__dirname, '../public', scene.audioUrl);
-		const durationInFrames = await getAudioDurationInFrames(audioPath);
-		scenes.push({ ...scene, durationInFrames });
-		console.log(
-			`[PIPELINE] ${scene.id}: ${durationInFrames} frames from ${scene.audioUrl}`,
-		);
+// ---------------------------------------------------------------------------
+// Main pipeline
+// ---------------------------------------------------------------------------
+
+/**
+ * Run the full documentary generation pipeline.
+ *
+ * @param {string} [pdfPath]  Path to the source PDF. Defaults to server/sample.pdf.
+ * @returns {Promise<Array>}  The Remotion-ready dataset array written to src/dataset.json.
+ */
+async function runPipeline(pdfPath = path.resolve(__dirname, 'sample.pdf')) {
+	const pipelineStart = performance.now();
+	console.log(`\n${'═'.repeat(60)}`);
+	console.log(`[PIPELINE] Starting AI Documentary Pipeline`);
+	console.log(`[PIPELINE] Source: ${pdfPath}`);
+	console.log(`${'═'.repeat(60)}\n`);
+
+	// ── Step 1: Parse & clean PDF ──────────────────────────────────────────
+	const step1Start = performance.now();
+	console.log('[1/4] Extracting and sanitizing PDF text...');
+	const cleanText = await parseAndCleanPdf(pdfPath);
+	if (!cleanText.trim()) throw new Error('PDF produced no usable content after sanitization');
+	logStep('1/4', `Extracted ${cleanText.length} usable characters`, step1Start);
+
+	// ── Step 2: Generate cinematic script ─────────────────────────────────
+	const step2Start = performance.now();
+	console.log('[2/4] Generating documentary script...');
+
+	let scenes;
+	try {
+		scenes = await requestLlmScript(cleanText);
+	} catch (llmErr) {
+		console.warn(`[SCRIPT] LLM failed (${llmErr.message}) — using fallback splitter`);
+		scenes = null;
 	}
 
-	return {
-		...videoScript,
-		scenes,
-		totalDurationInFrames: scenes.reduce(
-			(totalDuration, scene) => totalDuration + scene.durationInFrames,
-			0,
-		),
-	};
-}
+	if (!scenes || scenes.length === 0) {
+		console.log('[SCRIPT] Falling back to sentence-based scene splitter');
+		scenes = splitIntoNarrativeScenes(cleanText);
+	}
 
-async function runPipeline(pdfPath = path.resolve(__dirname, 'sample.pdf')) {
-	const pipelineStartedAt = performance.now();
-	console.log(`[PIPELINE] Starting documentary pipeline for ${pdfPath}`);
+	logStep('2/4', `Generated ${scenes.length} cinematic scene(s)`, step2Start);
 
-	const extractionStartedAt = performance.now();
-	console.log('[1/3] Extracting text from PDF...');
-	const pdfText = await extractTextFromPdf(pdfPath);
-	logStep('1/3', `Extracted ${pdfText.length} characters`, extractionStartedAt);
-
-	const generationStartedAt = performance.now();
-	console.log('[2/3] Generating video script...');
-	const videoScript = await generateVideoScript(pdfText);
-	logStep('2/3', `Generated ${videoScript.scenes.length} scenes`, generationStartedAt);
-
-	const audioStartedAt = performance.now();
+	// ── Step 3: Synthesize audio files ────────────────────────────────────
+	const step3Start = performance.now();
 	console.log('[3/4] Synthesizing scene audio...');
-	const synthesizedScript = await synthesizeVideoScript(videoScript);
-	const finalizedScript = await finalizeSceneDurations(synthesizedScript);
-	logStep('3/4', 'Generated scene audio and measured exact durations', audioStartedAt);
+	await fs.promises.mkdir(AUDIO_DIR, { recursive: true });
 
-	const writeStartedAt = performance.now();
-	console.log(`[4/4] Writing processed JSON to ${outputPath}...`);
-	await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
-	await fs.promises.writeFile(
-		outputPath,
-		`${JSON.stringify(finalizedScript, null, 2)}\n`,
-		'utf8',
-	);
-	logStep('4/4', 'Wrote dataset.json', writeStartedAt);
+	const scenesWithAudio = [];
+	for (const scene of scenes) {
+		const sceneNum = scene.sceneNumber;
+		const audioFileName = `scene-${sceneNum}.mp3`;
+		const audioPath = path.join(AUDIO_DIR, audioFileName);
 
-	console.log(
-		`[PIPELINE] Complete in ${(performance.now() - pipelineStartedAt).toFixed(0)} ms`,
-	);
+		await generateSceneAudio(scene.narratorText, audioPath);
+		scenesWithAudio.push({ ...scene, audioPath, audioFileName });
+	}
+	logStep('3/4', `Synthesized ${scenesWithAudio.length} audio file(s)`, step3Start);
 
-	return finalizedScript;
+	// ── Step 4: Measure durations & build Remotion dataset ────────────────
+	const step4Start = performance.now();
+	console.log('[4/4] Measuring audio durations and writing dataset.json...');
+
+	/** @type {Array<{sceneNumber:number, narratorText:string, visualPrompt:string, audioPath:string, durationInFrames:number}>} */
+	const dataset = [];
+
+	for (const scene of scenesWithAudio) {
+		const durationInFrames = await getAudioDurationInFrames(scene.audioPath);
+		console.log(`  scene-${scene.sceneNumber}: ${durationInFrames} frames  (audio/${scene.audioFileName})`);
+		dataset.push({
+			sceneNumber: scene.sceneNumber,
+			narratorText: scene.narratorText,
+			visualPrompt: scene.visualPrompt,
+			audioPath: `audio/${scene.audioFileName}`,
+			durationInFrames,
+		});
+	}
+
+	await fs.promises.mkdir(path.dirname(DATASET_PATH), { recursive: true });
+	await fs.promises.writeFile(DATASET_PATH, `${JSON.stringify(dataset, null, 2)}\n`, 'utf8');
+	logStep('4/4', `Wrote ${dataset.length} scenes to src/dataset.json`, step4Start);
+
+	const totalFrames = dataset.reduce((sum, s) => sum + s.durationInFrames, 0);
+	const totalSeconds = (totalFrames / FRAMES_PER_SECOND).toFixed(1);
+
+	console.log(`\n${'═'.repeat(60)}`);
+	console.log(`[PIPELINE] ✅  Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
+	console.log(`[PIPELINE] Scenes: ${dataset.length}  |  Duration: ~${totalSeconds}s (${totalFrames} frames)`);
+	console.log(`[PIPELINE] Dataset written to: ${DATASET_PATH}`);
+	console.log(`${'═'.repeat(60)}\n`);
+
+	return dataset;
 }
 
+// ---------------------------------------------------------------------------
+// CLI entry point
+// ---------------------------------------------------------------------------
 if (require.main === module) {
-	runPipeline(process.argv[2]).catch((error) => {
-		console.error(`[PIPELINE] Failed: ${error.message}`);
+	runPipeline(process.argv[2]).catch((err) => {
+		console.error(`\n[PIPELINE] ❌  Fatal error: ${err.message}`);
+		if (process.env.DEBUG) console.error(err.stack);
 		process.exitCode = 1;
 	});
 }
 
 module.exports = {
 	runPipeline,
-	generateVideoScript,
-	cleanSourceText,
+	requestLlmScript,
+	splitIntoNarrativeScenes,
+	isValidScene,
 	SCRIPT_SYSTEM_PROMPT,
 };
