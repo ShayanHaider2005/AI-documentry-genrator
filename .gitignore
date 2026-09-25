@@ -5,6 +5,8 @@ out/
 # Ignore generated audio runtime assets
 public/audio/*.mp3
 public/audio/*.wav
+/Documentry-ai-genrator/public/audio/*.mp3
+/Documentry-ai-genrator/public/audio/*.wav
 
 # Ignore rendered output videos
 out/                              
