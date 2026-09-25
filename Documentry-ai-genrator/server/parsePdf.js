@@ -56,7 +56,14 @@ async function extractTextFromPdf(pdfPath) {
 		const text = pdfData.text
 			.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')
 			.replace(/-\s*\r?\n\s*/g, '')
-			.replace(/[\r\n]+/g, ' ')
+			.split(/\r?\n/)
+			.map((line) =>
+				line
+					.replace(/^\s*(?:slide\s*)?\d+\s*$/i, '')
+					.replace(/^\s*(?:[-*+•▪◦‣]|\d+[.)])\s+/, '')
+					.replace(/[^\p{L}\p{N}\s.,!?;:'"()\-/]/gu, ' '),
+			)
+			.join(' ')
 			.replace(/\s+/g, ' ')
 			.trim();
 		console.log(`[PDF] Extracted ${text.length} characters from: ${pdfPath}`);
