@@ -61,12 +61,14 @@ async function readAudioDurationInFrames(audioPath) {
 async function synthesizeSceneAudio(scene, audioDirectory, options = {}) {
 	const voice = options.voice || DEFAULT_VOICE;
 	const offline = options.offline ?? process.env.OFFLINE_MODE === 'true';
+	console.log(`[TTS] Processing scene ${scene.id} (${offline ? 'offline' : voice})`);
 
 	if (offline) {
 		const durationInSeconds = estimateDurationInSeconds(scene.narrationText);
 		const fileName = `${scene.id}.wav`;
 		const filePath = path.join(audioDirectory, fileName);
 		await fs.promises.writeFile(filePath, createSilentWav(durationInSeconds));
+		console.log(`[TTS] Wrote offline audio: ${filePath}`);
 		return {
 			audioUrl: path.posix.join('audio', fileName),
 			durationInFrames: durationInSeconds * FRAMES_PER_SECOND,
@@ -78,6 +80,7 @@ async function synthesizeSceneAudio(scene, audioDirectory, options = {}) {
 
 	try {
 		await synthesizeWithEdgeTts(scene.narrationText, filePath, voice);
+		console.log(`[TTS] Wrote synthesized audio: ${filePath}`);
 		return {
 			audioUrl: path.posix.join('audio', fileName),
 			durationInFrames: await readAudioDurationInFrames(filePath),
@@ -87,7 +90,8 @@ async function synthesizeSceneAudio(scene, audioDirectory, options = {}) {
 		const fallbackName = `${scene.id}.wav`;
 		const fallbackPath = path.join(audioDirectory, fallbackName);
 		await fs.promises.writeFile(fallbackPath, createSilentWav(durationInSeconds));
-		console.warn(`TTS unavailable for ${scene.id}; using offline audio: ${error.message}`);
+		console.warn(`[TTS] Unavailable for ${scene.id}; using offline audio: ${error.message}`);
+		console.log(`[TTS] Wrote fallback audio: ${fallbackPath}`);
 		return {
 			audioUrl: path.posix.join('audio', fallbackName),
 			durationInFrames: durationInSeconds * FRAMES_PER_SECOND,
@@ -98,6 +102,7 @@ async function synthesizeSceneAudio(scene, audioDirectory, options = {}) {
 async function synthesizeVideoScript(videoScript, options = {}) {
 	const audioDirectory = options.audioDirectory || path.resolve(__dirname, '../public/audio');
 	await fs.promises.mkdir(audioDirectory, { recursive: true });
+	console.log(`[TTS] Audio directory ready: ${audioDirectory}`);
 
 	const scenes = [];
 	for (const scene of videoScript.scenes) {

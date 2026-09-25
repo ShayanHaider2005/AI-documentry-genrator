@@ -1,0 +1,351 @@
+{
+  "title": "Untitled Documentary",
+  "clientAvatarUrl": "images/client-avatar.png",
+  "totalDurationInFrames": 49620,
+  "scenes": [
+    {
+      "id": "scene-1",
+      "narrationText": "SE-3002 SOFTWARE QUALITY ENGINEERING RUBAB JAFFAR RUBAB. JAFFAR@NU. EDU.",
+      "audioUrl": "audio/scene-1.wav",
+      "durationInFrames": 120,
+      "bRollPrompt": "Cinematic documentary footage illustrating: SE-3002 SOFTWARE QUALITY ENGINEERING RUBAB JAFFAR RUBAB. JAFFAR@NU. EDU.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-2",
+      "narrationText": "PK Introduction Overview and Basics Lecture # 1,2 3 1 -- 1 of 63 -TODAY’S OUTLINE  Administrative Stuff  Overview of SE-3002  Introduction to Quality Concepts  Correctness and its measures  SQA Environments SOFTWARE QUALITY ENGINEERING 2 -- 2 of 63 -ADMINISTRATIVE STUFF ABOUT ME  Graduated BS(SE) from FJWU, RWP  Complete Masters MS(SE) from NUST, ISB  Research interests:  Software engineering  Object oriented design  Database systems  Algorithm analysis  Machine Learning SOFTWARE QUALITY ENGINEERING 3 -- 3 of 63 -ADMINISTRATIVE STUFF OFFICE HOURS • Office 6 (CS building) • Office hours: 3:00 to 4:00 pm  (Monday, Wednesday,Thursday) SOFTWARE QUALITY ENGINEERING 4 -- 4 of 63 -OVERVIEW OF SE-3002 ABOUT THE COURSE  Knowledge of Software Quality Engineering concepts through standards.  Comprehension of why do we have to engineer quality in to software.  Comprehension and Application of Software Quality Assurance Plan (SQAP).",
+      "audioUrl": "audio/scene-2.wav",
+      "durationInFrames": 1860,
+      "bRollPrompt": "Cinematic documentary footage illustrating: PK Introduction Overview and Basics Lecture # 1,2 3 1 -- 1 of 63 -TODAY’S OUTLINE  Administrative Stuff  Overview of SE-3002  Introduction to Quality Concepts  Correctness and its measures  SQA Environments SOFTWARE QUALITY ENGINEERING 2 -- 2 of 63 -ADMINISTRATIVE STUFF ABOUT ME  Graduated BS(SE) from FJWU, RWP  Complete Masters MS(SE) from NUST, ISB  Research interests:  Software engineering  Object oriented design  Database systems  Algorithm analysis  Machine Learning SOFTWARE QUALITY ENGINEERING 3 -- 3 of 63 -ADMINISTRATIVE STUFF OFFICE HOURS • Office 6 (CS building) • Office hours: 3:00 to 4:00 pm  (Monday, Wednesday,Thursday) SOFTWARE QUALITY ENGINEERING 4 -- 4 of 63 -OVERVIEW OF SE-3002 ABOUT THE COURSE  Knowledge of Software Quality Engineering concepts through standards.  Comprehension of why do we have to engineer quality in to software.  Comprehension and Application of Software Quality Assurance Plan (SQAP).",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-3",
+      "narrationText": " Comprehension and Application of static and dynamic testing techniques for Quality Control (QC).  Comprehension and Application of Software Quality Measurement using Models (QMM).  A strong in class participation from the students will be encouraged and required during the discussion on these case studies(your projects) SOFTWARE QUALITY ENGINEERING 5 -- 5 of 63 -OVERVIEW OF SE-3002 MAJOR TOPICS OF THE COURSE SOFTWARE QUALITY ENGINEERING 6 • Software Quality, Software Quality Attributes, Quality Engineering, • Testing Concepts, Issues, Software testing lifecycle.",
+      "audioUrl": "audio/scene-3.wav",
+      "durationInFrames": 990,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  Comprehension and Application of static and dynamic testing techniques for Quality Control (QC).  Comprehension and Application of Software Quality Measurement using Models (QMM).  A strong in class participation from the students will be encouraged and required during the discussion on these case studies(your projects) SOFTWARE QUALITY ENGINEERING 5 -- 5 of 63 -OVERVIEW OF SE-3002 MAJOR TOPICS OF THE COURSE SOFTWARE QUALITY ENGINEERING 6 • Software Quality, Software Quality Attributes, Quality Engineering, • Testing Concepts, Issues, Software testing lifecycle.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-4",
+      "narrationText": "Testing Scopes, Testing Approaches, • Requirement of software test planning, Testing documentation, Software testing techniques,Testing philosophies • Testing strategies, Software inspections, Software reviews, Inspection checks and metrics, • From functional to system aspects of testing, System testing, Scenarios development, Use-cases for testing, Specification-based testing, Open issues on software testing, • Quality Models, Models for quality assessment, Product quality metrics, • Quality Measurements, Quality improvement  Basic concept of software quality and Importance of software quality  Software Quality Standards e. g. ISO 9126  Software Quality attributes and characteristics  Software Quality Assurance (SQA) techniques  Software Quality Control  Static Testing Techniques types  Dynamic Testing levels  Software Quality Measurement Models -- 6 of 63 -OVERVIEW OF SE-3002 PRE-REQUISITES /KNOWLEDGE ASSUMED  Software Analysis and Design  Programming language concepts  Data structure concepts  Database system concepts SOFTWARE QUALITY ENGINEERING 8 -- 7 of 63 -OVERVIEW OF SE-3002 SKILLS ASSUMED  You have the skills to code in any programming language therefore you  can design, implement, test, debug, read, understand and document the programs.",
+      "audioUrl": "audio/scene-4.wav",
+      "durationInFrames": 2160,
+      "bRollPrompt": "Cinematic documentary footage illustrating: Testing Scopes, Testing Approaches, • Requirement of software test planning, Testing documentation, Software testing techniques,Testing philosophies • Testing strategies, Software inspections, Software reviews, Inspection checks and metrics, • From functional to system aspects of testing, System testing, Scenarios development, Use-cases for testing, Specification-based testing, Open issues on software testing, • Quality Models, Models for quality assessment, Product quality metrics, • Quality Measurements, Quality improvement  Basic concept of software quality and Importance of software quality  Software Quality Standards e. g. ISO 9126  Software Quality attributes and characteristics  Software Quality Assurance (SQA) techniques  Software Quality Control  Static Testing Techniques types  Dynamic Testing levels  Software Quality Measurement Models -- 6 of 63 -OVERVIEW OF SE-3002 PRE-REQUISITES /KNOWLEDGE ASSUMED  Software Analysis and Design  Programming language concepts  Data structure concepts  Database system concepts SOFTWARE QUALITY ENGINEERING 8 -- 7 of 63 -OVERVIEW OF SE-3002 SKILLS ASSUMED  You have the skills to code in any programming language therefore you  can design, implement, test, debug, read, understand and document the programs.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-5",
+      "narrationText": "SOFTWARE QUALITY ENGINEERING 9 -- 8 of 63 -OVERVIEW OF SE-3002 TENTATIVE MARK DISTRIBUTION AND GRADING POLICY  Assignments/Class Participation: 7 %  Mid Exams: 30 %  Final: 50%  Presentations + Projects: 7%  Quizzes: 6%  Absolute Grading Scheme SOFTWARE QUALITY ENGINEERING 10 -- 9 of 63 -OVERVIEW OF SE-3002 COURSE ETHICS Projects/Assignments  Deadlines are always final  No credit for late submissions  One student per assignment at maximum  Project Proposal Submission : 4th Week  Project Presentation : Last week Quizzes  Announced  Unannounced Honesty  All parties involved in any kind of cheating in any assessment will get zero in that assessment. SOFTWARE QUALITY ENGINEERING 11 -- 10 of 63 -OVERVIEW OF SE-3002 PROJECT  An advance project  Provides interesting problem, realistic pressures, unclear/changing  3 member teams  Emphasis on good SE practice/methodology and test plan for QC  Homework's and deliverables tied to the project SOFTWARE QUALITY ENGINEERING 12 -- 11 of 63 -OVERVIEW OF SE-3002 COURSE MATERIAL  You will have Presentations of each topic and reference books in PDF format will be available on GCR. Text Books 1.",
+      "audioUrl": "audio/scene-5.wav",
+      "durationInFrames": 2310,
+      "bRollPrompt": "Cinematic documentary footage illustrating: SOFTWARE QUALITY ENGINEERING 9 -- 8 of 63 -OVERVIEW OF SE-3002 TENTATIVE MARK DISTRIBUTION AND GRADING POLICY  Assignments/Class Participation: 7 %  Mid Exams: 30 %  Final: 50%  Presentations + Projects: 7%  Quizzes: 6%  Absolute Grading Scheme SOFTWARE QUALITY ENGINEERING 10 -- 9 of 63 -OVERVIEW OF SE-3002 COURSE ETHICS Projects/Assignments  Deadlines are always final  No credit for late submissions  One student per assignment at maximum  Project Proposal Submission : 4th Week  Project Presentation : Last week Quizzes  Announced  Unannounced Honesty  All parties involved in any kind of cheating in any assessment will get zero in that assessment. SOFTWARE QUALITY ENGINEERING 11 -- 10 of 63 -OVERVIEW OF SE-3002 PROJECT  An advance project  Provides interesting problem, realistic pressures, unclear/changing  3 member teams  Emphasis on good SE practice/methodology and test plan for QC  Homework's and deliverables tied to the project SOFTWARE QUALITY ENGINEERING 12 -- 11 of 63 -OVERVIEW OF SE-3002 COURSE MATERIAL  You will have Presentations of each topic and reference books in PDF format will be available on GCR. Text Books 1.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-6",
+      "narrationText": "Software Quality Engineering Testing, Quality Assurance, and Quantifiable Improvement, Jeff Tian, Wiley, 2005 2. Software testing – Yogesh Singh Reference Books 1. Software Testing, Principles and Practices, 2nd edition, Naresh Chauhan, Oxford publisher, 2016 2.",
+      "audioUrl": "audio/scene-6.wav",
+      "durationInFrames": 420,
+      "bRollPrompt": "Cinematic documentary footage illustrating: Software Quality Engineering Testing, Quality Assurance, and Quantifiable Improvement, Jeff Tian, Wiley, 2005 2. Software testing – Yogesh Singh Reference Books 1. Software Testing, Principles and Practices, 2nd edition, Naresh Chauhan, Oxford publisher, 2016 2.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-7",
+      "narrationText": "Software Quality Engineering, A Practitioner’s Approach,Witold Suryn, Wiley, 2014 SOFTWARE QUALITY ENGINEERING 13 -- 12 of 63 -OVERVIEW OF SE-3002 COURSE GOALS/OBJECTIVES  By the end of this course, you will  CLO-1: (C1) outline software testing, software quality assurance principles and role of QA throughout the SDLC  CLO-2: (C3) prepare test case and test suites for completely testing all aspects of a system under test (SUT)  CLO-3: (C5) compile findings of a quality assurance cycle. Quality improvement through software process quality, improvement models and approaches SOFTWARE QUALITY ENGINEERING 14 -- 13 of 63 -HOW THIS COURSE WILL RUN  The course is divided into four parts  Part I (Chapters 1-5). Overview and Basics  Part II (Chapters 6-12).",
+      "audioUrl": "audio/scene-7.wav",
+      "durationInFrames": 1470,
+      "bRollPrompt": "Cinematic documentary footage illustrating: Software Quality Engineering, A Practitioner’s Approach,Witold Suryn, Wiley, 2014 SOFTWARE QUALITY ENGINEERING 13 -- 12 of 63 -OVERVIEW OF SE-3002 COURSE GOALS/OBJECTIVES  By the end of this course, you will  CLO-1: (C1) outline software testing, software quality assurance principles and role of QA throughout the SDLC  CLO-2: (C3) prepare test case and test suites for completely testing all aspects of a system under test (SUT)  CLO-3: (C5) compile findings of a quality assurance cycle. Quality improvement through software process quality, improvement models and approaches SOFTWARE QUALITY ENGINEERING 14 -- 13 of 63 -HOW THIS COURSE WILL RUN  The course is divided into four parts  Part I (Chapters 1-5). Overview and Basics  Part II (Chapters 6-12).",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-8",
+      "narrationText": "Software Testing  Part III (Chapters 13-17). Other Quality Assurance Techniques  Part IV (Chapters 18-22). Quantifiable Quality Improvement SOFTWARE QUALITY ENGINEERING 15 -- 14 of 63 -PART I: OVERVIEW AND BASICS  What is Software?",
+      "audioUrl": "audio/scene-8.wav",
+      "durationInFrames": 450,
+      "bRollPrompt": "Cinematic documentary footage illustrating: Software Testing  Part III (Chapters 13-17). Other Quality Assurance Techniques  Part IV (Chapters 18-22). Quantifiable Quality Improvement SOFTWARE QUALITY ENGINEERING 15 -- 14 of 63 -PART I: OVERVIEW AND BASICS  What is Software?",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-9",
+      "narrationText": " What is Quality?  What is Engineering? SOFTWARE QUALITY ENGINEERING 16 -- 15 of 63 -OPENING HOOK  \"Think of one thing that went wrong with any product or app you used this week.",
+      "audioUrl": "audio/scene-9.wav",
+      "durationInFrames": 420,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  What is Quality?  What is Engineering? SOFTWARE QUALITY ENGINEERING 16 -- 15 of 63 -OPENING HOOK  \"Think of one thing that went wrong with any product or app you used this week.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-10",
+      "narrationText": "What happened and how did it make you feel? \" SOFTWARE QUALITY ENGINEERING 17 -- 16 of 63 -THE \"WHAT IF\" ACTIVITY  What goes wrong if this was not properly tested?  A mobile banking app was released without testing the payment transfer feature  A hospital patient monitoring system was deployed without testing the alarm thresholds  A car's anti-lock braking system software was not properly tested before the car was sold  A food delivery app's GPS tracking was not tested in areas with weak signal  An ATM software was released without testing concurrent transactions SOFTWARE QUALITY ENGINEERING 18 -- 17 of 63 -REAL WORLD EXAMPLES  Example 1 — Therac-25 Radiation Machine (1985-1987)  A software bug in a radiation therapy machine caused it to deliver massive overdoses of radiation to patients.",
+      "audioUrl": "audio/scene-10.wav",
+      "durationInFrames": 1650,
+      "bRollPrompt": "Cinematic documentary footage illustrating: What happened and how did it make you feel? \" SOFTWARE QUALITY ENGINEERING 17 -- 16 of 63 -THE \"WHAT IF\" ACTIVITY  What goes wrong if this was not properly tested?  A mobile banking app was released without testing the payment transfer feature  A hospital patient monitoring system was deployed without testing the alarm thresholds  A car's anti-lock braking system software was not properly tested before the car was sold  A food delivery app's GPS tracking was not tested in areas with weak signal  An ATM software was released without testing concurrent transactions SOFTWARE QUALITY ENGINEERING 18 -- 17 of 63 -REAL WORLD EXAMPLES  Example 1 — Therac-25 Radiation Machine (1985-1987)  A software bug in a radiation therapy machine caused it to deliver massive overdoses of radiation to patients.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-11",
+      "narrationText": "Six people were killed or seriously injured. The cause was a race condition in the software that was never caught during testing because the machine had previously relied on hardware safety locks that were removed in the new version.  Example 2 — Ariane 5 Rocket (1996)  European Space Agency rocket exploded 37 seconds after launch.",
+      "audioUrl": "audio/scene-11.wav",
+      "durationInFrames": 690,
+      "bRollPrompt": "Cinematic documentary footage illustrating: Six people were killed or seriously injured. The cause was a race condition in the software that was never caught during testing because the machine had previously relied on hardware safety locks that were removed in the new version.  Example 2 — Ariane 5 Rocket (1996)  European Space Agency rocket exploded 37 seconds after launch.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-12",
+      "narrationText": "The cause was a software bug — a 64-bit floating point number was converted to a 16-bit integer and the value was too large to fit, causing an overflow error. The rocket selfdestructed. Cost: $370 million.",
+      "audioUrl": "audio/scene-12.wav",
+      "durationInFrames": 450,
+      "bRollPrompt": "Cinematic documentary footage illustrating: The cause was a software bug — a 64-bit floating point number was converted to a 16-bit integer and the value was too large to fit, causing an overflow error. The rocket selfdestructed. Cost: $370 million.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-13",
+      "narrationText": "The exact same software had worked perfectly on the previous Ariane 4 rocket — but nobody tested it against the new rocket's different flight conditions. SOFTWARE QUALITY ENGINEERING 19 -- 18 of 63 - Example 3 — WhatsApp / Mobile Apps  Why does WhatsApp release updates so frequently?  Because quality is not a one-time event — it is continuous.",
+      "audioUrl": "audio/scene-13.wav",
+      "durationInFrames": 750,
+      "bRollPrompt": "Cinematic documentary footage illustrating: The exact same software had worked perfectly on the previous Ariane 4 rocket — but nobody tested it against the new rocket's different flight conditions. SOFTWARE QUALITY ENGINEERING 19 -- 18 of 63 - Example 3 — WhatsApp / Mobile Apps  Why does WhatsApp release updates so frequently?  Because quality is not a one-time event — it is continuous.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-14",
+      "narrationText": "Every update fixes bugs found by real users in real conditions that testing did not catch. This is why software quality engineering exists as a discipline. SOFTWARE QUALITY ENGINEERING 20 -- 19 of 63 - \"Based on everything we just discussed — how would YOU define quality?",
+      "audioUrl": "audio/scene-14.wav",
+      "durationInFrames": 570,
+      "bRollPrompt": "Cinematic documentary footage illustrating: Every update fixes bugs found by real users in real conditions that testing did not catch. This is why software quality engineering exists as a discipline. SOFTWARE QUALITY ENGINEERING 20 -- 19 of 63 - \"Based on everything we just discussed — how would YOU define quality?",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-15",
+      "narrationText": "\" SOFTWARE QUALITY ENGINEERING 21 -- 20 of 63 -WHAT IS SOFTWARE?  Software – IEEE definition :  computer programs  procedures  possibly associated documentation  data pertaining to the operation of computer system.  All four components are needed in order to assure the quality of the software development process.",
+      "audioUrl": "audio/scene-15.wav",
+      "durationInFrames": 660,
+      "bRollPrompt": "Cinematic documentary footage illustrating: \" SOFTWARE QUALITY ENGINEERING 21 -- 20 of 63 -WHAT IS SOFTWARE?  Software – IEEE definition :  computer programs  procedures  possibly associated documentation  data pertaining to the operation of computer system.  All four components are needed in order to assure the quality of the software development process.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-16",
+      "narrationText": "-- 21 of 63 -WHAT IS SOFTWARE QUALITY?  No commonly agreed definition  IEEE definition “The degree to which a system, component, or process meets specified requirements (Philip Crosby)”  Emphasis here is on specifications “The degree to which a system, component, or process meets customer or user needs or expectations (Joseph M. Juran)” Here, emphasis is on a satisfied customer whatever it takes.",
+      "audioUrl": "audio/scene-16.wav",
+      "durationInFrames": 780,
+      "bRollPrompt": "Cinematic documentary footage illustrating: -- 21 of 63 -WHAT IS SOFTWARE QUALITY?  No commonly agreed definition  IEEE definition “The degree to which a system, component, or process meets specified requirements (Philip Crosby)”  Emphasis here is on specifications “The degree to which a system, component, or process meets customer or user needs or expectations (Joseph M. Juran)” Here, emphasis is on a satisfied customer whatever it takes.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-17",
+      "narrationText": " “How good or bad something is” Merriam-Webster  “Level of excellence” Wiktionary -- 22 of 63 -QUALITY – SIMPLE SENSE -- 23 of 63 -WHAT IS SOFTWARE QUALITY? Pressman believes that Software quality is: Software Quality is conformance to: • Explicitly stated functional and performance requirements, • Explicitly documented development standards, • Implicit characteristics that are expected of all professionally developed software. -- 24 of 63 -PEOPLE’S QUALITY EXPECTATIONS  In general, people’s quality expectations for software systems they use and rely upon are twofold:  The software systems must do what they are supposed to do.",
+      "audioUrl": "audio/scene-17.wav",
+      "durationInFrames": 1200,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  “How good or bad something is” Merriam-Webster  “Level of excellence” Wiktionary -- 22 of 63 -QUALITY – SIMPLE SENSE -- 23 of 63 -WHAT IS SOFTWARE QUALITY? Pressman believes that Software quality is: Software Quality is conformance to: • Explicitly stated functional and performance requirements, • Explicitly documented development standards, • Implicit characteristics that are expected of all professionally developed software. -- 24 of 63 -PEOPLE’S QUALITY EXPECTATIONS  In general, people’s quality expectations for software systems they use and rely upon are twofold:  The software systems must do what they are supposed to do.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-18",
+      "narrationText": "In other words, they must do the right things.  For example, an airline reservation system is supposed to handle reservations, not intended to fly airplanes automatically  They must perform these specific tasks correctly or satisfactorily. In other words, they must do the things right.",
+      "audioUrl": "audio/scene-18.wav",
+      "durationInFrames": 570,
+      "bRollPrompt": "Cinematic documentary footage illustrating: In other words, they must do the right things.  For example, an airline reservation system is supposed to handle reservations, not intended to fly airplanes automatically  They must perform these specific tasks correctly or satisfactorily. In other words, they must do the things right.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-19",
+      "narrationText": " The system should help travel agents or individual travelers make valid reservations within a pre-specified time limit, instead of making invalid ones -- 25 of 63 -REASONS SOFTWARE QUALITY IS IMPORTANT  Safety  Cost  Customer satisfaction  Future value -- 26 of 63 -WHY SOFTWARE QUALITY ENGINEERING?  Why software?  Because in contemporary social life software, systems and services rendered by software are ubiquitous, beginning with the watches we wear, ending with nuclear electricity plants or spaceships.",
+      "audioUrl": "audio/scene-19.wav",
+      "durationInFrames": 990,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  The system should help travel agents or individual travelers make valid reservations within a pre-specified time limit, instead of making invalid ones -- 25 of 63 -REASONS SOFTWARE QUALITY IS IMPORTANT  Safety  Cost  Customer satisfaction  Future value -- 26 of 63 -WHY SOFTWARE QUALITY ENGINEERING?  Why software?  Because in contemporary social life software, systems and services rendered by software are ubiquitous, beginning with the watches we wear, ending with nuclear electricity plants or spaceships.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-20",
+      "narrationText": " Why quality?  Because if these instances of software work without the required quality we may be late, dead, or lost in space.  Why engineering?",
+      "audioUrl": "audio/scene-20.wav",
+      "durationInFrames": 330,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  Why quality?  Because if these instances of software work without the required quality we may be late, dead, or lost in space.  Why engineering?",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-21",
+      "narrationText": " As in every technical domain, it is engineering that transforms ideas into products, it is the verified and validated set of “to-dos” that help develop the product that not only has required functionalities but also executes them correctly. -- 27 of 63 -QUALITY PERSPECTIVES AND EXPECTATIONS  Quality is a complex concept - it means different things to different people, and it is highly context dependent .  In Kitchenham & Pfleeger (1996):  Transcendental view: seen/not-defined  User view: fitness for purpose(task context)  Manufacturing view: conformance to standards  Product view: inherent characteristics  Value-based view: willingness to pay, The value-based view makes a trade-off between cost and quality -- 28 of 63 -Different views of Quality -- 29 of 63 -PEOPLE’S ROLES AND RESPONSIBILITIES  About software quality, people may have different views and expectations based on their roles and responsibilities  Mainly two groups:  Consumers of software products and services  Customers, users, non-human users (other systems)  External view (black box)  Quality expectations:  Can be different for different users ( usability for novice and reliability for sophisticated users)  Correctness, performance, maintainability  Producers of software products and services  anyone involved with the development, management, maintenance, marketing, and service of software products  Internal view (white box)  Quality expectations:  Fulfil contractual obligations  Design, size, complexity, change  Can be different according to roles for example modifiability may be paramount for people involved with software service, maintainability for maintenance personnel, portability for third-party or software packaging service providers -- 30 of 63 -QUALITY ATTRIBUTES Quality attributes apply both to the product and the process.",
+      "audioUrl": "audio/scene-21.wav",
+      "durationInFrames": 3330,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  As in every technical domain, it is engineering that transforms ideas into products, it is the verified and validated set of “to-dos” that help develop the product that not only has required functionalities but also executes them correctly. -- 27 of 63 -QUALITY PERSPECTIVES AND EXPECTATIONS  Quality is a complex concept - it means different things to different people, and it is highly context dependent .  In Kitchenham & Pfleeger (1996):  Transcendental view: seen/not-defined  User view: fitness for purpose(task context)  Manufacturing view: conformance to standards  Product view: inherent characteristics  Value-based view: willingness to pay, The value-based view makes a trade-off between cost and quality -- 28 of 63 -Different views of Quality -- 29 of 63 -PEOPLE’S ROLES AND RESPONSIBILITIES  About software quality, people may have different views and expectations based on their roles and responsibilities  Mainly two groups:  Consumers of software products and services  Customers, users, non-human users (other systems)  External view (black box)  Quality expectations:  Can be different for different users ( usability for novice and reliability for sophisticated users)  Correctness, performance, maintainability  Producers of software products and services  anyone involved with the development, management, maintenance, marketing, and service of software products  Internal view (white box)  Quality expectations:  Fulfil contractual obligations  Design, size, complexity, change  Can be different according to roles for example modifiability may be paramount for people involved with software service, maintainability for maintenance personnel, portability for third-party or software packaging service providers -- 30 of 63 -QUALITY ATTRIBUTES Quality attributes apply both to the product and the process.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-22",
+      "narrationText": "Product: delivered to the customer Process: produces the software product Resources: (both the product and the process require resources)  Underlying assumption: a quality process leads to a quality product -- 31 of 63 -QUALITY ATTRIBUTES Quality attributes can be external or internal. External: Derived from the relationship between the environment and the system (or the process). (To derive, the system or process must run)  e.",
+      "audioUrl": "audio/scene-22.wav",
+      "durationInFrames": 810,
+      "bRollPrompt": "Cinematic documentary footage illustrating: Product: delivered to the customer Process: produces the software product Resources: (both the product and the process require resources)  Underlying assumption: a quality process leads to a quality product -- 31 of 63 -QUALITY ATTRIBUTES Quality attributes can be external or internal. External: Derived from the relationship between the environment and the system (or the process). (To derive, the system or process must run)  e.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-23",
+      "narrationText": "g. Correctness, Usability, Efficiency, Reliability, Integrity, Adaptability, Accuracy, and Robustness. Internal: Derived immediately from the product or process description (To derive, it is sufficient to have the description)  Underlying assumption: internal quality leads to external quality  Maintainability, Flexibility, Portability, Re-usability, Readability, Testability, and Understandability.",
+      "audioUrl": "audio/scene-23.wav",
+      "durationInFrames": 570,
+      "bRollPrompt": "Cinematic documentary footage illustrating: g. Correctness, Usability, Efficiency, Reliability, Integrity, Adaptability, Accuracy, and Robustness. Internal: Derived immediately from the product or process description (To derive, it is sufficient to have the description)  Underlying assumption: internal quality leads to external quality  Maintainability, Flexibility, Portability, Re-usability, Readability, Testability, and Understandability.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-24",
+      "narrationText": "-- 32 of 63 -QUALITY FRAMEWORKS AND ISO-9126 SOFTWARE QUALITY ENGINEERING 34 -- 33 of 63 -QUALITY FRAMEWORKS AND ISO-9126  ISO-9126—hierarchical framework for quality definition, organized into quality characteristics and sub-characteristics with six top-level quality characteristics/dimensions:  Functionality: what is needed?  Suitability, Accuracy, Interoperability, Security  Reliability: function correctly  Maturity, fault tolerance, recoverability  Usability: effort to use  Understandability, learnability, operability  Efficiency: resource needed  Time, resource  Maintainability: correct/improve/adapt  Analyzability, changeability, stability, testability  Portability: one environment to another  Adaptability, installability, conformance, replaceability -- 34 of 63 -ALTERNATIVE FRAMEWORKS AND FOCUS ON CORRECTNESS  Quality measure for IBM,s software products  CUPRIMDS (capability, usability, performance, reliability, installation, maintenance, documentation, and service)  Quality attributes for Web-based applications  reliability, usability, and security—primary attributes  availability, scalability, maintainability, and time to market—secondary attributes  performance (or efficiency) and reliability would take precedence over usability and maintainability for real-time software products. On the contrary, it might be the other way round for mass market products for end users.",
+      "audioUrl": "audio/scene-24.wav",
+      "durationInFrames": 2100,
+      "bRollPrompt": "Cinematic documentary footage illustrating: -- 32 of 63 -QUALITY FRAMEWORKS AND ISO-9126 SOFTWARE QUALITY ENGINEERING 34 -- 33 of 63 -QUALITY FRAMEWORKS AND ISO-9126  ISO-9126—hierarchical framework for quality definition, organized into quality characteristics and sub-characteristics with six top-level quality characteristics/dimensions:  Functionality: what is needed?  Suitability, Accuracy, Interoperability, Security  Reliability: function correctly  Maturity, fault tolerance, recoverability  Usability: effort to use  Understandability, learnability, operability  Efficiency: resource needed  Time, resource  Maintainability: correct/improve/adapt  Analyzability, changeability, stability, testability  Portability: one environment to another  Adaptability, installability, conformance, replaceability -- 34 of 63 -ALTERNATIVE FRAMEWORKS AND FOCUS ON CORRECTNESS  Quality measure for IBM,s software products  CUPRIMDS (capability, usability, performance, reliability, installation, maintenance, documentation, and service)  Quality attributes for Web-based applications  reliability, usability, and security—primary attributes  availability, scalability, maintainability, and time to market—secondary attributes  performance (or efficiency) and reliability would take precedence over usability and maintainability for real-time software products. On the contrary, it might be the other way round for mass market products for end users.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-25",
+      "narrationText": " Correctness is typically the most important aspect of quality for situations where daily life or business depends on the software -- 35 of 63 -CORRECTNESS AND DEFECTS  Error:  incorrect/missing human action – conceptual mistakes  Fault:  An incorrect step, process, or data definition in a computer program.  Failure:  The inability of a system or component to perform its required functions within specified performance requirements.  Defect (bug):  All the above three terms collectively -- 36 of 63 -CORRECTNESS AND DEFECTS  We also extend errors to include error sources or the root causes for the missing or incorrect actions, such as human misconceptions, misunderstandings, etc.",
+      "audioUrl": "audio/scene-25.wav",
+      "durationInFrames": 1350,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  Correctness is typically the most important aspect of quality for situations where daily life or business depends on the software -- 35 of 63 -CORRECTNESS AND DEFECTS  Error:  incorrect/missing human action – conceptual mistakes  Fault:  An incorrect step, process, or data definition in a computer program.  Failure:  The inability of a system or component to perform its required functions within specified performance requirements.  Defect (bug):  All the above three terms collectively -- 36 of 63 -CORRECTNESS AND DEFECTS  We also extend errors to include error sources or the root causes for the missing or incorrect actions, such as human misconceptions, misunderstandings, etc.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-26",
+      "narrationText": " Software problems or defects, are also commonly referred to as “bugs”. However, the term bug is never precisely defined  Moreover, we use defect detection and removal for the overall concept and activities related to what many people commonly call “debugging”.  Specific activities related to defect discovery, including testing, inspection, etc.",
+      "audioUrl": "audio/scene-26.wav",
+      "durationInFrames": 660,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  Software problems or defects, are also commonly referred to as “bugs”. However, the term bug is never precisely defined  Moreover, we use defect detection and removal for the overall concept and activities related to what many people commonly call “debugging”.  Specific activities related to defect discovery, including testing, inspection, etc.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-27",
+      "narrationText": " Specific follow-up activities after defect discovery, including defect diagnosis, analysis, fixing, and re-verification -- 37 of 63 -ILLUSTRATION OF CONCEPTS RELATED TO DEFECTS -- 38 of 63 -CONCEPTS RELATED TO DEFECTS  The relationship is not necessarily 1-to- 1:  A single error may cause many faults, such as in the case that a wrong algorithm is applied in multiple modules and causes multiple faults, and a single fault may cause many failures in repeated executions.  Conversely, the same failure may be caused by several faults, such as an interface or interaction failure involving multiple modules, and the same fault may be there due to different errors.  Sometimes, an error source, such as e5, may not cause any fault injection, and a fault, such as f4, may not cause any failure, under the given scenarios or circumstances.",
+      "audioUrl": "audio/scene-27.wav",
+      "durationInFrames": 1680,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  Specific follow-up activities after defect discovery, including defect diagnosis, analysis, fixing, and re-verification -- 37 of 63 -ILLUSTRATION OF CONCEPTS RELATED TO DEFECTS -- 38 of 63 -CONCEPTS RELATED TO DEFECTS  The relationship is not necessarily 1-to- 1:  A single error may cause many faults, such as in the case that a wrong algorithm is applied in multiple modules and causes multiple faults, and a single fault may cause many failures in repeated executions.  Conversely, the same failure may be caused by several faults, such as an interface or interaction failure involving multiple modules, and the same fault may be there due to different errors.  Sometimes, an error source, such as e5, may not cause any fault injection, and a fault, such as f4, may not cause any failure, under the given scenarios or circumstances.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-28",
+      "narrationText": "Such faults are typically called dormant or latent faults, which may still cause problems under a different set of scenarios or circumstances. -- 39 of 63 -CONCEPTS RELATED TO DEFECTS  It should be noted that only a portion of the software faults, and in some cases only a small portion of them, will turn into software failures in either the early or later stages of the software’s application.  Other software faults will remain hidden, invisible to the software users, yet capable of being activated when the situation changes.",
+      "audioUrl": "audio/scene-28.wav",
+      "durationInFrames": 1080,
+      "bRollPrompt": "Cinematic documentary footage illustrating: Such faults are typically called dormant or latent faults, which may still cause problems under a different set of scenarios or circumstances. -- 39 of 63 -CONCEPTS RELATED TO DEFECTS  It should be noted that only a portion of the software faults, and in some cases only a small portion of them, will turn into software failures in either the early or later stages of the software’s application.  Other software faults will remain hidden, invisible to the software users, yet capable of being activated when the situation changes.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-29",
+      "narrationText": "-- 40 of 63 -CORRECTNESS ORIENTED PROPERTIES AND MEASUREMENTS  Failure properties and direct failure measurement  Failure properties include information about the specific failures, what they are, how they occur, etc. These properties can be measured directly by examining failure count, distribution, density etc.  Failure likelihood and reliability measurement  How often or how likely a failure is going to occur is of critical concern to software users and customers.",
+      "audioUrl": "audio/scene-29.wav",
+      "durationInFrames": 870,
+      "bRollPrompt": "Cinematic documentary footage illustrating: -- 40 of 63 -CORRECTNESS ORIENTED PROPERTIES AND MEASUREMENTS  Failure properties and direct failure measurement  Failure properties include information about the specific failures, what they are, how they occur, etc. These properties can be measured directly by examining failure count, distribution, density etc.  Failure likelihood and reliability measurement  How often or how likely a failure is going to occur is of critical concern to software users and customers.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-30",
+      "narrationText": "This likelihood is captured in various reliability measures, where reliability can be defined as the probability of failure-free operations for a specific time period or for a given set of inputs -- 41 of 63 -CORRECTNESS ORIENTED PROPERTIES AND MEASUREMENTS  Failure severity measurement and safety assurance  Accidents, which are defined to be failures with severe consequences, need to be avoided, contained, or dealt with to ensure the safety for the personnel involved and to minimize other damages -- 42 of 63 -CAUSES OF SOFTWARE ERRORS  Faulty definition of requirements  Erroneous definition of requirements  Incomplete definition of requirements  Inclusion of unnecessary requirements, functions that are not expected to be needed in the near future  Client-developer communication failures  Misunderstanding of (i) client’s instructions as stated in the requirement documents, (ii) requirement changes, (iii) client’s response to design problem  Deliberate deviation from requirements  Logical design errors  Process definitions that contain sequencing errors  Erroneous definition of boundary conditions  Omission of required software states  Omission of definitions concerning reactions to illegal operation of the software system. -- 43 of 63 -CAUSES OF SOFTWARE ERRORS  Coding errors  misunderstanding the design documentation, linguistic errors in the programming languages, errors in the application of CASE and other development tools, errors in data selection, and so forth.  Non-compliance with documentation and coding instructions  Team members who need to coordinate their own codes with code modules developed by “non-complying” team members can be expected to encounter more than the usual number of difficulties when trying to understand the software developed by the other team members.",
+      "audioUrl": "audio/scene-30.wav",
+      "durationInFrames": 3300,
+      "bRollPrompt": "Cinematic documentary footage illustrating: This likelihood is captured in various reliability measures, where reliability can be defined as the probability of failure-free operations for a specific time period or for a given set of inputs -- 41 of 63 -CORRECTNESS ORIENTED PROPERTIES AND MEASUREMENTS  Failure severity measurement and safety assurance  Accidents, which are defined to be failures with severe consequences, need to be avoided, contained, or dealt with to ensure the safety for the personnel involved and to minimize other damages -- 42 of 63 -CAUSES OF SOFTWARE ERRORS  Faulty definition of requirements  Erroneous definition of requirements  Incomplete definition of requirements  Inclusion of unnecessary requirements, functions that are not expected to be needed in the near future  Client-developer communication failures  Misunderstanding of (i) client’s instructions as stated in the requirement documents, (ii) requirement changes, (iii) client’s response to design problem  Deliberate deviation from requirements  Logical design errors  Process definitions that contain sequencing errors  Erroneous definition of boundary conditions  Omission of required software states  Omission of definitions concerning reactions to illegal operation of the software system. -- 43 of 63 -CAUSES OF SOFTWARE ERRORS  Coding errors  misunderstanding the design documentation, linguistic errors in the programming languages, errors in the application of CASE and other development tools, errors in data selection, and so forth.  Non-compliance with documentation and coding instructions  Team members who need to coordinate their own codes with code modules developed by “non-complying” team members can be expected to encounter more than the usual number of difficulties when trying to understand the software developed by the other team members.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-31",
+      "narrationText": " Individuals replacing the “non-complying” team member (who has retired or been promoted) will find it difficult to fully understand his or her work.  The design review team will find it more difficult to review a design prepared by a non-complying team.  Shortcomings of the testing process  Incomplete test plans; failure to report, document and correct detected errors;  Procedure errors  Documentation errors  Omission of software functions -- 44 of 63 -THE ENVIRONMENTS FOR WHICH SQA METHODS ARE DEVELOPED  Important to note that variety of professionals, such as students, amateur developers, professionals in engineering, economics, management and other fields, software teams, departments of large and small industrial applications and all those who participate in these activities are required to deal with software quality problems (“bugs”).",
+      "audioUrl": "audio/scene-31.wav",
+      "durationInFrames": 1590,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  Individuals replacing the “non-complying” team member (who has retired or been promoted) will find it difficult to fully understand his or her work.  The design review team will find it more difficult to review a design prepared by a non-complying team.  Shortcomings of the testing process  Incomplete test plans; failure to report, document and correct detected errors;  Procedure errors  Documentation errors  Omission of software functions -- 44 of 63 -THE ENVIRONMENTS FOR WHICH SQA METHODS ARE DEVELOPED  Important to note that variety of professionals, such as students, amateur developers, professionals in engineering, economics, management and other fields, software teams, departments of large and small industrial applications and all those who participate in these activities are required to deal with software quality problems (“bugs”).",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-32",
+      "narrationText": "-- 45 of 63 - Contractual conditions  Subjection to customer-supplier relationship  Requirement for teamwork  Need for cooperation and coordination with other development teams  Need for interfaces with other software systems  Need to continue carrying out a project while the team changes  Need to continue maintaining the software system for years THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS -- 46 of 63 -THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS  Contractual Conditions  As a result of the commitments and conditions defined in the contract between the software developer and the customer, the activities of software development and maintenance need to cope with:  A defined list of functional requirements that the developed software and its maintenance need to fulfill.  The project budget.  The project timetable  Subjection to customer-supplier relationship  Continuous cooperation with the customer  Request for changes, criticism/feedback, approval of changes  Such relationships do not usually exist when software is developed by non-software professionals -- 47 of 63 -THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS  Requirement for teamwork  The following factors usually motivate the establishment of a project team rather than assigning the project to one professional  Timetable (schedule) requirements  The need for a variety of specializations to carry out the project.",
+      "audioUrl": "audio/scene-32.wav",
+      "durationInFrames": 2640,
+      "bRollPrompt": "Cinematic documentary footage illustrating: -- 45 of 63 - Contractual conditions  Subjection to customer-supplier relationship  Requirement for teamwork  Need for cooperation and coordination with other development teams  Need for interfaces with other software systems  Need to continue carrying out a project while the team changes  Need to continue maintaining the software system for years THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS -- 46 of 63 -THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS  Contractual Conditions  As a result of the commitments and conditions defined in the contract between the software developer and the customer, the activities of software development and maintenance need to cope with:  A defined list of functional requirements that the developed software and its maintenance need to fulfill.  The project budget.  The project timetable  Subjection to customer-supplier relationship  Continuous cooperation with the customer  Request for changes, criticism/feedback, approval of changes  Such relationships do not usually exist when software is developed by non-software professionals -- 47 of 63 -THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS  Requirement for teamwork  The following factors usually motivate the establishment of a project team rather than assigning the project to one professional  Timetable (schedule) requirements  The need for a variety of specializations to carry out the project.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-33",
+      "narrationText": " The desire to benefit from professionals’ mutual support and review for the enhancement of project quality.  Cooperation and coordination with other development teams  Cooperation may be required with:  Other software development teams in the same organization.  Hardware development teams in the same organization.",
+      "audioUrl": "audio/scene-33.wav",
+      "durationInFrames": 600,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  The desire to benefit from professionals’ mutual support and review for the enhancement of project quality.  Cooperation and coordination with other development teams  Cooperation may be required with:  Other software development teams in the same organization.  Hardware development teams in the same organization.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-34",
+      "narrationText": " Software and hardware development teams of other suppliers.  Customer software and hardware development teams that take part in the project’s development. -- 48 of 63 -COOPERATION AND COORDINATION SCHEME FOR A SOFTWARE DEVELOPMENT PROJECT TEAM -- 49 of 63 -THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS  Interfaces with other software systems  One can identify the following main types of interfaces:  Input interfaces, where other software systems transmit data to your software system.",
+      "audioUrl": "audio/scene-34.wav",
+      "durationInFrames": 930,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  Software and hardware development teams of other suppliers.  Customer software and hardware development teams that take part in the project’s development. -- 48 of 63 -COOPERATION AND COORDINATION SCHEME FOR A SOFTWARE DEVELOPMENT PROJECT TEAM -- 49 of 63 -THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS  Interfaces with other software systems  One can identify the following main types of interfaces:  Input interfaces, where other software systems transmit data to your software system.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-35",
+      "narrationText": " Output interfaces, where your software system transmits processed data to other software systems.  Input and output interfaces to the machine’s control board, as in medical and laboratory control systems, metal processing equipment, etc.  Need to continue carrying out a project while the team changes  It is quite common for team members to leave the team during the project development period.",
+      "audioUrl": "audio/scene-35.wav",
+      "durationInFrames": 780,
+      "bRollPrompt": "Cinematic documentary footage illustrating:  Output interfaces, where your software system transmits processed data to other software systems.  Input and output interfaces to the machine’s control board, as in medical and laboratory control systems, metal processing equipment, etc.  Need to continue carrying out a project while the team changes  It is quite common for team members to leave the team during the project development period.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-36",
+      "narrationText": "The team leader then has to replace the departing team member either by another employee or by a newly recruited employee. -- 50 of 63 -THE SALARY SOFTWARE SYSTEM – AN EXAMPLE OF SOFTWARE INTERFACES Salary processing system Attendance control system Bank information systems Money transfers to employees’ bank account accounts Monthly attendance report, including overtime calculations Input interface Output interface -- 51 of 63 -THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS  Need to continue maintaining the software system for years  Customers who develop or purchase a software system expect to continue utilizing it for a long period, usually for 5–10 years. During the service period, the need for maintenance will eventually arise.",
+      "audioUrl": "audio/scene-36.wav",
+      "durationInFrames": 1380,
+      "bRollPrompt": "Cinematic documentary footage illustrating: The team leader then has to replace the departing team member either by another employee or by a newly recruited employee. -- 50 of 63 -THE SALARY SOFTWARE SYSTEM – AN EXAMPLE OF SOFTWARE INTERFACES Salary processing system Attendance control system Bank information systems Money transfers to employees’ bank account accounts Monthly attendance report, including overtime calculations Input interface Output interface -- 51 of 63 -THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS  Need to continue maintaining the software system for years  Customers who develop or purchase a software system expect to continue utilizing it for a long period, usually for 5–10 years. During the service period, the need for maintenance will eventually arise.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-37",
+      "narrationText": "In most cases, the developer is required to supply these services directly.  Internal “customers”, in cases where the software has been developed in-house, share the same expectation regarding the software maintenance during the service period of the software system. -- 52 of 63 -These characteristics demand that intensive and continuous managerial efforts be expended in parallel to the professional efforts that have to be invested in order to ensure the project’s quality or, in other words, to assure the project’s success.",
+      "audioUrl": "audio/scene-37.wav",
+      "durationInFrames": 990,
+      "bRollPrompt": "Cinematic documentary footage illustrating: In most cases, the developer is required to supply these services directly.  Internal “customers”, in cases where the software has been developed in-house, share the same expectation regarding the software maintenance during the service period of the software system. -- 52 of 63 -These characteristics demand that intensive and continuous managerial efforts be expended in parallel to the professional efforts that have to be invested in order to ensure the project’s quality or, in other words, to assure the project’s success.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-38",
+      "narrationText": "THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS -- 53 of 63 -SOFTWARE DEVELOPMENT MODELS • There are numerous models for software development that are process oriented in approach. • Each model defines its own steps, processes, procedures and activities to be followed under a software development life-cycle. • While discussing about conventional software development, Waterfall model and Spiral model may be specified as more mature and practiced.",
+      "audioUrl": "audio/scene-38.wav",
+      "durationInFrames": 810,
+      "bRollPrompt": "Cinematic documentary footage illustrating: THE CHARACTERISTICS OF THE SQA ENVIRONMENT PROCESS -- 53 of 63 -SOFTWARE DEVELOPMENT MODELS • There are numerous models for software development that are process oriented in approach. • Each model defines its own steps, processes, procedures and activities to be followed under a software development life-cycle. • While discussing about conventional software development, Waterfall model and Spiral model may be specified as more mature and practiced.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-39",
+      "narrationText": "-- 54 of 63 -SQA IMPORTANCE W. R. T.",
+      "audioUrl": "audio/scene-39.wav",
+      "durationInFrames": 120,
+      "bRollPrompt": "Cinematic documentary footage illustrating: -- 54 of 63 -SQA IMPORTANCE W. R. T.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-40",
+      "narrationText": "PROCESS  Specifications  The correctness, completeness, and consistency of the requirements model will have a strong influence on the quality of all work products that follow  Design  Every element of the design model should be assessed by the software team to ensure that it exhibits high quality and that the design itself conforms to requirements  Construction  Source code and related work products (e. g. , other descriptive information) must conform to local coding standards and exhibit characteristics that will facilitate maintainability  Conformance  Thorough application of all quality assurance activities in the organization, process definition, and improvement -- 55 of 63 -WATERFALL MODEL Requirements Specification Design Coding Unit Testing Installation & Training Integration Testing Maintenance -- 56 of 63 -WATERFALL AND SQA ACTIVITIES Requirements Specification Design Coding Unit Testing Installation & Training Integration Testing Maintenance Review the SRS Design Reviews Coding Standards Validation Configuration Control Test Procedures and Tolerances Documentation Defect Tracking -- 57 of 63 -SPIRAL MODEL Risk Analysis & Specification Design Code Test -- 58 of 63 -SPIRAL WITH SQA Risk Analysis & Specification Design Code Test Specification Review Design Review Regression Testing -- 59 of 63 -THE V MODEL -- 60 of 63 -AGILE DEVELOPMENT  Agility = ability to react to changing situations quickly, appropriately, and effectively.",
+      "audioUrl": "audio/scene-40.wav",
+      "durationInFrames": 2610,
+      "bRollPrompt": "Cinematic documentary footage illustrating: PROCESS  Specifications  The correctness, completeness, and consistency of the requirements model will have a strong influence on the quality of all work products that follow  Design  Every element of the design model should be assessed by the software team to ensure that it exhibits high quality and that the design itself conforms to requirements  Construction  Source code and related work products (e. g. , other descriptive information) must conform to local coding standards and exhibit characteristics that will facilitate maintainability  Conformance  Thorough application of all quality assurance activities in the organization, process definition, and improvement -- 55 of 63 -WATERFALL MODEL Requirements Specification Design Coding Unit Testing Installation & Training Integration Testing Maintenance -- 56 of 63 -WATERFALL AND SQA ACTIVITIES Requirements Specification Design Coding Unit Testing Installation & Training Integration Testing Maintenance Review the SRS Design Reviews Coding Standards Validation Configuration Control Test Procedures and Tolerances Documentation Defect Tracking -- 57 of 63 -SPIRAL MODEL Risk Analysis & Specification Design Code Test -- 58 of 63 -SPIRAL WITH SQA Risk Analysis & Specification Design Code Test Specification Review Design Review Regression Testing -- 59 of 63 -THE V MODEL -- 60 of 63 -AGILE DEVELOPMENT  Agility = ability to react to changing situations quickly, appropriately, and effectively.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-41",
+      "narrationText": "• notice changes early • initiate action promptly • create a feasible and effective alternative plan quickly • reorient work and resources quickly and effectively • SQA under Agile development • Testing is a QA activity. • In conventional development approach, testing is conducted as a separate and complete phase. • Agile development changed the whole scenario of software testing.",
+      "audioUrl": "audio/scene-41.wav",
+      "durationInFrames": 720,
+      "bRollPrompt": "Cinematic documentary footage illustrating: • notice changes early • initiate action promptly • create a feasible and effective alternative plan quickly • reorient work and resources quickly and effectively • SQA under Agile development • Testing is a QA activity. • In conventional development approach, testing is conducted as a separate and complete phase. • Agile development changed the whole scenario of software testing.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-42",
+      "narrationText": "• Agile shifted the responsibility of testing to developers by adopting the techniques like Pair Programming and Test Driven Programming. • Testing is integrated in each iteration that helps to shorten the release time and provides with better quality.",
+      "audioUrl": "audio/scene-42.wav",
+      "durationInFrames": 480,
+      "bRollPrompt": "Cinematic documentary footage illustrating: • Agile shifted the responsibility of testing to developers by adopting the techniques like Pair Programming and Test Driven Programming. • Testing is integrated in each iteration that helps to shorten the release time and provides with better quality.",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    },
+    {
+      "id": "scene-43",
+      "narrationText": "-- 61 of 63 -ROLES & RESPONSIBILITIES OF SQA TEAM • Review of documents developed by development team • Track the compliance with standards • Development of QA Plan (test plan + test cases) • Implementation of test cases (Black Box or Glass Box Testing) • Management of bug repository • Participating in code and design reviews • Participate in product and process audits. Responsibilities of a tester • Design test cases • Write test scripts • Execute test cases Responsibility of SQA manager • Give 25% time for reviewing test cases written • Lead review meetings • Resolve conflicts -- 62 of 63 -That is all 64 -- 63 of 63 -",
+      "audioUrl": "audio/scene-43.wav",
+      "durationInFrames": 1380,
+      "bRollPrompt": "Cinematic documentary footage illustrating: -- 61 of 63 -ROLES & RESPONSIBILITIES OF SQA TEAM • Review of documents developed by development team • Track the compliance with standards • Development of QA Plan (test plan + test cases) • Implementation of test cases (Black Box or Glass Box Testing) • Management of bug repository • Participating in code and design reviews • Participate in product and process audits. Responsibilities of a tester • Design test cases • Write test scripts • Execute test cases Responsibility of SQA manager • Give 25% time for reviewing test cases written • Lead review meetings • Resolve conflicts -- 62 of 63 -That is all 64 -- 63 of 63 -",
+      "bRollImageUrl": "images/scene-placeholder.svg"
+    }
+  ]
+}

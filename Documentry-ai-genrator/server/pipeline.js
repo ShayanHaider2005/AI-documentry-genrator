@@ -12,9 +12,9 @@ function logStep(step, message, startedAt) {
 	console.log(`[${step}] ${message} (${elapsedMilliseconds} ms)`);
 }
 
-async function runPipeline(pdfPath = './server/sample.pdf') {
+async function runPipeline(pdfPath = path.resolve(__dirname, 'sample.pdf')) {
 	const pipelineStartedAt = performance.now();
-	console.log(`Starting documentary pipeline for ${pdfPath}`);
+	console.log(`[PIPELINE] Starting documentary pipeline for ${pdfPath}`);
 
 	const extractionStartedAt = performance.now();
 	console.log('[1/3] Extracting text from PDF...');
@@ -42,7 +42,7 @@ async function runPipeline(pdfPath = './server/sample.pdf') {
 	logStep('4/4', 'Wrote dataset.json', writeStartedAt);
 
 	console.log(
-		`Pipeline complete in ${(performance.now() - pipelineStartedAt).toFixed(0)} ms`,
+		`[PIPELINE] Complete in ${(performance.now() - pipelineStartedAt).toFixed(0)} ms`,
 	);
 
 	return finalizedScript;
@@ -50,7 +50,7 @@ async function runPipeline(pdfPath = './server/sample.pdf') {
 
 if (require.main === module) {
 	runPipeline(process.argv[2]).catch((error) => {
-		console.error(`Pipeline failed: ${error.message}`);
+		console.error(`[PIPELINE] Failed: ${error.message}`);
 		process.exitCode = 1;
 	});
 }

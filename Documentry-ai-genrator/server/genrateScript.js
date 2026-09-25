@@ -42,7 +42,7 @@ function createOfflineVideoScript(pdfText) {
 			audioUrl: `audio/scene-${sceneNumber}.mp3`,
 			durationInFrames: 180,
 			bRollPrompt: `Cinematic documentary footage illustrating: ${narrationText}`,
-			bRollImageUrl: `images/scene-${sceneNumber}.jpg`,
+			bRollImageUrl: 'images/scene-placeholder.svg',
 		};
 	});
 
@@ -63,7 +63,10 @@ async function generateVideoScript(pdfText) {
 		throw new TypeError('pdfText must be a non-empty string');
 	}
 
-	return createOfflineVideoScript(pdfText);
+	console.log(`[SCRIPT] Generating scenes from ${pdfText.length} characters`);
+	const videoScript = createOfflineVideoScript(pdfText);
+	console.log(`[SCRIPT] Generated ${videoScript.scenes.length} scenes`);
+	return videoScript;
 }
 
 module.exports = { generateVideoScript };
