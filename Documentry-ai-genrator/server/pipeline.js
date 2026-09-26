@@ -400,6 +400,25 @@ async function fetchContextualImage(keyword, { log = console.log } = {}) {
 	}
 }
 
+/**
+ * Compose a short, searchable phrase for one beat: the scene's concept plus the
+ * document section the beat points at, capped at 5 words so it stays a usable
+ * stock query (and passes the specificity check).
+ */
+function buildBeatKeyword(sceneKeyword, sectionHeading) {
+	const clean = (value) =>
+		String(value || '')
+			.toLowerCase()
+			.replace(/[^a-z0-9\s]/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+
+	const scene = clean(sceneKeyword).split(' ').filter(Boolean).slice(0, 3);
+	const section = clean(sectionHeading).split(' ').filter(Boolean).slice(0, 2);
+
+	return [...scene, ...section].join(' ').slice(0, 60).trim();
+}
+
 /** Build the per-beat document diagram that stands in for a stock photo. */
 function buildSceneDiagram({
 	title,
@@ -568,13 +587,17 @@ async function runPipeline(optionsOrPdfPath = {}) {
 		for (let b = 0; b < derivedBeats.length; b++) {
 			const beat = derivedBeats[b];
 			const llmBeat = llmBeats[b] || {};
-			const beatKeyword = String(
-				llmBeat.imageKeyword || `${keyword} ${beat.label}`.trim(),
-			);
+			const slice = slices[b] || outline;
+
+			// Build a *searchable* phrase for this beat: the scene's concept plus
+			// the document section this beat highlights. Never the narration prose
+			// — filler words like "every complex" make a useless stock query.
+			const beatKeyword =
+				String(llmBeat.imageKeyword || '').trim() ||
+				buildBeatKeyword(keyword, slice[0]);
 
 			const photoUrl = await fetchContextualImage(beatKeyword, { log });
 
-			const slice = slices[b] || outline;
 			const imageUrl =
 				photoUrl ||
 				buildSceneDiagram({

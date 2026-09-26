@@ -41,11 +41,22 @@ function createDb({ file = DEFAULT_FILE, maxSessions = DEFAULT_MAX_SESSIONS } = 
 	const writeStore = () => {
 		const snapshot = JSON.stringify(readStore(), null, 2);
 		const temp = `${file}.${process.pid}.tmp`;
-		writeChain = writeChain.then(async () => {
-			await fs.promises.mkdir(path.dirname(file), { recursive: true });
-			await fs.promises.writeFile(temp, `${snapshot}\n`, 'utf8');
-			await fs.promises.rename(temp, file);
-		});
+
+		// Chain writes so they stay sequential, but never let a failure poison the
+		// chain: a single rejected write would otherwise reject every later write
+		// and the store would silently stop persisting.
+		writeChain = writeChain
+			.catch(() => undefined)
+			.then(async () => {
+				await fs.promises.mkdir(path.dirname(file), { recursive: true });
+				await fs.promises.writeFile(temp, `${snapshot}\n`, 'utf8');
+				await fs.promises.rename(temp, file);
+			})
+			.catch((err) => {
+				console.error(`[DB] Failed to persist ${file}: ${err.message}`);
+				throw err;
+			});
+
 		return writeChain;
 	};
 

@@ -71,10 +71,59 @@ const MIME = {
 const sessions = new Map();
 const jobs = new Map();
 
+/** Working sessions (uploads in progress) expire so a public site cannot leak memory. */
+const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MINUTES || 120) * 60 * 1000;
+let lastSweep = 0;
+
+/** Only one Remotion render at a time: each render spawns a Chrome process. */
+const MAX_CONCURRENT_RENDERS = Number(process.env.MAX_CONCURRENT_RENDERS || 1);
+
+/** Very small fixed-window limiter, enough to stop casual abuse of costly routes. */
+const RATE_LIMIT = new Map();
+const RATE_WINDOW_MS = 60 * 1000;
+const RATE_MAX = Number(process.env.RATE_LIMIT_PER_MINUTE || 20);
+
+const rateLimited = (key) => {
+	const now = Date.now();
+	const entry = RATE_LIMIT.get(key);
+
+	if (!entry || now > entry.resetAt) {
+		RATE_LIMIT.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+		return false;
+	}
+	entry.count += 1;
+	return entry.count > RATE_MAX;
+};
+
+const sweepSessions = () => {
+	const now = Date.now();
+	if (now - lastSweep < 60 * 1000) return;
+	lastSweep = now;
+
+	// Drop the rate-limit buckets that have expired.
+	for (const [key, entry] of RATE_LIMIT) {
+		if (now > entry.resetAt) RATE_LIMIT.delete(key);
+	}
+
+	// Evict idle working sessions. Finished videos are persisted in db, and any
+	// on-disk artefacts are cleaned up with them.
+	for (const [id, session] of sessions) {
+		if (session.lastUsed && now - session.lastUsed > SESSION_TTL_MS) {
+			sessions.delete(id);
+			fs.rm(sessionDir(id), { recursive: true, force: true }, () => {});
+			fs.rm(path.join(PUBLIC_DIR, 'audio', id), { recursive: true, force: true }, () => {});
+		}
+	}
+};
+
 const newId = (prefix) => `${prefix}_${crypto.randomBytes(9).toString('hex')}`;
 const isValidId = (id) => typeof id === 'string' && /^[a-z]+_[a-f0-9]{18}$/.test(id);
 
-const getSession = (id) => (isValidId(id) ? sessions.get(id) : undefined);
+const getSession = (id) => {
+	const session = isValidId(id) ? sessions.get(id) : undefined;
+	if (session) session.lastUsed = Date.now();
+	return session;
+};
 
 const sessionDir = (id) => path.join(DATA_DIR, id);
 
@@ -84,6 +133,7 @@ function createSession() {
 	const session = {
 		id,
 		createdAt: new Date().toISOString(),
+		lastUsed: Date.now(),
 		pdf: null,
 		cleanText: '',
 		voice: null,
@@ -91,6 +141,7 @@ function createSession() {
 		renderPath: null,
 	};
 	sessions.set(id, session);
+	sweepSessions();
 	return session;
 }
 
@@ -248,6 +299,17 @@ Rules:
 
 async function handleApi(req, res, url) {
 	const route = url.pathname;
+
+	// Throttle the expensive routes. Cheap reads stay unthrottled.
+	const COSTLY = ['/api/generate', '/api/render', '/api/upload/pdf', '/api/upload/voice', '/api/chat'];
+	if (COSTLY.includes(route)) {
+		const key = `${route}:${req.socket.remoteAddress || 'unknown'}`;
+		if (rateLimited(key)) {
+			return sendJson(res, 429, {
+				error: 'Too many requests. Please wait a moment and try again.',
+			});
+		}
+	}
 
 	// ── GET /api/config ────────────────────────────────────────────────────
 	if (route === '/api/config' && req.method === 'GET') {
@@ -458,6 +520,17 @@ async function handleApi(req, res, url) {
 	// ── DELETE /api/sessions/:id ──────────────────────────────────────────
 	if (match && req.method === 'DELETE') {
 		const removed = await db.remove(match[1]);
+		if (removed) {
+			// Reclaim the disk: the rendered video and the per-session assets.
+			fs.rm(path.join(ROOT, 'out', 'web', `${match[1]}.mp4`), { force: true }, () => {});
+			fs.rm(sessionDir(match[1]), { recursive: true, force: true }, () => {});
+			fs.rm(
+				path.join(PUBLIC_DIR, 'audio', match[1]),
+				{ recursive: true, force: true },
+				() => {},
+			);
+			sessions.delete(match[1]);
+		}
 		return removed
 			? sendJson(res, 200, { ok: true })
 			: sendJson(res, 404, { error: 'Session not found' });
@@ -468,8 +541,19 @@ async function handleApi(req, res, url) {
 		const body = await readBody(req);
 		const session = getSession(body.sessionId);
 		if (!session) return sendJson(res, 404, { error: 'Session not found' });
-		if (!session.dataset) {
+		if (!session.dataset && !db.get(session.id)) {
 			return sendJson(res, 400, { error: 'Generate the video before rendering.' });
+		}
+
+		// Renders are expensive; refuse rather than pile up Chrome processes.
+		const activeRenders = [...jobs.values()].filter(
+			(job) => job.type === 'render' && job.status === 'running',
+		).length;
+		if (activeRenders >= MAX_CONCURRENT_RENDERS) {
+			return sendJson(res, 429, {
+				error:
+					'A render is already running. Please wait for it to finish and try again.',
+			});
 		}
 
 		const job = createJob('render', session.id);
@@ -535,7 +619,6 @@ const server = http.createServer(async (req, res) => {
 		if (url.pathname.startsWith('/api/')) {
 			return await handleApi(req, res, url);
 		}
-
 		if (url.pathname.startsWith('/audio/')) {
 			// Note: serve from PUBLIC_DIR using the *full* path so that
 			// /audio/<sessionId>/scene-N.mp3 maps to public/audio/<sessionId>/...
@@ -544,15 +627,23 @@ const server = http.createServer(async (req, res) => {
 
 		const videoMatch = /^\/video\/([^/]+)$/.exec(url.pathname);
 		if (videoMatch && req.method === 'GET') {
-			const session = getSession(videoMatch[1]);
-			if (!session || !session.renderPath) {
-				return sendText(res, 404, 'No rendered video for this session yet.');
+			const id = videoMatch[1];
+			// Prefer the live session, but fall back to the deterministic output
+			// path so videos stay downloadable after a server restart.
+			const recorded = getSession(id)?.renderPath;
+			const candidate =
+				recorded && fs.existsSync(recorded)
+					? recorded
+					: path.join(ROOT, 'out', 'web', `${id}.mp4`);
+
+			if (!fs.existsSync(candidate)) {
+				return sendText(res, 404, 'No rendered video for this video yet.');
 			}
 			return serveFile(
 				res,
-				path.resolve(session.renderPath, '..'),
-				`/${path.basename(session.renderPath)}`,
-				{ download: `documentary-${session.id}.mp4` },
+				path.resolve(candidate, '..'),
+				`/${path.basename(candidate)}`,
+				{ download: `documentary-${id}.mp4` },
 			);
 		}
 
@@ -580,9 +671,12 @@ const server = http.createServer(async (req, res) => {
 
 if (require.main === module) {
 	fs.mkdirSync(DATA_DIR, { recursive: true });
+	// Periodic cleanup of idle working sessions and expired rate-limit buckets.
+	setInterval(sweepSessions, 60 * 1000).unref();
+
 	server.listen(PORT, HOST, () => {
 		console.log('');
-		console.log('  DocuBot — AI Documentary Generator');
+		console.log('  DocuBot - AI Documentary Generator');
 		console.log(`  ready on   http://localhost:${PORT}`);
 		const provider = getAiProvider();
 		console.log(
@@ -590,6 +684,12 @@ if (require.main === module) {
 		);
 		console.log(
 			`  voice clone ${process.env.ELEVENLABS_API_KEY ? 'ElevenLabs' : `fallback ${DEFAULT_EDGE_VOICE}`}`,
+		);
+		console.log(
+			`  visuals    ${process.env.PEXELS_API_KEY ? 'Pexels photos + document diagrams' : 'document diagrams (no Pexels key)'}`,
+		);
+		console.log(
+			`  limits     ${RATE_MAX} req/min per IP, ${MAX_CONCURRENT_RENDERS} render at a time`,
 		);
 		console.log('');
 	});
