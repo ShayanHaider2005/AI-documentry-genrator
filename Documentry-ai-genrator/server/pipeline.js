@@ -32,6 +32,7 @@ try {
 }
 
 const { parseAndCleanPdf } = require('./parsePdf');
+const { ensureSamplePdf } = require('./sample');
 const { getAiProvider } = require('./llm');
 const {
 	deriveTitle,
@@ -504,7 +505,7 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	const pdfPath =
 		options.pdfPath ||
 		process.argv.slice(2).find((a) => a.endsWith('.pdf')) ||
-		path.resolve(__dirname, 'sample.pdf');
+		ensureSamplePdf();
 
 	// Per-session audio isolation: public/audio/<subdir>/scene-N.mp3
 	const audioDir = audioSubdir

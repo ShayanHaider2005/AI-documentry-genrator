@@ -14,14 +14,72 @@ const path = require('path');
 function createFallbackPdf(text) {
 	const escapePdfText = (value) =>
 		value.replace(/([\\/()])/g, '\\$1').replace(/[^\x20-\x7E]/g, ' ');
-	const content = `BT\n/F1 16 Tf\n72 720 Td\n(${escapePdfText(text)}) Tj\nET`;
+
+	// Lay the text out as a real page: one line per source line, wrapping long
+	// lines so the document is extracted as multiple extractable lines rather
+	// than a single blob.
+	const LINES_PER_PAGE = 46;
+	const rawLines = String(text)
+		.split(/\r?\n/)
+		.flatMap((line) => {
+			const trimmed = line.trim();
+			if (!trimmed) return [''];
+			const wrapped = [];
+			let current = '';
+			for (const word of trimmed.split(/\s+/)) {
+				if ((current + ' ' + word).trim().length > 88) {
+					wrapped.push(current.trim());
+					current = word;
+				} else {
+					current = `${current} ${word}`;
+				}
+			}
+			if (current.trim()) wrapped.push(current.trim());
+			return wrapped;
+		});
+
+	const pages = [];
+	for (let i = 0; i < rawLines.length; i += LINES_PER_PAGE) {
+		const slice = rawLines.slice(i, i + LINES_PER_PAGE);
+		let y = 720;
+		// Tm sets an absolute text matrix. Td would accumulate, walking the text
+		// off the page after a few lines.
+		const body = slice
+			.map((line) => {
+				const row = `1 0 0 1 72 ${y} Tm\n(${escapePdfText(line)}) Tj`;
+				y -= 18;
+				return row;
+			})
+			.join('\n');
+		pages.push(`BT\n/F1 12 Tf\n${body}\nET`);
+	}
+	if (pages.length === 0) pages.push('BT\n/F1 12 Tf\n72 720 Td\n( ) Tj\nET');
+
+	// Object layout: catalog, pages, one page per content block, fonts.
+	const pageCount = pages.length;
+	const firstPageObj = 3;
+	const firstContentObj = firstPageObj + pageCount;
+	const fontObj = firstContentObj + pageCount;
+
+	const kids = Array.from(
+		{ length: pageCount },
+		(_, i) => `${firstPageObj + i} 0 R`,
+	).join(' ');
+
 	const objects = [
 		'<< /Type /Catalog /Pages 2 0 R >>',
-		'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-		'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
-		`<< /Length ${Buffer.byteLength(content, 'ascii')} >>\nstream\n${content}\nendstream`,
+		`<< /Type /Pages /Kids [${kids}] /Count ${pageCount} >>`,
+		...Array.from({ length: pageCount }, (_, i) => {
+			const contentObj = firstContentObj + i;
+			return `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontObj} 0 R >> >> /Contents ${contentObj} 0 R >>`;
+		}),
+		...pages.map(
+			(content) =>
+				`<< /Length ${Buffer.byteLength(content, 'ascii')} >>\nstream\n${content}\nendstream`,
+		),
 		'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
 	];
+
 	let pdf = '%PDF-1.4\n';
 	const offsets = [0];
 	for (let i = 0; i < objects.length; i++) {
@@ -171,4 +229,4 @@ async function parseAndCleanPdf(pdfPath) {
 	}
 }
 
-module.exports = { parseAndCleanPdf, sanitizeRawText };
+module.exports = { parseAndCleanPdf, sanitizeRawText, createFallbackPdf };

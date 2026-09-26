@@ -7,6 +7,10 @@ out/
 .env.*
 !.env.example
 
+# Source documents are private: never commit lecture PDFs.
+# A synthetic demo document is generated on demand by server/sample.js.
+/Documentry-ai-genrator/server/*.pdf
+
 # Ignore generated audio runtime assets
 public/audio/*.mp3
 public/audio/*.wav

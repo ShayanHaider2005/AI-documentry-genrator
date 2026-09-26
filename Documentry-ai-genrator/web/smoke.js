@@ -40,7 +40,8 @@ const info = (label, value) => console.log(`        ${label}: ${value}`);
 	ok(`session ${sessionId}`);
 
 	console.log('\n=== 3. Upload PDF ===');
-	const pdf = fs.readFileSync(path.join(ROOT, 'server', 'sample.pdf'));
+	const { ensureSamplePdf } = require('../server/sample');
+	const pdf = fs.readFileSync(ensureSamplePdf(path.join(ROOT, 'server', 'sample.pdf')));
 	const upload = await json(`${BASE}/api/upload/pdf`, {
 		method: 'POST',
 		body: JSON.stringify({
