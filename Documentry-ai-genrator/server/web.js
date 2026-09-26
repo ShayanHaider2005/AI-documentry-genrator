@@ -398,7 +398,29 @@ async function handleApi(req, res, url) {
 		fs.writeFileSync(samplePath, buffer);
 		session.voiceSamplePath = samplePath;
 
-		const clone = await cloneClientVoice(samplePath);
+		let clone;
+		try {
+			clone = await cloneClientVoice(samplePath);
+		} catch (err) {
+			// A failed clone must be an explicit, typed failure. Reporting it as a
+			// generic 500 (or worse, a 200 OK) is what made this look broken.
+			session.voice = {
+				status: 'error',
+				voiceName: DEFAULT_EDGE_VOICE,
+				voiceId: null,
+				fileName,
+				bytes: buffer.length,
+				reason: err.message,
+			};
+			console.error(`[VOICE] ${err.message}`);
+			return sendJson(res, 501, {
+				error:
+					'Your voice sample was saved, but it is NOT being used: voice cloning failed.',
+				detail: err.message,
+				voiceName: DEFAULT_EDGE_VOICE,
+			});
+		}
+
 		session.voice = {
 			status: clone.status,
 			voiceName: clone.voiceName,
@@ -408,15 +430,12 @@ async function handleApi(req, res, url) {
 			reason: clone.reason || null,
 		};
 
-		// A failed clone is reported as a failure, not a quiet success. Silently
-		// accepting the file and narrating in a different voice is exactly what
-		// made this look broken.
 		if (!clone.voiceId) {
 			return sendJson(res, 501, {
 				error: `Your voice sample was saved, but it is NOT being used. ${
 					clone.reason || 'Voice cloning is unavailable.'
 				}`,
-				status: clone.status,
+				detail: clone.reason || null,
 				voiceName: clone.voiceName,
 			});
 		}

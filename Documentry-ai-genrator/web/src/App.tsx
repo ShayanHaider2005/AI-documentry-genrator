@@ -68,6 +68,7 @@ export const App: React.FC = () => {
 	const [pdfChars, setPdfChars] = React.useState<number | null>(null);
 	const [voiceName, setVoiceName] = React.useState<string | null>(null);
 	const [voiceInfo, setVoiceInfo] = React.useState<string | null>(null);
+	const [voiceError, setVoiceError] = React.useState<string | null>(null);
 
 	const [videoUrl, setVideoUrl] = React.useState<string | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
@@ -146,6 +147,7 @@ export const App: React.FC = () => {
 		setPdfChars(null);
 		setVoiceName(null);
 		setVoiceInfo(null);
+		setVoiceError(null);
 		setGenerateJob(null);
 		setRenderJob(null);
 		setError(null);
@@ -221,18 +223,20 @@ export const App: React.FC = () => {
 	const handleVoice = async (file: File) => {
 		if (!sessionId) return;
 		setError(null);
+		setVoiceName(null);
+		setVoiceInfo(null);
 		setBusy('Cloning your voice…');
 		try {
 			const result = await api.uploadVoice(sessionId, file);
 			setVoiceName(result.fileName);
-			const fallback = config?.fallbackVoice ?? 'the default neural voice';
-			setVoiceInfo(
-				result.voiceId
-					? `Cloned your voice (${result.voiceName}).`
-					: `Sample accepted. No ElevenLabs key on the server, so narration uses ${fallback}.`,
-			);
+			setVoiceInfo(`Cloned your voice (${result.voiceName}).`);
 		} catch (err) {
-			setError((err as Error).message);
+			// Voice cloning failing is common (plan limits, disabled free tier), so
+			// it gets its own persistent banner with the provider's reason.
+			const apiErr = err as Error & { detail?: string };
+			setVoiceName(file.name);
+			setVoiceInfo(null);
+			setVoiceError(apiErr.detail || apiErr.message);
 		} finally {
 			setBusy(null);
 		}
@@ -440,6 +444,20 @@ export const App: React.FC = () => {
 								onFile={handleVoice}
 							/>
 							{voiceInfo ? <Notice kind="ok">{voiceInfo}</Notice> : null}
+							{voiceError ? (
+								<Notice kind="err">
+									<strong>Voice cloning failed — your recording is NOT being used.</strong>
+									<br />
+									{voiceError}
+									<br />
+									<span className="hint">
+										Narration will use the default neural voice
+										{config?.fallbackVoice ? ` (${config.fallbackVoice})` : ''}.
+										Cloning needs an ElevenLabs plan that includes
+										instant voice cloning.
+									</span>
+								</Notice>
+							) : null}
 
 							<StepHeader step={3} title="Make the video" done={scenes.length > 0} />
 
