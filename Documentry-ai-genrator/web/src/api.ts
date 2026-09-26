@@ -29,6 +29,21 @@ export interface SessionSnapshot {
 	renderPath: string | null;
 }
 
+export interface SessionSummary {
+	id: string;
+	title: string;
+	createdAt: string;
+	sceneCount: number;
+	totalFrames: number;
+}
+
+export interface StoredSession {
+	id: string;
+	title: string;
+	createdAt: string;
+	scenes: Scene[];
+}
+
 export interface JobStatus {
 	id: string;
 	type: 'generate' | 'render';
@@ -36,6 +51,8 @@ export interface JobStatus {
 	progress: number;
 	logs: string[];
 	result: {
+		sessionId?: string;
+		title?: string;
 		sceneCount?: number;
 		totalFrames?: number;
 		videoUrl?: string;
@@ -109,6 +126,15 @@ export const api = {
 			sessionId,
 			message,
 		}),
+
+	/** History: lightweight summaries for the sidebar. */
+	listSessions: () => request<{ sessions: SessionSummary[] }>('/api/sessions'),
+
+	/** History: full scenes for the player, fetched once per selection. */
+	storedSession: (id: string) => request<StoredSession>(`/api/sessions/${id}`),
+
+	deleteSession: (id: string) =>
+		request<{ ok: boolean }>(`/api/sessions/${id}`, { method: 'DELETE' }),
 
 	generate: (sessionId: string) =>
 		postJson<{ jobId: string }>('/api/generate', { sessionId }),

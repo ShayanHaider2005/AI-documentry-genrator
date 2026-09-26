@@ -14,6 +14,7 @@ import {
 	resolveWordTimings,
 	type WordState,
 } from './wordTimings';
+import { resolveFocusAreas, resolvePointerState } from './focusOverlay';
 
 const FADE_IN_FRAMES = 15;
 const KEN_BURNS_SCALE = 1.08;
@@ -25,6 +26,8 @@ const resolveImageUrl = (imageUrl?: string): string | null => {
 	if (!imageUrl) {
 		return null;
 	}
+	// Synthesised document diagrams arrive as data URIs.
+	if (imageUrl.startsWith('data:')) return imageUrl;
 	return isRemote(imageUrl) ? imageUrl : staticFile(imageUrl);
 };
 
@@ -166,6 +169,114 @@ const ProgressiveCaption: React.FC<{ scene: Scene; frame: number }> = ({
 	);
 };
 
+/**
+ * Animated pointer + highlight callout over the active visual region.
+ *
+ * The pointer flies in, travels to each focus target as the narration reaches
+ * it, and pulses once settled. Purely driven by scene-relative frames, so it
+ * stays in sync in preview, in the Studio and in a final render.
+ */
+const FocusOverlay: React.FC<{ scene: Scene; frame: number }> = ({
+	scene,
+	frame,
+}) => {
+	const areas = React.useMemo(() => resolveFocusAreas(scene), [scene]);
+	const state = resolvePointerState(areas, frame, scene.durationInFrames || 1);
+
+	if (!state) return null;
+
+	const { area, settled } = state;
+	// Convert the normalised focus region into absolute frame pixels.
+	const left = `${area.x * 100}%`;
+	const top = `${area.y * 100}%`;
+	const width = `${area.w * 100}%`;
+	const height = `${area.h * 100}%`;
+
+	// Gentle breathing pulse so a settled highlight still reads as "active".
+	const pulse = settled
+		? 0.55 + 0.45 * Math.abs(Math.sin((frame / 34) * Math.PI))
+		: 1;
+
+	const cursorSize = 34;
+
+	return (
+		<AbsoluteFill style={{ pointerEvents: 'none' }}>
+			{/* Highlight callout around the active region */}
+			<div
+				style={{
+					position: 'absolute',
+					left,
+					top,
+					width,
+					height,
+					border: `3px solid rgba(250, 204, 21, ${settled ? 0.85 * pulse : 0.45})`,
+					borderRadius: 14,
+					backgroundColor: `rgba(250, 204, 21, ${settled ? 0.1 * pulse : 0.04})`,
+					boxShadow: settled
+						? `0 0 0 2px rgba(15, 23, 42, 0.5), 0 0 34px rgba(250, 204, 21, ${0.4 * pulse})`
+						: '0 0 18px rgba(250, 204, 21, 0.18)',
+					transition: 'opacity 160ms linear',
+					zIndex: 5,
+				}}
+			/>
+
+			{/* Callout label, only once the pointer has arrived */}
+			{area.label ? (
+				<div
+					style={{
+						position: 'absolute',
+						left,
+						top: `calc(${top} - 60px)`,
+						maxWidth: '34%',
+						padding: '7px 14px',
+						borderRadius: 9,
+						backgroundColor: 'rgba(15, 23, 42, 0.92)',
+						border: '1px solid rgba(250, 204, 21, 0.45)',
+						color: '#fde68a',
+						fontSize: 20,
+						fontWeight: 700,
+						letterSpacing: '0.01em',
+						boxShadow: '0 8px 22px rgba(0, 0, 0, 0.55)',
+						whiteSpace: 'nowrap',
+						overflow: 'hidden',
+						textOverflow: 'ellipsis',
+						opacity: settled ? 1 : 0,
+						transform: `translateY(${settled ? 0 : -6}px)`,
+						transition: 'opacity 200ms linear, transform 200ms ease-out',
+						zIndex: 6,
+					}}
+				>
+					{area.label}
+				</div>
+			) : null}
+
+			{/* Animated pointer at the top-left corner of the target region */}
+			<div
+				style={{
+					position: 'absolute',
+					left: `calc(${left} - ${cursorSize / 3}px)`,
+					top: `calc(${top} - ${cursorSize / 2}px)`,
+					width: cursorSize,
+					height: cursorSize,
+					filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.65))',
+					opacity: settled ? 1 : 0.75,
+					zIndex: 7,
+				}}
+			>
+				<svg viewBox="0 0 24 24" width={cursorSize} height={cursorSize}>
+					<path
+						d="M4 2 L4 20 L9 15.5 L12.2 22 L15 20.9 L11.9 14.5 L18.5 14.5 Z"
+						fill="#facc15"
+						stroke="#0f172a"
+						strokeWidth="1.4"
+						strokeLinejoin="round"
+					/>
+				</svg>
+			</div>
+		</AbsoluteFill>
+	);
+};
+
 interface SceneContentProps {
 	scene: Scene;
 	index: number;
@@ -220,6 +331,9 @@ const SceneContent: React.FC<SceneContentProps> = ({
 			{/* Cinematic vignette & shadow gradients */}
 			<div style={VIGNETTE_TOP} />
 			<div style={VIGNETTE_BOTTOM} />
+
+			{/* Contextual pointer / highlight overlay over the active region */}
+			<FocusOverlay scene={scene} frame={frame} />
 
 			{/* Data-driven header: chapter heading + numeric progress only */}
 			{hasHeading || totalScenes > 0 ? (

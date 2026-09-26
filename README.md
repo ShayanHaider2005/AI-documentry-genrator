@@ -49,21 +49,50 @@ Copy `.env.example` to `.env`. Everything degrades gracefully without keys:
 ```
 PDF ──► parsePdf.js ──► llm.js ──► pipeline.js ──► tts.js ──► src/dataset.json
         (sanitize)      (script)    (8–12 scenes)   (MP3s)      (runtime data)
-                                                          │
-                                    src/DocumentaryVideo.tsx (Remotion)
+                                    visuals.js                      │
+                                    (diagram + focus)               ▼
+                                                    src/DocumentaryVideo.tsx
 ```
 
 1. **`server/parsePdf.js`** — extracts PDF text and strips administrative noise
    (office hours, emails, course codes, slide footers, bullet glyphs).
 2. **`server/llm.js`** — one provider abstraction (Gemini → Grok → Groq → OpenAI) shared
    by script generation and the chatbot.
-3. **`server/pipeline.js`** — writes an 8–12 scene script, fetches landscape visuals from
-   Pexels by `imageKeyword`, synthesizes narration, measures real MP3 durations with
-   `music-metadata`, and emits word-level timings.
-4. **`server/tts.js`** — ElevenLabs voice cloning when a key is present, otherwise a
+3. **`server/visuals.js`** — derives the subject title, the document outline, and the
+   per-scene focus rectangles. It also renders the document diagrams.
+4. **`server/pipeline.js`** — writes an 8–12 scene script, resolves contextual visuals,
+   synthesizes narration, measures real MP3 durations with `music-metadata`, and emits
+   word-level timings. Every external call is **sequential** — one scene at a time, never
+   `Promise.all` — so a slow or rate-limited API can never fan out or freeze the server.
+5. **`server/tts.js`** — ElevenLabs voice cloning when a key is present, otherwise a
    high-quality neural teacher voice.
-5. **`src/DocumentaryVideo.tsx`** — renders the video. Everything on screen comes from
+6. **`src/DocumentaryVideo.tsx`** — renders the video. Everything on screen comes from
    the dataset: there are no hardcoded strings in the composition.
+
+### Contextual visuals (never generic stock)
+
+A scene's visual must be traceable to the document being narrated:
+
+1. The LLM is required to emit a **2–5 word `imageKeyword` naming the specific concept**,
+   plus a `visualPrompt` describing what is literally on screen.
+2. `isSpecificKeyword()` rejects vague queries (`"technology"`, `"business team"`,
+   `"abstract background"`, …) against a curated blocklist.
+3. If a keyword survives **and** a `PEXELS_API_KEY` is present, a contextual photo is used.
+4. Otherwise the scene falls back to a **document diagram synthesised from the real PDF**:
+   the actual heading outline rendered as a page of labelled blocks, wired with flow
+   arrows. There is deliberately no generic stock-photo fallback list.
+
+### Pointer & focus overlays
+
+Each scene carries a `focusArea` — a normalised (0–1) rectangle plus a label, describing
+exactly which part of the visual the narrator is discussing. The LLM may return one
+rectangle or several; `normalizeFocusArea()` repairs anything missing using the outline.
+
+`src/focusOverlay.ts` then drives the on-screen pointer: it flies in over the opening
+frames, travels to each target as the narration reaches it, settles with a pulsing
+highlight box, and shows a callout label. The diagram geometry and the focus rectangles
+come from one shared function (`computeDiagramLayout`), so the pointer always lands
+exactly on the block it highlights.
 
 ### Word-level highlighting
 
@@ -106,20 +135,46 @@ The server is `server/web.js` (Node's built-in `http`, no runtime dependencies).
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/config` | Voice sample sentences + capability flags |
-| `POST /api/session` | Create a session |
+| `POST /api/session` | Create a working session |
 | `POST /api/upload/pdf` | Upload + sanitize a PDF |
 | `POST /api/upload/voice` | Upload an MP3 and clone the voice |
 | `POST /api/chat` | Chatbot Q&A grounded in the uploaded PDF |
 | `POST /api/generate` | Start a generation job |
 | `POST /api/render` | Start an MP4 render job |
 | `GET /api/job/:id` | Job status, logs and result |
-| `GET /api/session/:id` | Session snapshot, including the dataset |
+| `GET /api/sessions` | Video history (summaries only — small and fast) |
+| `GET /api/sessions/:id` | One full record, for the player |
+| `DELETE /api/sessions/:id` | Remove a video from history |
 | `GET /audio/*` | Generated narration |
 | `GET /video/:id` | Rendered MP4 |
 
-Sessions are isolated: each gets its own uploads under `.data/sessions/<id>/` and its own
-audio under `public/audio/<id>/`, so concurrent visitors never see each other's documents.
-A session can be resumed or shared with `?session=<id>` in the URL.
+### Session history
+
+Finished videos are stored in a single JSON file, `server/sessions.json`, via
+`server/db.js`:
+
+```json
+{
+  "id": "sess_27a9f236b97ad1e11c",
+  "title": "Introduction to Quality Concepts",
+  "createdAt": "2026-09-26T16:19:36.063Z",
+  "scenes": [ /* scene objects incl. imageUrl, focusArea, wordTimings */ ]
+}
+```
+
+Writes are serialized in-process and atomic (temp file + rename), so a crash mid-write can
+never truncate the store. There is no database, no ORM and no migration.
+
+The UI keeps the sidebar light: `GET /api/sessions` returns only summaries, and the full
+scene payload (~126 KB) is fetched once when a video is selected. After that the
+`@remotion/player` switches scenes purely from React state — selecting a past video never
+re-runs generation.
+
+### Isolation
+
+Working sessions keep uploads in `.data/sessions/<id>/` and narration in
+`public/audio/<id>/`, so concurrent visitors never see each other's documents. A video can
+be reopened or shared with `?session=<id>`.
 
 Long work (generation, rendering) runs as background jobs that the UI polls. Uploads are
 sent as base64 JSON rather than multipart, which keeps the server dependency-free.
@@ -132,8 +187,10 @@ npm run web:smoke     # end-to-end API test against a running server
 
 ## Notes
 
-- `public/audio/*.mp3` and per-session folders are gitignored — narration is a build
-  artifact, reproducible with `npm run pipeline`.
+- `public/audio/*.mp3`, per-session folders, `.data/` and `server/sessions.json` are
+  gitignored — they are runtime data, reproducible with `npm run pipeline`.
 - The composition's `defaultProps` must stay an object (`{ scenes: dataset }`); Remotion
   rejects a raw array.
 - `web/dist/` is generated by `web/build.js` (esbuild) and is not committed.
+- Everything degrades without API keys: no LLM key uses the built-in script synthesizer,
+  no ElevenLabs key uses `en-US-AndrewNeural`, no Pexels key uses document diagrams.

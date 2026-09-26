@@ -4,6 +4,20 @@ export interface WordTiming {
 	endFrame: number;
 }
 
+/**
+ * Normalised region of the visual (0..1, origin top-left) that the narrator is
+ * describing. Drives the highlight box and the animated pointer.
+ */
+export interface FocusArea {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+	label?: string;
+	/** Fraction of the scene (0..1) at which the pointer arrives here. */
+	focus?: number;
+}
+
 export interface Scene {
 	sceneNumber: number;
 	narratorText: string;
@@ -12,6 +26,10 @@ export interface Scene {
 	imageUrl: string;
 	audioPath: string;
 	durationInFrames: number;
+	/** Where the visual came from: a contextual photo or a document diagram. */
+	imageSource?: 'pexels' | 'document-diagram';
+	/** Highlight target(s) for the animated pointer overlay. */
+	focusArea?: FocusArea | FocusArea[];
 	/** Short chapter heading rendered above the caption (optional). */
 	title?: string;
 	/** Short category chip rendered in the header (optional). */

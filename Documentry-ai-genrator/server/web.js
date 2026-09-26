@@ -29,6 +29,7 @@ const path = require('path');
 
 const { runPipeline } = require('./pipeline');
 const { parseAndCleanPdf } = require('./parsePdf');
+const { createDb } = require('./db');
 const {
 	cloneClientVoice,
 	VOICE_SAMPLE_SENTENCES,
@@ -45,6 +46,9 @@ const DATA_DIR = path.join(ROOT, '.data', 'sessions');
 const PORT = Number(process.env.PORT) || 3100;
 const HOST = process.env.HOST || '0.0.0.0';
 const MAX_BODY_BYTES = 64 * 1024 * 1024; // 64 MB (base64 inflates by ~33%)
+
+/** Persistent history of generated videos (single JSON file). */
+const db = createDb();
 
 const MIME = {
 	'.html': 'text/html; charset=utf-8',
@@ -385,7 +389,7 @@ async function handleApi(req, res, url) {
 		const datasetPath = path.join(sessionDir(session.id), 'dataset.json');
 
 		runJob(job, async () => {
-			const dataset = await runPipeline({
+			const { dataset, title } = await runPipeline({
 				pdfPath,
 				voiceSamplePath: session.voiceSamplePath,
 				datasetPath,
@@ -396,7 +400,18 @@ async function handleApi(req, res, url) {
 			session.dataset = dataset;
 			session.renderPath = null;
 
+			// Persist to the single-file store so the sidebar can list it and a
+			// returning visitor can load it instantly.
+			await db.add({
+				id: session.id,
+				title,
+				createdAt: new Date().toISOString(),
+				scenes: dataset,
+			});
+
 			return {
+				sessionId: session.id,
+				title,
 				sceneCount: dataset.length,
 				totalFrames: dataset.reduce((sum, s) => sum + s.durationInFrames, 0),
 				scenes: dataset.map((s) => ({
@@ -404,11 +419,46 @@ async function handleApi(req, res, url) {
 					title: s.title || '',
 					badge: s.badge || '',
 					durationInFrames: s.durationInFrames,
+					imageSource: s.imageSource || '',
 				})),
 			};
 		});
 
 		return sendJson(res, 202, { jobId: job.id });
+	}
+
+	// ── GET /api/sessions ──────────────────────────────────────────────────
+	if (route === '/api/sessions' && req.method === 'GET') {
+		// Summaries only: the scene payloads are large, so the list stays small
+		// and the sidebar switches without pulling every video's data.
+		return sendJson(res, 200, {
+			sessions: db.list().map((s) => ({
+				id: s.id,
+				title: s.title,
+				createdAt: s.createdAt,
+				sceneCount: s.scenes.length,
+				totalFrames: s.scenes.reduce(
+					(sum, scene) => sum + (scene.durationInFrames || 0),
+					0,
+				),
+			})),
+		});
+	}
+
+	// ── GET /api/sessions/:id ─────────────────────────────────────────────
+	match = /^\/api\/sessions\/([^/]+)$/.exec(route);
+	if (match && req.method === 'GET') {
+		const record = db.get(match[1]);
+		if (!record) return sendJson(res, 404, { error: 'Session not found' });
+		return sendJson(res, 200, record);
+	}
+
+	// ── DELETE /api/sessions/:id ──────────────────────────────────────────
+	if (match && req.method === 'DELETE') {
+		const removed = await db.remove(match[1]);
+		return removed
+			? sendJson(res, 200, { ok: true })
+			: sendJson(res, 404, { error: 'Session not found' });
 	}
 
 	// ── POST /api/render ───────────────────────────────────────────────────
@@ -424,7 +474,24 @@ async function handleApi(req, res, url) {
 		const datasetPath = path.join(sessionDir(session.id), 'dataset.json');
 		const outFile = path.join(ROOT, 'out', 'web', `${session.id}.mp4`);
 
+		// A session restored from the store may not have its dataset on disk
+		// (e.g. after a server restart) — materialise it from the record.
+		const ensureDataset = async () => {
+			if (fs.existsSync(datasetPath)) return;
+			const record = db.get(session.id);
+			if (!record || record.scenes.length === 0) {
+				throw new Error('No dataset available to render for this session.');
+			}
+			await fs.promises.mkdir(path.dirname(datasetPath), { recursive: true });
+			await fs.promises.writeFile(
+				datasetPath,
+				`${JSON.stringify(record.scenes, null, 2)}\n`,
+				'utf8',
+			);
+		};
+
 		runJob(job, async () => {
+			await ensureDataset();
 			const result = await renderVideo({
 				datasetPath,
 				outFile,
@@ -526,4 +593,4 @@ if (require.main === module) {
 	});
 }
 
-module.exports = { server, createSession, sessions, jobs };
+module.exports = { server, createSession, sessions, jobs, db };

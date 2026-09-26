@@ -8,8 +8,12 @@ const FPS = 30;
 const MIN_DURATION_IN_FRAMES = 30;
 const DEFAULT_SCENE_DURATION_IN_FRAMES = 150;
 
-/** Runtime dataset — a plain array of scenes produced by the backend pipeline. */
-const dataset: Scene[] = generatedScenes;
+/**
+ * Runtime dataset — a plain array of scenes produced by the backend pipeline.
+ * Cast at the import boundary: TypeScript widens JSON string fields (e.g.
+ * `imageSource`) to `string`, which would not match the narrow union on Scene.
+ */
+const dataset = generatedScenes as Scene[];
 
 /** Remotion requires `defaultProps` to be a key-value object, never a raw array. */
 const defaultProps: DocumentaryProps = { scenes: dataset };

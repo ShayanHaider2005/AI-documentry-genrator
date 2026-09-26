@@ -11,6 +11,8 @@ public/audio/*.wav
 /Documentry-ai-genrator/public/audio/*/
 # Uploads + per-session datasets written by the website server
 /Documentry-ai-genrator/.data/
+# Session history database (runtime data, rebuilt by generating videos)
+/Documentry-ai-genrator/server/sessions.json
 
 # Ignore rendered output videos
 out/                             

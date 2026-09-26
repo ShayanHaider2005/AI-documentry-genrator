@@ -34,6 +34,13 @@ try {
 const { parseAndCleanPdf } = require('./parsePdf');
 const { getAiProvider } = require('./llm');
 const {
+	deriveTitle,
+	extractOutline,
+	isSpecificKeyword,
+	buildDocumentDiagram,
+	buildFocusArea,
+} = require('./visuals');
+const {
 	generateSceneAudio,
 	cloneClientVoice,
 	computeProportionalWordTimings,
@@ -45,21 +52,10 @@ const DATASET_PATH = path.resolve(__dirname, '../src/dataset.json');
 const AUDIO_DIR = path.resolve(__dirname, '../public/audio');
 const FRAMES_PER_SECOND = 30;
 
-// Curated high-res stock visual fallbacks (used if Pexels API key is absent or request fails)
-const FALLBACK_STOCK_IMAGES = [
-	'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1920&q=80',
-	'https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?auto=format&fit=crop&w=1920&q=80',
-];
+// NOTE: there is deliberately no generic stock-photo fallback list. If a
+// contextual photo cannot be resolved, the scene falls back to a document
+// diagram synthesised from the real PDF content (see server/visuals.js), so a
+// visual always reflects the subject matter being narrated.
 
 // ---------------------------------------------------------------------------
 // LLM system prompt — Executive Documentary Host (Neil deGrasse Tyson style)
@@ -74,11 +70,13 @@ STRICT RULES — VIOLATE NONE:
 4. Produce between 8 and 12 sequential documentary scenes covering the educational journey in progressive depth.
 5. Each scene's "narratorText" MUST be 100% natural, spoken conversational prose (25–40 words per scene) tailored for human ears.
 6. Each "narratorText" MUST end with a sentence-terminating punctuation mark (. ! ?).
-7. Each scene MUST include a 2–3 word "imageKeyword" tailored specifically for landscape stock image searches (e.g., "software code matrix", "server room glow", "digital data stream").
-8. Each scene MUST include a "visualPrompt" describing the cinematic camera establishing shot.
+7. Each scene MUST include an "imageKeyword" of 2–5 words that names the SPECIFIC concept being narrated, taken from the source text. Vague queries such as "technology", "business team", "modern office" or "abstract background" are FORBIDDEN. Every visual must be traceable to the document's subject matter.
+8. Each scene MUST include a "visualPrompt" describing what is literally on screen, including the document structure, pattern, diagram or artefact the narrator is explaining.
 9. Output ONLY a valid JSON array matching the required schema.
 10. Each scene MUST include a "title": a short 2–6 word chapter heading rendered as on-screen chapter text.
 11. Each scene MUST include a "badge": a 1–3 word category tag rendered as a small on-screen chip.
+12. Each scene MUST include a "focusArea" object marking the exact part of the visual the narrator is describing. Coordinates are normalised 0–1 relative to the frame, where (0,0) is the top-left and (1,1) is the bottom-right. "focus" is the fraction of the scene at which the pointer arrives (0–1).
+13. Never invent concepts that are absent from the source document.
 
 Required output schema (strict):
 [
@@ -87,8 +85,9 @@ Required output schema (strict):
     "narratorText": "Deep spoken explanation line in conversational documentary prose...",
     "title": "Short Chapter Heading",
     "badge": "Category Tag",
-    "visualPrompt": "Detailed context description for cinematic camera shot...",
-    "imageKeyword": "software code network"
+    "visualPrompt": "What is literally on screen: the document layout, pattern block or diagram being explained...",
+    "imageKeyword": "unit test code coverage",
+    "focusArea": { "x": 0.24, "y": 0.31, "w": 0.34, "h": 0.2, "label": "Static analysis", "focus": 0.2 }
   }
 ]`;
 
@@ -108,20 +107,58 @@ function parseAiJson(content) {
 	return JSON.parse(unwrapped || '[]');
 }
 
+/** Clamp a number into 0..1. */
+const clamp01 = (value, fallback = 0) => {
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed)) return fallback;
+	return Math.min(1, Math.max(0, parsed));
+};
+
+/**
+ * Normalize the LLM's focusArea into the shape the renderer consumes.
+ * Accepts a single object or an array of them (the renderer then walks them in
+ * sequence across the scene). Anything unusable is repaired from the document
+ * outline so a scene is never left without a highlight target.
+ */
+function normalizeFocusArea(raw, outline, sceneIndex) {
+	const one = (value) => {
+		if (!value || typeof value !== 'object') return null;
+		const x = clamp01(value.x, 0.2);
+		const y = clamp01(value.y, 0.2);
+		const w = Math.min(1 - x, Math.max(0.04, clamp01(value.w, 0.3)));
+		const h = Math.min(1 - y, Math.max(0.04, clamp01(value.h, 0.18)));
+		if (!Number.isFinite(x) || !Number.isFinite(y) || w <= 0 || h <= 0) return null;
+		return {
+			x: Number(x.toFixed(4)),
+			y: Number(y.toFixed(4)),
+			w: Number(w.toFixed(4)),
+			h: Number(h.toFixed(4)),
+			label: String(value.label || '').slice(0, 60),
+			focus: clamp01(value.focus, 0.35),
+		};
+	};
+
+	const candidates = Array.isArray(raw) ? raw : [raw];
+	const parsed = candidates.map(one).filter(Boolean);
+
+	if (parsed.length > 0) return parsed;
+	if (Array.isArray(raw) ? raw.length > 1 : false) {
+		return [buildFocusArea(outline, sceneIndex, { focus: 0.35 })];
+	}
+	return buildFocusArea(outline, sceneIndex, { focus: 0.35 });
+}
+
 function isValidScene(scene) {
 	const text = String(scene?.narratorText || '').trim();
 	const wordCount = text.split(/\s+/).filter(Boolean).length;
-	const keywordWords = String(scene?.imageKeyword || '')
-		.trim()
-		.split(/\s+/)
-		.filter(Boolean);
+	const keyword = String(scene?.imageKeyword || '').trim();
 	return (
 		Number.isInteger(scene?.sceneNumber) &&
 		wordCount >= 25 &&
-		wordCount <= 40 &&
+		wordCount <= 45 &&
 		/[.!?]$/.test(text) &&
-		keywordWords.length >= 2 &&
-		keywordWords.length <= 3
+		// The keyword must be specific to the subject, not a vague stock query.
+		isSpecificKeyword(keyword)
 	);
 }
 
@@ -298,41 +335,64 @@ async function requestLlmScript(sourceText) {
 }
 
 // ---------------------------------------------------------------------------
-// Pexels Image Fetching (Runtime REST API)
+// Contextual visual resolution
+//
+// A scene's visual must be traceable to the document's subject matter. A stock
+// photo is used only when we have a Pexels key AND the keyword is specific.
+// Otherwise we synthesise a document diagram from the real PDF outline, so a
+// visual is never a generic, unrelated stock image.
 // ---------------------------------------------------------------------------
-async function fetchPexelsImage(keyword, fallbackUrl) {
+async function fetchContextualImage(keyword, { log = console.log } = {}) {
+	const specific = isSpecificKeyword(keyword);
+	if (!specific) {
+		log(`[VISUAL] Keyword "${keyword}" is too generic — using document diagram`);
+		return null;
+	}
+
 	const apiKey = process.env.PEXELS_API_KEY;
 	if (!apiKey) {
-		return fallbackUrl;
+		log(`[VISUAL] No Pexels key — using document diagram for "${keyword}"`);
+		return null;
 	}
 
 	try {
 		const query = encodeURIComponent(keyword.trim());
 		const url = `https://api.pexels.com/v1/search?query=${query}&per_page=1&orientation=landscape`;
 		const response = await fetch(url, {
-			headers: {
-				Authorization: apiKey,
-			},
+			headers: { Authorization: apiKey },
+			signal: AbortSignal.timeout(15000),
 		});
 
 		if (!response.ok) {
-			console.warn(`[PEXELS] HTTP ${response.status} for "${keyword}" — using fallback visual`);
-			return fallbackUrl;
+			log(`[PEXELS] HTTP ${response.status} for "${keyword}" — using document diagram`);
+			return null;
 		}
 
 		const data = await response.json();
 		const photo = data.photos?.[0];
-		if (photo?.src?.large2x || photo?.src?.large || photo?.src?.original) {
-			const picked = photo.src.large2x || photo.src.large || photo.src.original;
-			console.log(`[PEXELS] ✓ Found high-res photo for "${keyword}"`);
+		const picked = photo?.src?.large2x || photo?.src?.large || photo?.src?.original;
+		if (picked) {
+			log(`[VISUAL] ✓ contextual photo for "${keyword}"`);
 			return picked;
 		}
-
-		return fallbackUrl;
+		return null;
 	} catch (err) {
-		console.warn(`[PEXELS] Error fetching for "${keyword}": ${err.message} — using fallback visual`);
-		return fallbackUrl;
+		log(`[PEXELS] error for "${keyword}": ${err.message} — using document diagram`);
+		return null;
 	}
+}
+
+/** Build the per-scene document diagram that stands in for a stock photo. */
+function buildSceneDiagram({ title, outline, imageKeyword, scene, index, total, log }) {
+	const url = buildDocumentDiagram({
+		title,
+		outline,
+		imageKeyword,
+		sceneNumber: scene.sceneNumber || index + 1,
+		totalScenes: total,
+	});
+	log(`[VISUAL] composed document diagram for scene ${scene.sceneNumber || index + 1}`);
+	return url;
 }
 
 // ---------------------------------------------------------------------------
@@ -442,24 +502,48 @@ async function runPipeline(optionsOrPdfPath = {}) {
 
 	logStep('2/5', `Generated ${scenes.length} extended scene(s)`, step2Start);
 
-	// ── Step 3: Pexels Image Fetching ─────────────────────────────────────
+	// ── Step 2b: Derive subject title + document outline ──────────────────
+	// The outline drives the synthesised document diagrams, so every visual
+	// reflects the real structure of the source PDF.
+	const documentTitle = deriveTitle(cleanText);
+	const outline = extractOutline(cleanText, 8);
+	log(`[DOC] Title: "${documentTitle}"`);
+	log(`[DOC] Outline: ${outline.map((o, i) => `${i + 1}) ${o}`).join(' | ')}`);
+
+	// ── Step 3: Contextual Visual Resolution ──────────────────────────────
+	// Strictly sequential: one scene at a time. No Promise.all, so a slow or
+	// rate-limited image API can never fan out or freeze the server.
 	const step3Start = performance.now();
-	log('[3/5] Resolving high-resolution visual imagery (Pexels / Fallback)...');
+	log('[3/5] Resolving contextual visuals (sequential)...');
 
 	const scenesWithImages = [];
 	for (let i = 0; i < scenes.length; i++) {
 		const scene = scenes[i];
-		const fallbackUrl =
-			FALLBACK_STOCK_IMAGES[i % FALLBACK_STOCK_IMAGES.length];
-		const keyword = scene.imageKeyword || 'software technology architecture';
+		const keyword = String(scene.imageKeyword || '').trim();
 
-		const imageUrl = await fetchPexelsImage(keyword, fallbackUrl);
+		const photoUrl = await fetchContextualImage(keyword, { log });
+
+		const imageUrl =
+			photoUrl ||
+			buildSceneDiagram({
+				title: documentTitle,
+				outline,
+				imageKeyword: keyword,
+				scene,
+				index: i,
+				total: scenes.length,
+				log,
+			});
+
 		scenesWithImages.push({
 			...scene,
+			imageKeyword: keyword,
+			imageSource: photoUrl ? 'pexels' : 'document-diagram',
 			imageUrl,
+			focusArea: normalizeFocusArea(scene.focusArea, outline, i),
 		});
 	}
-	logStep('3/5', `Resolved ${scenesWithImages.length} scene image(s)`, step3Start);
+	logStep('3/5', `Resolved ${scenesWithImages.length} contextual visual(s)`, step3Start);
 
 	// ── Step 4: Synthesize Neural Audio Files ─────────────────────────────
 	const step4Start = performance.now();
@@ -519,6 +603,9 @@ async function runPipeline(optionsOrPdfPath = {}) {
 			visualPrompt: scene.visualPrompt,
 			imageKeyword: scene.imageKeyword,
 			imageUrl: scene.imageUrl,
+			imageSource: scene.imageSource,
+			// Target region for the animated pointer / highlight overlay.
+			focusArea: scene.focusArea,
 			audioPath: scene.audioPath,
 			durationInFrames,
 			wordTimings,
@@ -539,12 +626,17 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	log(`\n${'═'.repeat(60)}`);
 	log(`[PIPELINE] ✅  Documentary Engine Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
 	log(`[PIPELINE] Voice: ${voiceLabel}`);
+	log(`[PIPELINE] Subject: ${documentTitle}`);
 	log(`[PIPELINE] Extended Scenes: ${dataset.length}`);
 	log(`[PIPELINE] Total Duration: ~${totalSeconds}s (${totalFrames} frames)`);
 	log(`[PIPELINE] Dataset Path: ${datasetPath}`);
 	log(`${'═'.repeat(60)}\n`);
 
-	return dataset;
+	return {
+		dataset,
+		title: documentTitle,
+		outline,
+	};
 }
 
 // ---------------------------------------------------------------------------
@@ -562,6 +654,7 @@ module.exports = {
 	runPipeline,
 	requestLlmScript,
 	generateExtendedThematicScenes,
-	fetchPexelsImage,
+	fetchContextualImage,
+	normalizeFocusArea,
 	SCRIPT_SYSTEM_PROMPT,
 };
