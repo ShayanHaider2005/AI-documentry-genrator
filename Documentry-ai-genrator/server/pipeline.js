@@ -71,12 +71,16 @@ STRICT RULES — VIOLATE NONE:
 7. Each scene MUST include a 2–3 word "imageKeyword" tailored specifically for landscape stock image searches (e.g., "software code matrix", "server room glow", "digital data stream").
 8. Each scene MUST include a "visualPrompt" describing the cinematic camera establishing shot.
 9. Output ONLY a valid JSON array matching the required schema.
+10. Each scene MUST include a "title": a short 2–6 word chapter heading rendered as on-screen chapter text.
+11. Each scene MUST include a "badge": a 1–3 word category tag rendered as a small on-screen chip.
 
 Required output schema (strict):
 [
   {
     "sceneNumber": 1,
     "narratorText": "Deep spoken explanation line in conversational documentary prose...",
+    "title": "Short Chapter Heading",
+    "badge": "Category Tag",
     "visualPrompt": "Detailed context description for cinematic camera shot...",
     "imageKeyword": "software code network"
   }
@@ -161,6 +165,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 1,
 			narratorText:
 				'Every complex software system begins as an abstract architecture. Behind every seamless digital interaction lies an intricate foundation of engineering discipline, designed to endure immense operational stress.',
+			title: 'The Architecture of Quality',
+			badge: 'Foundations',
 			visualPrompt: 'Vast luminous digital blueprint and architectural schematics glowing in a dark modern studio',
 			imageKeyword: 'digital software architecture',
 		},
@@ -168,6 +174,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 2,
 			narratorText:
 				'Quality is never an accidental triumph. In modern computer science, we do not merely hope our software functions reliably; we systematically engineer quality directly into every line of source code.',
+			title: 'Quality by Design',
+			badge: 'Foundations',
 			visualPrompt: 'Close up of ultra crisp code algorithms streaming across dual high resolution curved monitors',
 			imageKeyword: 'programming code screen',
 		},
@@ -175,6 +183,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 3,
 			narratorText:
 				'Global benchmarks like ISO standards provide the mathematical scaffolding for engineering teams, establishing unambiguous definitions for software maintainability, operational efficiency, and cryptographic resilience across every stage of development and deployment.',
+			title: 'Standards and Definitions',
+			badge: 'Standards',
 			visualPrompt: 'Holographic network grid with data verification checks and standardized compliance metrics',
 			imageKeyword: 'cyber security network',
 		},
@@ -182,6 +192,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 4,
 			narratorText:
 				'The Software Quality Assurance Plan serves as the master contract of reliability, guiding development teams through formal design verification and rigorous architectural reviews before a single deployment occurs.',
+			title: 'The Quality Assurance Plan',
+			badge: 'Planning',
 			visualPrompt: 'Collaborative engineering war room with architects analyzing system architecture blueprints',
 			imageKeyword: 'software engineer team',
 		},
@@ -189,6 +201,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 5,
 			narratorText:
 				'Static testing forms our primary defensive perimeter. Through structured peer reviews and automated code inspections, engineers uncover subtle logic flaws long before software ever executes in memory.',
+			title: 'The Static Testing Perimeter',
+			badge: 'Testing',
 			visualPrompt: 'Deep abstract inspection tree parsing complex syntax structures with neon highlight nodes',
 			imageKeyword: 'data analytics server',
 		},
@@ -196,6 +210,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 6,
 			narratorText:
 				'Dynamic testing shifts the paradigm from theoretical inspection to aggressive operational execution, bombarding the system with unpredictable boundary conditions, stress loads, and concurrent transactions while revealing weaknesses hidden beneath normal operating conditions.',
+			title: 'Dynamic Testing Under Load',
+			badge: 'Testing',
 			visualPrompt: 'Server cluster processing high volume transaction streams with pulsing server indicators',
 			imageKeyword: 'server room datacenter',
 		},
@@ -203,6 +219,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 7,
 			narratorText:
 				'From isolated unit tests to end-to-end integration across distributed clusters, specification-based testing guarantees that every microservice behaves harmoniously under real-world pressure, so complex products feel coherent, responsive, and dependable.',
+			title: 'From Units to Integration',
+			badge: 'Testing',
 			visualPrompt: 'Interconnected glowing cloud microservices exchanging data packets across a digital globe',
 			imageKeyword: 'cloud technology network',
 		},
@@ -210,6 +228,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 8,
 			narratorText:
 				'Quantifiable quality measurement models allow engineering leaders to track defect densities and reliability growth curves, transforming subjective hunches into empirical mathematical certainty across teams, releases, and changing operational conditions.',
+			title: 'Measuring Reliability',
+			badge: 'Metrics',
 			visualPrompt: 'Financial and operational telemetry dashboards showing system stability trajectories and performance metrics',
 			imageKeyword: 'technology dashboard analytics',
 		},
@@ -217,6 +237,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 9,
 			narratorText:
 				'Ultimately, software quality engineering is not about finding bugs; it is about building unwavering human trust in the invisible digital systems that power our modern world.',
+			title: 'Trust in the Invisible',
+			badge: 'Impact',
 			visualPrompt: 'Wide panoramic sunrise over a modern smart metropolis connected by streams of light and data',
 			imageKeyword: 'modern smart city',
 		},
@@ -224,6 +246,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 10,
 			narratorText:
 				'Risk-based testing helps teams spend their strongest attention where failure would matter most, balancing technical evidence, user impact, and operational uncertainty before each release reaches the public.',
+			title: 'Risk-Based Prioritization',
+			badge: 'Strategy',
 			visualPrompt: 'Cinematic operations center with engineers studying risk maps and release readiness indicators',
 			imageKeyword: 'risk analysis technology',
 		},
@@ -231,6 +255,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 11,
 			narratorText:
 				'Continuous integration turns quality into a daily practice. Small changes are assembled, tested, and measured repeatedly, allowing teams to discover regression early while the source of a problem remains visible.',
+			title: 'The Daily Practice of Integration',
+			badge: 'Practice',
 			visualPrompt: 'Automated deployment pipeline visualized as luminous connected stages across a modern control room',
 			imageKeyword: 'continuous integration pipeline',
 		},
@@ -238,6 +264,8 @@ function generateExtendedThematicScenes(cleanText) {
 			sceneNumber: 12,
 			narratorText:
 				'When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build with confidence, clarity, and accountability.',
+			title: 'Reliability as a Habit',
+			badge: 'Closing',
 			visualPrompt: 'Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails',
 			imageKeyword: 'future technology city',
 		},
@@ -272,7 +300,8 @@ async function requestLlmScript(sourceText) {
 					content:
 						`Transform the following pre-filtered educational text into an extended 8 to 12 scene documentary script. ` +
 						`Write conversational, spoken documentary prose (25–40 words per scene). ` +
-						`Ensure each scene has a 2–3 word "imageKeyword" suitable for stock landscape photos.\n\n` +
+						`Ensure each scene has a 2–3 word "imageKeyword" suitable for stock landscape photos. ` +
+						`Also supply a short "title" chapter heading and a 1–3 word "badge" category tag per scene.\n\n` +
 						sourceText.slice(0, 28000),
 				},
 			],
@@ -454,6 +483,9 @@ async function runPipeline(customPdfPath) {
 		dataset.push({
 			sceneNumber: scene.sceneNumber,
 			narratorText: scene.narratorText,
+			// Optional on-screen chapter heading / category chip (never hardcoded in the UI)
+			...(scene.title ? { title: String(scene.title).trim() } : {}),
+			...(scene.badge ? { badge: String(scene.badge).trim() } : {}),
 			visualPrompt: scene.visualPrompt,
 			imageKeyword: scene.imageKeyword,
 			imageUrl: scene.imageUrl,

@@ -6,7 +6,8 @@
 		"build": "tsc --noEmit",
 		"pipeline": "node server/pipeline.js",
 		"studio": "remotion studio src/index.ts",
-		"render": "remotion render src/index.ts Documentary out/video.mp4 --props=src/dataset.json"
+		"preview": "remotion preview src/index.ts",
+		"render": "remotion render src/index.ts Documentary out/video.mp4"
 	},
 	"dependencies": {
 		"@remotion/cli": "^4.0.529",

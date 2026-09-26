@@ -2,6 +2,8 @@
   {
     "sceneNumber": 1,
     "narratorText": "Every complex software system begins as an abstract architecture. Behind every seamless digital interaction lies an intricate foundation of engineering discipline, designed to endure immense operational stress.",
+    "title": "The Architecture of Quality",
+    "badge": "Foundations",
     "visualPrompt": "Vast luminous digital blueprint and architectural schematics glowing in a dark modern studio",
     "imageKeyword": "digital software architecture",
     "imageUrl": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80",
@@ -11,6 +13,8 @@
   {
     "sceneNumber": 2,
     "narratorText": "Quality is never an accidental triumph. In modern computer science, we do not merely hope our software functions reliably; we systematically engineer quality directly into every line of source code.",
+    "title": "Quality by Design",
+    "badge": "Foundations",
     "visualPrompt": "Close up of ultra crisp code algorithms streaming across dual high resolution curved monitors",
     "imageKeyword": "programming code screen",
     "imageUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80",
@@ -20,6 +24,8 @@
   {
     "sceneNumber": 3,
     "narratorText": "Global benchmarks like ISO standards provide the mathematical scaffolding for engineering teams, establishing unambiguous definitions for software maintainability, operational efficiency, and cryptographic resilience across every stage of development and deployment.",
+    "title": "Standards and Definitions",
+    "badge": "Standards",
     "visualPrompt": "Holographic network grid with data verification checks and standardized compliance metrics",
     "imageKeyword": "cyber security network",
     "imageUrl": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1920&q=80",
@@ -29,6 +35,8 @@
   {
     "sceneNumber": 4,
     "narratorText": "The Software Quality Assurance Plan serves as the master contract of reliability, guiding development teams through formal design verification and rigorous architectural reviews before a single deployment occurs.",
+    "title": "The Quality Assurance Plan",
+    "badge": "Planning",
     "visualPrompt": "Collaborative engineering war room with architects analyzing system architecture blueprints",
     "imageKeyword": "software engineer team",
     "imageUrl": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1920&q=80",
@@ -38,6 +46,8 @@
   {
     "sceneNumber": 5,
     "narratorText": "Static testing forms our primary defensive perimeter. Through structured peer reviews and automated code inspections, engineers uncover subtle logic flaws long before software ever executes in memory.",
+    "title": "The Static Testing Perimeter",
+    "badge": "Testing",
     "visualPrompt": "Deep abstract inspection tree parsing complex syntax structures with neon highlight nodes",
     "imageKeyword": "data analytics server",
     "imageUrl": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1920&q=80",
@@ -47,6 +57,8 @@
   {
     "sceneNumber": 6,
     "narratorText": "Dynamic testing shifts the paradigm from theoretical inspection to aggressive operational execution, bombarding the system with unpredictable boundary conditions, stress loads, and concurrent transactions while revealing weaknesses hidden beneath normal operating conditions.",
+    "title": "Dynamic Testing Under Load",
+    "badge": "Testing",
     "visualPrompt": "Server cluster processing high volume transaction streams with pulsing server indicators",
     "imageKeyword": "server room datacenter",
     "imageUrl": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1920&q=80",
@@ -56,6 +68,8 @@
   {
     "sceneNumber": 7,
     "narratorText": "From isolated unit tests to end-to-end integration across distributed clusters, specification-based testing guarantees that every microservice behaves harmoniously under real-world pressure, so complex products feel coherent, responsive, and dependable.",
+    "title": "From Units to Integration",
+    "badge": "Testing",
     "visualPrompt": "Interconnected glowing cloud microservices exchanging data packets across a digital globe",
     "imageKeyword": "cloud technology network",
     "imageUrl": "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=1920&q=80",
@@ -65,6 +79,8 @@
   {
     "sceneNumber": 8,
     "narratorText": "Quantifiable quality measurement models allow engineering leaders to track defect densities and reliability growth curves, transforming subjective hunches into empirical mathematical certainty across teams, releases, and changing operational conditions.",
+    "title": "Measuring Reliability",
+    "badge": "Metrics",
     "visualPrompt": "Financial and operational telemetry dashboards showing system stability trajectories and performance metrics",
     "imageKeyword": "technology dashboard analytics",
     "imageUrl": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1920&q=80",
@@ -74,6 +90,8 @@
   {
     "sceneNumber": 9,
     "narratorText": "Ultimately, software quality engineering is not about finding bugs; it is about building unwavering human trust in the invisible digital systems that power our modern world.",
+    "title": "Trust in the Invisible",
+    "badge": "Impact",
     "visualPrompt": "Wide panoramic sunrise over a modern smart metropolis connected by streams of light and data",
     "imageKeyword": "modern smart city",
     "imageUrl": "https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1920&q=80",
@@ -83,6 +101,8 @@
   {
     "sceneNumber": 10,
     "narratorText": "Risk-based testing helps teams spend their strongest attention where failure would matter most, balancing technical evidence, user impact, and operational uncertainty before each release reaches the public.",
+    "title": "Risk-Based Prioritization",
+    "badge": "Strategy",
     "visualPrompt": "Cinematic operations center with engineers studying risk maps and release readiness indicators",
     "imageKeyword": "risk analysis technology",
     "imageUrl": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80",
@@ -92,6 +112,8 @@
   {
     "sceneNumber": 11,
     "narratorText": "Continuous integration turns quality into a daily practice. Small changes are assembled, tested, and measured repeatedly, allowing teams to discover regression early while the source of a problem remains visible.",
+    "title": "The Daily Practice of Integration",
+    "badge": "Practice",
     "visualPrompt": "Automated deployment pipeline visualized as luminous connected stages across a modern control room",
     "imageKeyword": "continuous integration pipeline",
     "imageUrl": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1920&q=80",
@@ -101,6 +123,8 @@
   {
     "sceneNumber": 12,
     "narratorText": "When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build with confidence, clarity, and accountability.",
+    "title": "Reliability as a Habit",
+    "badge": "Closing",
     "visualPrompt": "Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails",
     "imageKeyword": "future technology city",
     "imageUrl": "https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?auto=format&fit=crop&w=1920&q=80",
