@@ -7,6 +7,13 @@ public/audio/*.mp3
 public/audio/*.wav
 /Documentry-ai-genrator/public/audio/*.mp3
 /Documentry-ai-genrator/public/audio/*.wav
+# Per-session audio written by the website (public/audio/<sessionId>/...)
+/Documentry-ai-genrator/public/audio/*/
+# Uploads + per-session datasets written by the website server
+/Documentry-ai-genrator/.data/
 
 # Ignore rendered output videos
-out/                              
+out/                             
+
+# Generated website bundle (rebuild with: npm run web:build)
+/Documentry-ai-genrator/web/dist/ 

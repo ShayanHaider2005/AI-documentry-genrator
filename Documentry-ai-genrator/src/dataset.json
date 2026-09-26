@@ -8,7 +8,144 @@
     "imageKeyword": "digital software architecture",
     "imageUrl": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-1.mp3",
-    "durationInFrames": 446
+    "durationInFrames": 446,
+    "wordTimings": [
+      {
+        "word": "Every",
+        "startFrame": 0,
+        "endFrame": 11
+      },
+      {
+        "word": "complex",
+        "startFrame": 11,
+        "endFrame": 27
+      },
+      {
+        "word": "software",
+        "startFrame": 27,
+        "endFrame": 45
+      },
+      {
+        "word": "system",
+        "startFrame": 45,
+        "endFrame": 58
+      },
+      {
+        "word": "begins",
+        "startFrame": 58,
+        "endFrame": 71
+      },
+      {
+        "word": "as",
+        "startFrame": 71,
+        "endFrame": 75
+      },
+      {
+        "word": "an",
+        "startFrame": 75,
+        "endFrame": 79
+      },
+      {
+        "word": "abstract",
+        "startFrame": 79,
+        "endFrame": 97
+      },
+      {
+        "word": "architecture.",
+        "startFrame": 97,
+        "endFrame": 140
+      },
+      {
+        "word": "Behind",
+        "startFrame": 140,
+        "endFrame": 153
+      },
+      {
+        "word": "every",
+        "startFrame": 153,
+        "endFrame": 164
+      },
+      {
+        "word": "seamless",
+        "startFrame": 164,
+        "endFrame": 182
+      },
+      {
+        "word": "digital",
+        "startFrame": 182,
+        "endFrame": 198
+      },
+      {
+        "word": "interaction",
+        "startFrame": 198,
+        "endFrame": 223
+      },
+      {
+        "word": "lies",
+        "startFrame": 223,
+        "endFrame": 232
+      },
+      {
+        "word": "an",
+        "startFrame": 232,
+        "endFrame": 236
+      },
+      {
+        "word": "intricate",
+        "startFrame": 236,
+        "endFrame": 256
+      },
+      {
+        "word": "foundation",
+        "startFrame": 256,
+        "endFrame": 278
+      },
+      {
+        "word": "of",
+        "startFrame": 278,
+        "endFrame": 282
+      },
+      {
+        "word": "engineering",
+        "startFrame": 282,
+        "endFrame": 307
+      },
+      {
+        "word": "discipline,",
+        "startFrame": 307,
+        "endFrame": 338
+      },
+      {
+        "word": "designed",
+        "startFrame": 338,
+        "endFrame": 356
+      },
+      {
+        "word": "to",
+        "startFrame": 356,
+        "endFrame": 360
+      },
+      {
+        "word": "endure",
+        "startFrame": 360,
+        "endFrame": 373
+      },
+      {
+        "word": "immense",
+        "startFrame": 373,
+        "endFrame": 389
+      },
+      {
+        "word": "operational",
+        "startFrame": 389,
+        "endFrame": 414
+      },
+      {
+        "word": "stress.",
+        "startFrame": 414,
+        "endFrame": 446
+      }
+    ]
   },
   {
     "sceneNumber": 2,
@@ -19,7 +156,159 @@
     "imageKeyword": "programming code screen",
     "imageUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-2.mp3",
-    "durationInFrames": 418
+    "durationInFrames": 418,
+    "wordTimings": [
+      {
+        "word": "Quality",
+        "startFrame": 0,
+        "endFrame": 16
+      },
+      {
+        "word": "is",
+        "startFrame": 16,
+        "endFrame": 20
+      },
+      {
+        "word": "never",
+        "startFrame": 20,
+        "endFrame": 31
+      },
+      {
+        "word": "an",
+        "startFrame": 31,
+        "endFrame": 35
+      },
+      {
+        "word": "accidental",
+        "startFrame": 35,
+        "endFrame": 57
+      },
+      {
+        "word": "triumph.",
+        "startFrame": 57,
+        "endFrame": 88
+      },
+      {
+        "word": "In",
+        "startFrame": 88,
+        "endFrame": 92
+      },
+      {
+        "word": "modern",
+        "startFrame": 92,
+        "endFrame": 105
+      },
+      {
+        "word": "computer",
+        "startFrame": 105,
+        "endFrame": 123
+      },
+      {
+        "word": "science,",
+        "startFrame": 123,
+        "endFrame": 148
+      },
+      {
+        "word": "we",
+        "startFrame": 148,
+        "endFrame": 152
+      },
+      {
+        "word": "do",
+        "startFrame": 152,
+        "endFrame": 156
+      },
+      {
+        "word": "not",
+        "startFrame": 156,
+        "endFrame": 163
+      },
+      {
+        "word": "merely",
+        "startFrame": 163,
+        "endFrame": 176
+      },
+      {
+        "word": "hope",
+        "startFrame": 176,
+        "endFrame": 185
+      },
+      {
+        "word": "our",
+        "startFrame": 185,
+        "endFrame": 192
+      },
+      {
+        "word": "software",
+        "startFrame": 192,
+        "endFrame": 210
+      },
+      {
+        "word": "functions",
+        "startFrame": 210,
+        "endFrame": 230
+      },
+      {
+        "word": "reliably;",
+        "startFrame": 230,
+        "endFrame": 257
+      },
+      {
+        "word": "we",
+        "startFrame": 257,
+        "endFrame": 261
+      },
+      {
+        "word": "systematically",
+        "startFrame": 261,
+        "endFrame": 292
+      },
+      {
+        "word": "engineer",
+        "startFrame": 292,
+        "endFrame": 310
+      },
+      {
+        "word": "quality",
+        "startFrame": 310,
+        "endFrame": 326
+      },
+      {
+        "word": "directly",
+        "startFrame": 326,
+        "endFrame": 344
+      },
+      {
+        "word": "into",
+        "startFrame": 344,
+        "endFrame": 353
+      },
+      {
+        "word": "every",
+        "startFrame": 353,
+        "endFrame": 364
+      },
+      {
+        "word": "line",
+        "startFrame": 364,
+        "endFrame": 373
+      },
+      {
+        "word": "of",
+        "startFrame": 373,
+        "endFrame": 377
+      },
+      {
+        "word": "source",
+        "startFrame": 377,
+        "endFrame": 390
+      },
+      {
+        "word": "code.",
+        "startFrame": 390,
+        "endFrame": 418
+      }
+    ]
   },
   {
     "sceneNumber": 3,
@@ -30,7 +319,159 @@
     "imageKeyword": "cyber security network",
     "imageUrl": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-3.mp3",
-    "durationInFrames": 515
+    "durationInFrames": 515,
+    "wordTimings": [
+      {
+        "word": "Global",
+        "startFrame": 0,
+        "endFrame": 12
+      },
+      {
+        "word": "benchmarks",
+        "startFrame": 12,
+        "endFrame": 32
+      },
+      {
+        "word": "like",
+        "startFrame": 32,
+        "endFrame": 40
+      },
+      {
+        "word": "ISO",
+        "startFrame": 40,
+        "endFrame": 46
+      },
+      {
+        "word": "standards",
+        "startFrame": 46,
+        "endFrame": 64
+      },
+      {
+        "word": "provide",
+        "startFrame": 64,
+        "endFrame": 78
+      },
+      {
+        "word": "the",
+        "startFrame": 78,
+        "endFrame": 84
+      },
+      {
+        "word": "mathematical",
+        "startFrame": 84,
+        "endFrame": 109
+      },
+      {
+        "word": "scaffolding",
+        "startFrame": 109,
+        "endFrame": 131
+      },
+      {
+        "word": "for",
+        "startFrame": 131,
+        "endFrame": 137
+      },
+      {
+        "word": "engineering",
+        "startFrame": 137,
+        "endFrame": 159
+      },
+      {
+        "word": "teams,",
+        "startFrame": 159,
+        "endFrame": 177
+      },
+      {
+        "word": "establishing",
+        "startFrame": 177,
+        "endFrame": 202
+      },
+      {
+        "word": "unambiguous",
+        "startFrame": 202,
+        "endFrame": 224
+      },
+      {
+        "word": "definitions",
+        "startFrame": 224,
+        "endFrame": 246
+      },
+      {
+        "word": "for",
+        "startFrame": 246,
+        "endFrame": 252
+      },
+      {
+        "word": "software",
+        "startFrame": 252,
+        "endFrame": 268
+      },
+      {
+        "word": "maintainability,",
+        "startFrame": 268,
+        "endFrame": 307
+      },
+      {
+        "word": "operational",
+        "startFrame": 307,
+        "endFrame": 329
+      },
+      {
+        "word": "efficiency,",
+        "startFrame": 329,
+        "endFrame": 358
+      },
+      {
+        "word": "and",
+        "startFrame": 358,
+        "endFrame": 364
+      },
+      {
+        "word": "cryptographic",
+        "startFrame": 364,
+        "endFrame": 391
+      },
+      {
+        "word": "resilience",
+        "startFrame": 391,
+        "endFrame": 411
+      },
+      {
+        "word": "across",
+        "startFrame": 411,
+        "endFrame": 423
+      },
+      {
+        "word": "every",
+        "startFrame": 423,
+        "endFrame": 433
+      },
+      {
+        "word": "stage",
+        "startFrame": 433,
+        "endFrame": 443
+      },
+      {
+        "word": "of",
+        "startFrame": 443,
+        "endFrame": 447
+      },
+      {
+        "word": "development",
+        "startFrame": 447,
+        "endFrame": 469
+      },
+      {
+        "word": "and",
+        "startFrame": 469,
+        "endFrame": 475
+      },
+      {
+        "word": "deployment.",
+        "startFrame": 475,
+        "endFrame": 515
+      }
+    ]
   },
   {
     "sceneNumber": 4,
@@ -41,7 +482,149 @@
     "imageKeyword": "software engineer team",
     "imageUrl": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-4.mp3",
-    "durationInFrames": 407
+    "durationInFrames": 407,
+    "wordTimings": [
+      {
+        "word": "The",
+        "startFrame": 0,
+        "endFrame": 6
+      },
+      {
+        "word": "Software",
+        "startFrame": 6,
+        "endFrame": 23
+      },
+      {
+        "word": "Quality",
+        "startFrame": 23,
+        "endFrame": 38
+      },
+      {
+        "word": "Assurance",
+        "startFrame": 38,
+        "endFrame": 57
+      },
+      {
+        "word": "Plan",
+        "startFrame": 57,
+        "endFrame": 65
+      },
+      {
+        "word": "serves",
+        "startFrame": 65,
+        "endFrame": 78
+      },
+      {
+        "word": "as",
+        "startFrame": 78,
+        "endFrame": 82
+      },
+      {
+        "word": "the",
+        "startFrame": 82,
+        "endFrame": 88
+      },
+      {
+        "word": "master",
+        "startFrame": 88,
+        "endFrame": 101
+      },
+      {
+        "word": "contract",
+        "startFrame": 101,
+        "endFrame": 118
+      },
+      {
+        "word": "of",
+        "startFrame": 118,
+        "endFrame": 122
+      },
+      {
+        "word": "reliability,",
+        "startFrame": 122,
+        "endFrame": 153
+      },
+      {
+        "word": "guiding",
+        "startFrame": 153,
+        "endFrame": 168
+      },
+      {
+        "word": "development",
+        "startFrame": 168,
+        "endFrame": 191
+      },
+      {
+        "word": "teams",
+        "startFrame": 191,
+        "endFrame": 201
+      },
+      {
+        "word": "through",
+        "startFrame": 201,
+        "endFrame": 216
+      },
+      {
+        "word": "formal",
+        "startFrame": 216,
+        "endFrame": 229
+      },
+      {
+        "word": "design",
+        "startFrame": 229,
+        "endFrame": 242
+      },
+      {
+        "word": "verification",
+        "startFrame": 242,
+        "endFrame": 267
+      },
+      {
+        "word": "and",
+        "startFrame": 267,
+        "endFrame": 273
+      },
+      {
+        "word": "rigorous",
+        "startFrame": 273,
+        "endFrame": 290
+      },
+      {
+        "word": "architectural",
+        "startFrame": 290,
+        "endFrame": 317
+      },
+      {
+        "word": "reviews",
+        "startFrame": 317,
+        "endFrame": 332
+      },
+      {
+        "word": "before",
+        "startFrame": 332,
+        "endFrame": 345
+      },
+      {
+        "word": "a",
+        "startFrame": 345,
+        "endFrame": 347
+      },
+      {
+        "word": "single",
+        "startFrame": 347,
+        "endFrame": 360
+      },
+      {
+        "word": "deployment",
+        "startFrame": 360,
+        "endFrame": 381
+      },
+      {
+        "word": "occurs.",
+        "startFrame": 381,
+        "endFrame": 407
+      }
+    ]
   },
   {
     "sceneNumber": 5,
@@ -52,7 +635,144 @@
     "imageKeyword": "data analytics server",
     "imageUrl": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-5.mp3",
-    "durationInFrames": 405
+    "durationInFrames": 405,
+    "wordTimings": [
+      {
+        "word": "Static",
+        "startFrame": 0,
+        "endFrame": 13
+      },
+      {
+        "word": "testing",
+        "startFrame": 13,
+        "endFrame": 28
+      },
+      {
+        "word": "forms",
+        "startFrame": 28,
+        "endFrame": 39
+      },
+      {
+        "word": "our",
+        "startFrame": 39,
+        "endFrame": 45
+      },
+      {
+        "word": "primary",
+        "startFrame": 45,
+        "endFrame": 60
+      },
+      {
+        "word": "defensive",
+        "startFrame": 60,
+        "endFrame": 79
+      },
+      {
+        "word": "perimeter.",
+        "startFrame": 79,
+        "endFrame": 113
+      },
+      {
+        "word": "Through",
+        "startFrame": 113,
+        "endFrame": 128
+      },
+      {
+        "word": "structured",
+        "startFrame": 128,
+        "endFrame": 149
+      },
+      {
+        "word": "peer",
+        "startFrame": 149,
+        "endFrame": 158
+      },
+      {
+        "word": "reviews",
+        "startFrame": 158,
+        "endFrame": 173
+      },
+      {
+        "word": "and",
+        "startFrame": 173,
+        "endFrame": 179
+      },
+      {
+        "word": "automated",
+        "startFrame": 179,
+        "endFrame": 198
+      },
+      {
+        "word": "code",
+        "startFrame": 198,
+        "endFrame": 207
+      },
+      {
+        "word": "inspections,",
+        "startFrame": 207,
+        "endFrame": 239
+      },
+      {
+        "word": "engineers",
+        "startFrame": 239,
+        "endFrame": 258
+      },
+      {
+        "word": "uncover",
+        "startFrame": 258,
+        "endFrame": 273
+      },
+      {
+        "word": "subtle",
+        "startFrame": 273,
+        "endFrame": 286
+      },
+      {
+        "word": "logic",
+        "startFrame": 286,
+        "endFrame": 297
+      },
+      {
+        "word": "flaws",
+        "startFrame": 297,
+        "endFrame": 308
+      },
+      {
+        "word": "long",
+        "startFrame": 308,
+        "endFrame": 317
+      },
+      {
+        "word": "before",
+        "startFrame": 317,
+        "endFrame": 330
+      },
+      {
+        "word": "software",
+        "startFrame": 330,
+        "endFrame": 347
+      },
+      {
+        "word": "ever",
+        "startFrame": 347,
+        "endFrame": 356
+      },
+      {
+        "word": "executes",
+        "startFrame": 356,
+        "endFrame": 373
+      },
+      {
+        "word": "in",
+        "startFrame": 373,
+        "endFrame": 377
+      },
+      {
+        "word": "memory.",
+        "startFrame": 377,
+        "endFrame": 405
+      }
+    ]
   },
   {
     "sceneNumber": 6,
@@ -63,7 +783,169 @@
     "imageKeyword": "server room datacenter",
     "imageUrl": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-6.mp3",
-    "durationInFrames": 508
+    "durationInFrames": 508,
+    "wordTimings": [
+      {
+        "word": "Dynamic",
+        "startFrame": 0,
+        "endFrame": 14
+      },
+      {
+        "word": "testing",
+        "startFrame": 14,
+        "endFrame": 28
+      },
+      {
+        "word": "shifts",
+        "startFrame": 28,
+        "endFrame": 40
+      },
+      {
+        "word": "the",
+        "startFrame": 40,
+        "endFrame": 46
+      },
+      {
+        "word": "paradigm",
+        "startFrame": 46,
+        "endFrame": 62
+      },
+      {
+        "word": "from",
+        "startFrame": 62,
+        "endFrame": 70
+      },
+      {
+        "word": "theoretical",
+        "startFrame": 70,
+        "endFrame": 92
+      },
+      {
+        "word": "inspection",
+        "startFrame": 92,
+        "endFrame": 112
+      },
+      {
+        "word": "to",
+        "startFrame": 112,
+        "endFrame": 116
+      },
+      {
+        "word": "aggressive",
+        "startFrame": 116,
+        "endFrame": 136
+      },
+      {
+        "word": "operational",
+        "startFrame": 136,
+        "endFrame": 158
+      },
+      {
+        "word": "execution,",
+        "startFrame": 158,
+        "endFrame": 183
+      },
+      {
+        "word": "bombarding",
+        "startFrame": 183,
+        "endFrame": 203
+      },
+      {
+        "word": "the",
+        "startFrame": 203,
+        "endFrame": 209
+      },
+      {
+        "word": "system",
+        "startFrame": 209,
+        "endFrame": 221
+      },
+      {
+        "word": "with",
+        "startFrame": 221,
+        "endFrame": 229
+      },
+      {
+        "word": "unpredictable",
+        "startFrame": 229,
+        "endFrame": 254
+      },
+      {
+        "word": "boundary",
+        "startFrame": 254,
+        "endFrame": 270
+      },
+      {
+        "word": "conditions,",
+        "startFrame": 270,
+        "endFrame": 297
+      },
+      {
+        "word": "stress",
+        "startFrame": 297,
+        "endFrame": 309
+      },
+      {
+        "word": "loads,",
+        "startFrame": 309,
+        "endFrame": 327
+      },
+      {
+        "word": "and",
+        "startFrame": 327,
+        "endFrame": 333
+      },
+      {
+        "word": "concurrent",
+        "startFrame": 333,
+        "endFrame": 353
+      },
+      {
+        "word": "transactions",
+        "startFrame": 353,
+        "endFrame": 377
+      },
+      {
+        "word": "while",
+        "startFrame": 377,
+        "endFrame": 387
+      },
+      {
+        "word": "revealing",
+        "startFrame": 387,
+        "endFrame": 405
+      },
+      {
+        "word": "weaknesses",
+        "startFrame": 405,
+        "endFrame": 425
+      },
+      {
+        "word": "hidden",
+        "startFrame": 425,
+        "endFrame": 437
+      },
+      {
+        "word": "beneath",
+        "startFrame": 437,
+        "endFrame": 451
+      },
+      {
+        "word": "normal",
+        "startFrame": 451,
+        "endFrame": 463
+      },
+      {
+        "word": "operating",
+        "startFrame": 463,
+        "endFrame": 481
+      },
+      {
+        "word": "conditions.",
+        "startFrame": 481,
+        "endFrame": 508
+      }
+    ]
   },
   {
     "sceneNumber": 7,
@@ -74,7 +956,154 @@
     "imageKeyword": "cloud technology network",
     "imageUrl": "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-7.mp3",
-    "durationInFrames": 505
+    "durationInFrames": 505,
+    "wordTimings": [
+      {
+        "word": "From",
+        "startFrame": 0,
+        "endFrame": 8
+      },
+      {
+        "word": "isolated",
+        "startFrame": 8,
+        "endFrame": 25
+      },
+      {
+        "word": "unit",
+        "startFrame": 25,
+        "endFrame": 33
+      },
+      {
+        "word": "tests",
+        "startFrame": 33,
+        "endFrame": 43
+      },
+      {
+        "word": "to",
+        "startFrame": 43,
+        "endFrame": 47
+      },
+      {
+        "word": "end-to-end",
+        "startFrame": 47,
+        "endFrame": 68
+      },
+      {
+        "word": "integration",
+        "startFrame": 68,
+        "endFrame": 91
+      },
+      {
+        "word": "across",
+        "startFrame": 91,
+        "endFrame": 103
+      },
+      {
+        "word": "distributed",
+        "startFrame": 103,
+        "endFrame": 126
+      },
+      {
+        "word": "clusters,",
+        "startFrame": 126,
+        "endFrame": 151
+      },
+      {
+        "word": "specification-based",
+        "startFrame": 151,
+        "endFrame": 190
+      },
+      {
+        "word": "testing",
+        "startFrame": 190,
+        "endFrame": 205
+      },
+      {
+        "word": "guarantees",
+        "startFrame": 205,
+        "endFrame": 226
+      },
+      {
+        "word": "that",
+        "startFrame": 226,
+        "endFrame": 234
+      },
+      {
+        "word": "every",
+        "startFrame": 234,
+        "endFrame": 244
+      },
+      {
+        "word": "microservice",
+        "startFrame": 244,
+        "endFrame": 269
+      },
+      {
+        "word": "behaves",
+        "startFrame": 269,
+        "endFrame": 284
+      },
+      {
+        "word": "harmoniously",
+        "startFrame": 284,
+        "endFrame": 309
+      },
+      {
+        "word": "under",
+        "startFrame": 309,
+        "endFrame": 319
+      },
+      {
+        "word": "real-world",
+        "startFrame": 319,
+        "endFrame": 340
+      },
+      {
+        "word": "pressure,",
+        "startFrame": 340,
+        "endFrame": 365
+      },
+      {
+        "word": "so",
+        "startFrame": 365,
+        "endFrame": 369
+      },
+      {
+        "word": "complex",
+        "startFrame": 369,
+        "endFrame": 384
+      },
+      {
+        "word": "products",
+        "startFrame": 384,
+        "endFrame": 401
+      },
+      {
+        "word": "feel",
+        "startFrame": 401,
+        "endFrame": 409
+      },
+      {
+        "word": "coherent,",
+        "startFrame": 409,
+        "endFrame": 434
+      },
+      {
+        "word": "responsive,",
+        "startFrame": 434,
+        "endFrame": 463
+      },
+      {
+        "word": "and",
+        "startFrame": 463,
+        "endFrame": 469
+      },
+      {
+        "word": "dependable.",
+        "startFrame": 469,
+        "endFrame": 505
+      }
+    ]
   },
   {
     "sceneNumber": 8,
@@ -85,7 +1114,154 @@
     "imageKeyword": "technology dashboard analytics",
     "imageUrl": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-8.mp3",
-    "durationInFrames": 493
+    "durationInFrames": 493,
+    "wordTimings": [
+      {
+        "word": "Quantifiable",
+        "startFrame": 0,
+        "endFrame": 25
+      },
+      {
+        "word": "quality",
+        "startFrame": 25,
+        "endFrame": 39
+      },
+      {
+        "word": "measurement",
+        "startFrame": 39,
+        "endFrame": 62
+      },
+      {
+        "word": "models",
+        "startFrame": 62,
+        "endFrame": 74
+      },
+      {
+        "word": "allow",
+        "startFrame": 74,
+        "endFrame": 84
+      },
+      {
+        "word": "engineering",
+        "startFrame": 84,
+        "endFrame": 107
+      },
+      {
+        "word": "leaders",
+        "startFrame": 107,
+        "endFrame": 121
+      },
+      {
+        "word": "to",
+        "startFrame": 121,
+        "endFrame": 125
+      },
+      {
+        "word": "track",
+        "startFrame": 125,
+        "endFrame": 135
+      },
+      {
+        "word": "defect",
+        "startFrame": 135,
+        "endFrame": 147
+      },
+      {
+        "word": "densities",
+        "startFrame": 147,
+        "endFrame": 165
+      },
+      {
+        "word": "and",
+        "startFrame": 165,
+        "endFrame": 171
+      },
+      {
+        "word": "reliability",
+        "startFrame": 171,
+        "endFrame": 194
+      },
+      {
+        "word": "growth",
+        "startFrame": 194,
+        "endFrame": 206
+      },
+      {
+        "word": "curves,",
+        "startFrame": 206,
+        "endFrame": 227
+      },
+      {
+        "word": "transforming",
+        "startFrame": 227,
+        "endFrame": 252
+      },
+      {
+        "word": "subjective",
+        "startFrame": 252,
+        "endFrame": 273
+      },
+      {
+        "word": "hunches",
+        "startFrame": 273,
+        "endFrame": 287
+      },
+      {
+        "word": "into",
+        "startFrame": 287,
+        "endFrame": 295
+      },
+      {
+        "word": "empirical",
+        "startFrame": 295,
+        "endFrame": 313
+      },
+      {
+        "word": "mathematical",
+        "startFrame": 313,
+        "endFrame": 338
+      },
+      {
+        "word": "certainty",
+        "startFrame": 338,
+        "endFrame": 356
+      },
+      {
+        "word": "across",
+        "startFrame": 356,
+        "endFrame": 368
+      },
+      {
+        "word": "teams,",
+        "startFrame": 368,
+        "endFrame": 386
+      },
+      {
+        "word": "releases,",
+        "startFrame": 386,
+        "endFrame": 411
+      },
+      {
+        "word": "and",
+        "startFrame": 411,
+        "endFrame": 417
+      },
+      {
+        "word": "changing",
+        "startFrame": 417,
+        "endFrame": 433
+      },
+      {
+        "word": "operational",
+        "startFrame": 433,
+        "endFrame": 456
+      },
+      {
+        "word": "conditions.",
+        "startFrame": 456,
+        "endFrame": 493
+      }
+    ]
   },
   {
     "sceneNumber": 9,
@@ -96,7 +1272,139 @@
     "imageKeyword": "modern smart city",
     "imageUrl": "https://images.unsplash.com/photo-1504639725590-34d0984388bd?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-9.mp3",
-    "durationInFrames": 347
+    "durationInFrames": 347,
+    "wordTimings": [
+      {
+        "word": "Ultimately,",
+        "startFrame": 0,
+        "endFrame": 30
+      },
+      {
+        "word": "software",
+        "startFrame": 30,
+        "endFrame": 47
+      },
+      {
+        "word": "quality",
+        "startFrame": 47,
+        "endFrame": 62
+      },
+      {
+        "word": "engineering",
+        "startFrame": 62,
+        "endFrame": 86
+      },
+      {
+        "word": "is",
+        "startFrame": 86,
+        "endFrame": 90
+      },
+      {
+        "word": "not",
+        "startFrame": 90,
+        "endFrame": 97
+      },
+      {
+        "word": "about",
+        "startFrame": 97,
+        "endFrame": 108
+      },
+      {
+        "word": "finding",
+        "startFrame": 108,
+        "endFrame": 123
+      },
+      {
+        "word": "bugs;",
+        "startFrame": 123,
+        "endFrame": 140
+      },
+      {
+        "word": "it",
+        "startFrame": 140,
+        "endFrame": 144
+      },
+      {
+        "word": "is",
+        "startFrame": 144,
+        "endFrame": 148
+      },
+      {
+        "word": "about",
+        "startFrame": 148,
+        "endFrame": 159
+      },
+      {
+        "word": "building",
+        "startFrame": 159,
+        "endFrame": 176
+      },
+      {
+        "word": "unwavering",
+        "startFrame": 176,
+        "endFrame": 198
+      },
+      {
+        "word": "human",
+        "startFrame": 198,
+        "endFrame": 209
+      },
+      {
+        "word": "trust",
+        "startFrame": 209,
+        "endFrame": 220
+      },
+      {
+        "word": "in",
+        "startFrame": 220,
+        "endFrame": 224
+      },
+      {
+        "word": "the",
+        "startFrame": 224,
+        "endFrame": 231
+      },
+      {
+        "word": "invisible",
+        "startFrame": 231,
+        "endFrame": 251
+      },
+      {
+        "word": "digital",
+        "startFrame": 251,
+        "endFrame": 266
+      },
+      {
+        "word": "systems",
+        "startFrame": 266,
+        "endFrame": 281
+      },
+      {
+        "word": "that",
+        "startFrame": 281,
+        "endFrame": 290
+      },
+      {
+        "word": "power",
+        "startFrame": 290,
+        "endFrame": 301
+      },
+      {
+        "word": "our",
+        "startFrame": 301,
+        "endFrame": 308
+      },
+      {
+        "word": "modern",
+        "startFrame": 308,
+        "endFrame": 321
+      },
+      {
+        "word": "world.",
+        "startFrame": 321,
+        "endFrame": 347
+      }
+    ]
   },
   {
     "sceneNumber": 10,
@@ -107,7 +1415,144 @@
     "imageKeyword": "risk analysis technology",
     "imageUrl": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-10.mp3",
-    "durationInFrames": 386
+    "durationInFrames": 386,
+    "wordTimings": [
+      {
+        "word": "Risk-based",
+        "startFrame": 0,
+        "endFrame": 20
+      },
+      {
+        "word": "testing",
+        "startFrame": 20,
+        "endFrame": 34
+      },
+      {
+        "word": "helps",
+        "startFrame": 34,
+        "endFrame": 44
+      },
+      {
+        "word": "teams",
+        "startFrame": 44,
+        "endFrame": 54
+      },
+      {
+        "word": "spend",
+        "startFrame": 54,
+        "endFrame": 64
+      },
+      {
+        "word": "their",
+        "startFrame": 64,
+        "endFrame": 74
+      },
+      {
+        "word": "strongest",
+        "startFrame": 74,
+        "endFrame": 92
+      },
+      {
+        "word": "attention",
+        "startFrame": 92,
+        "endFrame": 110
+      },
+      {
+        "word": "where",
+        "startFrame": 110,
+        "endFrame": 120
+      },
+      {
+        "word": "failure",
+        "startFrame": 120,
+        "endFrame": 134
+      },
+      {
+        "word": "would",
+        "startFrame": 134,
+        "endFrame": 144
+      },
+      {
+        "word": "matter",
+        "startFrame": 144,
+        "endFrame": 156
+      },
+      {
+        "word": "most,",
+        "startFrame": 156,
+        "endFrame": 172
+      },
+      {
+        "word": "balancing",
+        "startFrame": 172,
+        "endFrame": 190
+      },
+      {
+        "word": "technical",
+        "startFrame": 190,
+        "endFrame": 208
+      },
+      {
+        "word": "evidence,",
+        "startFrame": 208,
+        "endFrame": 232
+      },
+      {
+        "word": "user",
+        "startFrame": 232,
+        "endFrame": 240
+      },
+      {
+        "word": "impact,",
+        "startFrame": 240,
+        "endFrame": 260
+      },
+      {
+        "word": "and",
+        "startFrame": 260,
+        "endFrame": 266
+      },
+      {
+        "word": "operational",
+        "startFrame": 266,
+        "endFrame": 288
+      },
+      {
+        "word": "uncertainty",
+        "startFrame": 288,
+        "endFrame": 310
+      },
+      {
+        "word": "before",
+        "startFrame": 310,
+        "endFrame": 322
+      },
+      {
+        "word": "each",
+        "startFrame": 322,
+        "endFrame": 330
+      },
+      {
+        "word": "release",
+        "startFrame": 330,
+        "endFrame": 344
+      },
+      {
+        "word": "reaches",
+        "startFrame": 344,
+        "endFrame": 358
+      },
+      {
+        "word": "the",
+        "startFrame": 358,
+        "endFrame": 364
+      },
+      {
+        "word": "public.",
+        "startFrame": 364,
+        "endFrame": 386
+      }
+    ]
   },
   {
     "sceneNumber": 11,
@@ -118,7 +1563,159 @@
     "imageKeyword": "continuous integration pipeline",
     "imageUrl": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-11.mp3",
-    "durationInFrames": 420
+    "durationInFrames": 420,
+    "wordTimings": [
+      {
+        "word": "Continuous",
+        "startFrame": 0,
+        "endFrame": 21
+      },
+      {
+        "word": "integration",
+        "startFrame": 21,
+        "endFrame": 44
+      },
+      {
+        "word": "turns",
+        "startFrame": 44,
+        "endFrame": 54
+      },
+      {
+        "word": "quality",
+        "startFrame": 54,
+        "endFrame": 68
+      },
+      {
+        "word": "into",
+        "startFrame": 68,
+        "endFrame": 76
+      },
+      {
+        "word": "a",
+        "startFrame": 76,
+        "endFrame": 78
+      },
+      {
+        "word": "daily",
+        "startFrame": 78,
+        "endFrame": 88
+      },
+      {
+        "word": "practice.",
+        "startFrame": 88,
+        "endFrame": 119
+      },
+      {
+        "word": "Small",
+        "startFrame": 119,
+        "endFrame": 129
+      },
+      {
+        "word": "changes",
+        "startFrame": 129,
+        "endFrame": 143
+      },
+      {
+        "word": "are",
+        "startFrame": 143,
+        "endFrame": 149
+      },
+      {
+        "word": "assembled,",
+        "startFrame": 149,
+        "endFrame": 176
+      },
+      {
+        "word": "tested,",
+        "startFrame": 176,
+        "endFrame": 197
+      },
+      {
+        "word": "and",
+        "startFrame": 197,
+        "endFrame": 203
+      },
+      {
+        "word": "measured",
+        "startFrame": 203,
+        "endFrame": 219
+      },
+      {
+        "word": "repeatedly,",
+        "startFrame": 219,
+        "endFrame": 248
+      },
+      {
+        "word": "allowing",
+        "startFrame": 248,
+        "endFrame": 264
+      },
+      {
+        "word": "teams",
+        "startFrame": 264,
+        "endFrame": 274
+      },
+      {
+        "word": "to",
+        "startFrame": 274,
+        "endFrame": 278
+      },
+      {
+        "word": "discover",
+        "startFrame": 278,
+        "endFrame": 294
+      },
+      {
+        "word": "regression",
+        "startFrame": 294,
+        "endFrame": 315
+      },
+      {
+        "word": "early",
+        "startFrame": 315,
+        "endFrame": 325
+      },
+      {
+        "word": "while",
+        "startFrame": 325,
+        "endFrame": 335
+      },
+      {
+        "word": "the",
+        "startFrame": 335,
+        "endFrame": 341
+      },
+      {
+        "word": "source",
+        "startFrame": 341,
+        "endFrame": 353
+      },
+      {
+        "word": "of",
+        "startFrame": 353,
+        "endFrame": 357
+      },
+      {
+        "word": "a",
+        "startFrame": 357,
+        "endFrame": 359
+      },
+      {
+        "word": "problem",
+        "startFrame": 359,
+        "endFrame": 373
+      },
+      {
+        "word": "remains",
+        "startFrame": 373,
+        "endFrame": 387
+      },
+      {
+        "word": "visible.",
+        "startFrame": 387,
+        "endFrame": 420
+      }
+    ]
   },
   {
     "sceneNumber": 12,
@@ -129,6 +1726,183 @@
     "imageKeyword": "future technology city",
     "imageUrl": "https://images.unsplash.com/photo-1504384764586-bb4cdc1707b0?auto=format&fit=crop&w=1920&q=80",
     "audioPath": "audio/scene-12.mp3",
-    "durationInFrames": 516
+    "durationInFrames": 516,
+    "wordTimings": [
+      {
+        "word": "When",
+        "startFrame": 0,
+        "endFrame": 8
+      },
+      {
+        "word": "measurement,",
+        "startFrame": 8,
+        "endFrame": 38
+      },
+      {
+        "word": "testing,",
+        "startFrame": 38,
+        "endFrame": 60
+      },
+      {
+        "word": "and",
+        "startFrame": 60,
+        "endFrame": 66
+      },
+      {
+        "word": "thoughtful",
+        "startFrame": 66,
+        "endFrame": 86
+      },
+      {
+        "word": "design",
+        "startFrame": 86,
+        "endFrame": 98
+      },
+      {
+        "word": "work",
+        "startFrame": 98,
+        "endFrame": 106
+      },
+      {
+        "word": "together,",
+        "startFrame": 106,
+        "endFrame": 130
+      },
+      {
+        "word": "reliability",
+        "startFrame": 130,
+        "endFrame": 152
+      },
+      {
+        "word": "becomes",
+        "startFrame": 152,
+        "endFrame": 166
+      },
+      {
+        "word": "more",
+        "startFrame": 166,
+        "endFrame": 174
+      },
+      {
+        "word": "than",
+        "startFrame": 174,
+        "endFrame": 182
+      },
+      {
+        "word": "a",
+        "startFrame": 182,
+        "endFrame": 184
+      },
+      {
+        "word": "final",
+        "startFrame": 184,
+        "endFrame": 194
+      },
+      {
+        "word": "inspection.",
+        "startFrame": 194,
+        "endFrame": 227
+      },
+      {
+        "word": "It",
+        "startFrame": 227,
+        "endFrame": 231
+      },
+      {
+        "word": "becomes",
+        "startFrame": 231,
+        "endFrame": 245
+      },
+      {
+        "word": "an",
+        "startFrame": 245,
+        "endFrame": 249
+      },
+      {
+        "word": "enduring",
+        "startFrame": 249,
+        "endFrame": 265
+      },
+      {
+        "word": "engineering",
+        "startFrame": 265,
+        "endFrame": 287
+      },
+      {
+        "word": "habit",
+        "startFrame": 287,
+        "endFrame": 297
+      },
+      {
+        "word": "that",
+        "startFrame": 297,
+        "endFrame": 305
+      },
+      {
+        "word": "protects",
+        "startFrame": 305,
+        "endFrame": 321
+      },
+      {
+        "word": "people,",
+        "startFrame": 321,
+        "endFrame": 341
+      },
+      {
+        "word": "organizations,",
+        "startFrame": 341,
+        "endFrame": 374
+      },
+      {
+        "word": "and",
+        "startFrame": 374,
+        "endFrame": 380
+      },
+      {
+        "word": "the",
+        "startFrame": 380,
+        "endFrame": 386
+      },
+      {
+        "word": "future",
+        "startFrame": 386,
+        "endFrame": 398
+      },
+      {
+        "word": "they",
+        "startFrame": 398,
+        "endFrame": 406
+      },
+      {
+        "word": "build",
+        "startFrame": 406,
+        "endFrame": 416
+      },
+      {
+        "word": "with",
+        "startFrame": 416,
+        "endFrame": 424
+      },
+      {
+        "word": "confidence,",
+        "startFrame": 424,
+        "endFrame": 452
+      },
+      {
+        "word": "clarity,",
+        "startFrame": 452,
+        "endFrame": 474
+      },
+      {
+        "word": "and",
+        "startFrame": 474,
+        "endFrame": 480
+      },
+      {
+        "word": "accountability.",
+        "startFrame": 480,
+        "endFrame": 516
+      }
+    ]
   }
 ]

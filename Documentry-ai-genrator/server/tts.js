@@ -19,6 +19,23 @@ const path = require('path');
 
 const DEFAULT_EDGE_VOICE = 'en-US-AndrewNeural';
 
+/**
+ * Sentences the client reads aloud to build a voice sample.
+ *
+ * These are intentionally fixed (not generated) so that every clone request
+ * contains the same phonetic material: one neutral statement, one sentence with
+ * a natural cadence/rhythm, and one short closing line with a distinct ending
+ * tone. ElevenLabs needs a clean, single-speaker sample of roughly 30s or less.
+ */
+const VOICE_SAMPLE_SENTENCES = [
+	'The quality of a system is never an accident, it is engineered one careful decision at a time.',
+	'Our team measured reliability across every release, and the numbers told a very clear story.',
+	'Thank you for listening, and welcome to the next chapter of the story.',
+];
+
+/** The full prompt shown to the client, as a single spoken paragraph. */
+const VOICE_SAMPLE_SCRIPT = VOICE_SAMPLE_SENTENCES.join(' ');
+
 // ---------------------------------------------------------------------------
 // Narrator text sanitizer — strips HTML / symbol noise before synthesis
 // ---------------------------------------------------------------------------
@@ -356,4 +373,7 @@ module.exports = {
 	cloneClientVoice,
 	computeProportionalWordTimings,
 	extractTimingsFromAlignment,
+	VOICE_SAMPLE_SENTENCES,
+	VOICE_SAMPLE_SCRIPT,
+	DEFAULT_EDGE_VOICE,
 };

@@ -9,6 +9,11 @@ import {
 	useCurrentFrame,
 } from 'remotion';
 import type { DocumentaryProps, Scene } from './types';
+import {
+	resolveWordStates,
+	resolveWordTimings,
+	type WordState,
+} from './wordTimings';
 
 const FADE_IN_FRAMES = 15;
 const KEN_BURNS_SCALE = 1.08;
@@ -93,6 +98,72 @@ const CAPTION_BOX = {
 	backdropFilter: 'blur(16px)',
 	textAlign: 'center' as const,
 	zIndex: 10,
+};
+
+const CAPTION_TEXT: React.CSSProperties = {
+	margin: 0,
+	fontSize: 38,
+	fontWeight: 600,
+	lineHeight: 1.38,
+	letterSpacing: '-0.01em',
+	textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
+	fontFamily:
+		'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+};
+
+/** Per-word styling for the progressive teacher-style underlining. */
+const WORD_BASE: React.CSSProperties = {
+	display: 'inline',
+	textDecorationLine: 'underline',
+	textDecorationThickness: '3px',
+	textUnderlineOffset: '7px',
+	transition: 'color 120ms linear',
+};
+
+const WORD_STYLE: Record<WordState, React.CSSProperties> = {
+	todo: {
+		...WORD_BASE,
+		color: 'rgba(226, 232, 240, 0.42)',
+		textDecorationColor: 'rgba(226, 232, 240, 0)',
+	},
+	done: {
+		...WORD_BASE,
+		color: '#f8fafc',
+		textDecorationColor: 'rgba(250, 204, 21, 0.55)',
+	},
+	current: {
+		...WORD_BASE,
+		color: '#facc15',
+		textDecorationColor: '#facc15',
+		textDecorationThickness: '4px',
+		textShadow:
+			'0 0 18px rgba(250, 204, 21, 0.55), 0 2px 8px rgba(0, 0, 0, 0.8)',
+	},
+};
+
+/** Progressive caption: words light up and get underlined as they are spoken. */
+const ProgressiveCaption: React.FC<{ scene: Scene; frame: number }> = ({
+	scene,
+	frame,
+}) => {
+	const timings = React.useMemo(
+		() => resolveWordTimings(scene),
+		[scene],
+	);
+	const states = resolveWordStates(timings, frame);
+
+	return (
+		<div style={CAPTION_BOX}>
+			<p style={CAPTION_TEXT}>
+				{timings.map((timing, index) => (
+					<React.Fragment key={`${timing.word}-${index}`}>
+						<span style={WORD_STYLE[states[index]]}>{timing.word}</span>
+						{index < timings.length - 1 ? ' ' : ''}
+					</React.Fragment>
+				))}
+			</p>
+		</div>
+	);
 };
 
 interface SceneContentProps {
@@ -234,25 +305,9 @@ const SceneContent: React.FC<SceneContentProps> = ({
 				</div>
 			) : null}
 
-			{/* Unified caption box — text comes straight from the dataset */}
+			{/* Progressive caption — text and word timing both come from the dataset */}
 			{scene.narratorText ? (
-				<div style={CAPTION_BOX}>
-					<p
-						style={{
-							margin: 0,
-							color: '#facc15',
-							fontSize: 38,
-							fontWeight: 600,
-							lineHeight: 1.38,
-							letterSpacing: '-0.01em',
-							textShadow: '0 2px 8px rgba(0, 0, 0, 0.8)',
-							fontFamily:
-								'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-						}}
-					>
-						{scene.narratorText}
-					</p>
-				</div>
+				<ProgressiveCaption scene={scene} frame={frame} />
 			) : null}
 		</AbsoluteFill>
 	);

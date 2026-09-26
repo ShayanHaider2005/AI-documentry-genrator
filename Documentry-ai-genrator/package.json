@@ -7,7 +7,11 @@
 		"pipeline": "node server/pipeline.js",
 		"studio": "remotion studio src/index.ts",
 		"preview": "remotion preview src/index.ts",
-		"render": "remotion render src/index.ts Documentary out/video.mp4"
+		"render": "remotion render src/index.ts Documentary out/video.mp4",
+		"web:build": "node web/build.js",
+		"web": "npm run web:build && node server/web.js",
+		"web:serve": "node server/web.js",
+		"web:smoke": "node web/smoke.js"
 	},
 	"dependencies": {
 		"@remotion/cli": "^4.0.529",

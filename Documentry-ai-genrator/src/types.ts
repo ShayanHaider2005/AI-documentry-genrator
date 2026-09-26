@@ -1,3 +1,9 @@
+export interface WordTiming {
+	word: string;
+	startFrame: number;
+	endFrame: number;
+}
+
 export interface Scene {
 	sceneNumber: number;
 	narratorText: string;
@@ -10,6 +16,12 @@ export interface Scene {
 	title?: string;
 	/** Short category chip rendered in the header (optional). */
 	badge?: string;
+	/**
+	 * Frame-accurate word timings (relative to the start of the scene) used for
+	 * progressive highlighting. Produced by the TTS step; when absent the
+	 * renderer estimates them proportionally.
+	 */
+	wordTimings?: WordTiming[];
 	id?: string;
 }
 

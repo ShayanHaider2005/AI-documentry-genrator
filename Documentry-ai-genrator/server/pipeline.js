@@ -32,7 +32,13 @@ try {
 }
 
 const { parseAndCleanPdf } = require('./parsePdf');
-const { generateSceneAudio } = require('./tts');
+const { getAiProvider } = require('./llm');
+const {
+	generateSceneAudio,
+	cloneClientVoice,
+	computeProportionalWordTimings,
+	DEFAULT_EDGE_VOICE,
+} = require('./tts');
 
 // Project directory paths
 const DATASET_PATH = path.resolve(__dirname, '../src/dataset.json');
@@ -87,44 +93,9 @@ Required output schema (strict):
 ]`;
 
 // ---------------------------------------------------------------------------
-// AI Provider Selection (Gemini → Grok → Groq → OpenAI)
+// AI provider selection now lives in server/llm.js so the pipeline and the
+// website chatbot share one implementation.
 // ---------------------------------------------------------------------------
-function getAiProvider() {
-	if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
-		const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-		return {
-			name: 'Gemini',
-			apiKey: key,
-			baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-			model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-		};
-	}
-	if (process.env.GROK_API_KEY || process.env.XAI_API_KEY) {
-		return {
-			name: 'Grok',
-			apiKey: process.env.GROK_API_KEY || process.env.XAI_API_KEY,
-			baseUrl: process.env.GROK_BASE_URL || 'https://api.x.ai/v1/chat/completions',
-			model: process.env.GROK_MODEL || 'grok-3-mini',
-		};
-	}
-	if (process.env.GROQ_API_KEY) {
-		return {
-			name: 'Groq',
-			apiKey: process.env.GROQ_API_KEY,
-			baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
-			model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-		};
-	}
-	if (process.env.OPENAI_API_KEY) {
-		return {
-			name: 'OpenAI',
-			apiKey: process.env.OPENAI_API_KEY,
-			baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1/chat/completions',
-			model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-		};
-	}
-	return null;
-}
 
 // ---------------------------------------------------------------------------
 // JSON Parser
@@ -382,37 +353,80 @@ async function getAudioDurationInFrames(audioPath) {
 // ---------------------------------------------------------------------------
 // Pipeline Logger
 // ---------------------------------------------------------------------------
-function logStep(label, message, startedAt) {
+function logStep(label, message, startedAt, log = console.log) {
 	const elapsed = (performance.now() - startedAt).toFixed(0);
-	console.log(`[${label}] ${message} (${elapsed} ms)`);
+	log(`[${label}] ${message} (${elapsed} ms)`);
 }
 
 // ---------------------------------------------------------------------------
 // Main Pipeline Execution
 // ---------------------------------------------------------------------------
-async function runPipeline(customPdfPath) {
+/**
+ * Run the full generation pipeline.
+ *
+ * @param {object|string} [optionsOrPdfPath] Options object, or a PDF path for
+ *   backwards compatibility with the original positional CLI argument.
+ * @param {string} [optionsOrPdfPath.pdfPath]          Source PDF (default: server/sample.pdf).
+ * @param {string} [optionsOrPdfPath.voiceSamplePath]  Client MP3 to clone the voice from.
+ * @param {string} [optionsOrPdfPath.datasetPath]      Where to write the dataset (default: src/dataset.json).
+ * @param {string} [optionsOrPdfPath.audioSubdir]      Sub-folder under public/audio, used to isolate per-session audio.
+ * @param {(msg: string) => void} [optionsOrPdfPath.log] Logger override.
+ * @returns {Promise<Array>} The finalized dataset.
+ */
+async function runPipeline(optionsOrPdfPath = {}) {
 	const pipelineStart = performance.now();
+	const options =
+		typeof optionsOrPdfPath === 'string'
+			? { pdfPath: optionsOrPdfPath }
+			: optionsOrPdfPath || {};
+	const {
+		voiceSamplePath,
+		datasetPath = DATASET_PATH,
+		audioSubdir = '',
+		log = console.log,
+	} = options;
 
 	const pdfPath =
-		customPdfPath ||
+		options.pdfPath ||
 		process.argv.slice(2).find((a) => a.endsWith('.pdf')) ||
 		path.resolve(__dirname, 'sample.pdf');
 
-	console.log(`\n${'═'.repeat(60)}`);
-	console.log(`[PIPELINE] Starting Extended AI Documentary Generation Engine`);
-	console.log(`[PIPELINE] Source Document: ${pdfPath}`);
-	console.log(`${'═'.repeat(60)}\n`);
+	// Per-session audio isolation: public/audio/<subdir>/scene-N.mp3
+	const audioDir = audioSubdir
+		? path.join(AUDIO_DIR, audioSubdir)
+		: AUDIO_DIR;
+	const audioUrlBase = audioSubdir ? `audio/${audioSubdir}` : 'audio';
+
+	log(`\n${'═'.repeat(60)}`);
+	log(`[PIPELINE] Starting Extended AI Documentary Generation Engine`);
+	log(`[PIPELINE] Source Document: ${pdfPath}`);
+	log(`${'═'.repeat(60)}\n`);
+
+	// ── Step 0: Optional client voice cloning ─────────────────────────────
+	const step0Start = performance.now();
+	let voiceId = null;
+	let voiceLabel = DEFAULT_EDGE_VOICE;
+
+	if (voiceSamplePath) {
+		log('[0/5] Cloning client voice from the provided sample...');
+		const clone = await cloneClientVoice(voiceSamplePath);
+		voiceId = clone.voiceId;
+		voiceLabel = clone.voiceName;
+		logStep('0/5', `Voice ready: ${voiceLabel}`, step0Start);
+	} else {
+		log(`[0/5] No voice sample supplied — using ${DEFAULT_EDGE_VOICE}`);
+	}
 
 	// ── Step 1: Pre-Filter PDF Text Junk ──────────────────────────────────
 	const step1Start = performance.now();
-	console.log('[1/5] Pre-filtering and extracting clean PDF text...');
+	log('[1/5] Pre-filtering and extracting clean PDF text...');
 	const cleanText = await parseAndCleanPdf(pdfPath);
 	if (!cleanText.trim()) throw new Error('PDF produced no usable content after sanitization');
 	logStep('1/5', `Extracted ${cleanText.length} sanitized characters`, step1Start);
 
 	// ── Step 2: Extended Documentary Script Generation ────────────────────
 	const step2Start = performance.now();
-	console.log('[2/5] Generating extended 8–12 scene documentary script...');
+	log('[2/5] Generating extended 8–12 scene documentary script...');
 
 	let scenes;
 	try {
@@ -430,7 +444,7 @@ async function runPipeline(customPdfPath) {
 
 	// ── Step 3: Pexels Image Fetching ─────────────────────────────────────
 	const step3Start = performance.now();
-	console.log('[3/5] Resolving high-resolution visual imagery (Pexels / Fallback)...');
+	log('[3/5] Resolving high-resolution visual imagery (Pexels / Fallback)...');
 
 	const scenesWithImages = [];
 	for (let i = 0; i < scenes.length; i++) {
@@ -449,36 +463,52 @@ async function runPipeline(customPdfPath) {
 
 	// ── Step 4: Synthesize Neural Audio Files ─────────────────────────────
 	const step4Start = performance.now();
-	console.log('[4/5] Synthesizing scene voiceovers to public/audio/scene-X.mp3...');
-	await fs.promises.mkdir(AUDIO_DIR, { recursive: true });
+	log('[4/5] Synthesizing scene voiceovers to public/audio/scene-X.mp3...');
+	await fs.promises.mkdir(audioDir, { recursive: true });
 
 	const scenesWithAudio = [];
 	for (const scene of scenesWithImages) {
 		const sceneNum = scene.sceneNumber;
 		const audioFileName = `scene-${sceneNum}.mp3`;
-		const audioPath = path.join(AUDIO_DIR, audioFileName);
+		const audioPath = path.join(audioDir, audioFileName);
 
-		console.log(`  Synthesizing scene ${sceneNum}: "${scene.narratorText.slice(0, 45)}..."`);
-		await generateSceneAudio(scene.narratorText, audioPath);
+		log(`  Synthesizing scene ${sceneNum}: "${scene.narratorText.slice(0, 45)}..."`);
+		const ttsResult = await generateSceneAudio(scene.narratorText, audioPath, {
+			voiceId,
+		});
 
 		scenesWithAudio.push({
 			...scene,
-			audioPath: `audio/${audioFileName}`,
+			audioPath: `${audioUrlBase}/${audioFileName}`,
 			fullAudioPath: audioPath,
+			// Frame-accurate timings when the provider returns an alignment,
+			// otherwise estimated proportionally from the measured duration.
+			measuredWordTimings: (ttsResult && ttsResult.wordTimings) || null,
 		});
 	}
 	logStep('4/5', `Synthesized ${scenesWithAudio.length} audio file(s)`, step4Start);
 
 	// ── Step 5: Measure Durations & Write Remotion Dataset ────────────────
 	const step5Start = performance.now();
-	console.log('[5/5] Measuring audio durations and writing src/dataset.json...');
+	log('[5/5] Measuring audio durations and writing the dataset...');
 
 	const dataset = [];
 	for (const scene of scenesWithAudio) {
 		const durationInFrames = await getAudioDurationInFrames(scene.fullAudioPath);
-		console.log(
+		log(
 			`  scene-${scene.sceneNumber}: ${durationInFrames} frames (${(durationInFrames / FRAMES_PER_SECOND).toFixed(1)}s)`,
 		);
+
+		// Prefer the provider's word alignment; otherwise estimate timings
+		// proportionally from the real measured duration.
+		const wordTimings =
+			Array.isArray(scene.measuredWordTimings) &&
+			scene.measuredWordTimings.length > 0
+				? scene.measuredWordTimings
+				: computeProportionalWordTimings(
+						scene.narratorText,
+						durationInFrames,
+					);
 
 		dataset.push({
 			sceneNumber: scene.sceneNumber,
@@ -491,22 +521,28 @@ async function runPipeline(customPdfPath) {
 			imageUrl: scene.imageUrl,
 			audioPath: scene.audioPath,
 			durationInFrames,
+			wordTimings,
 		});
 	}
 
-	await fs.promises.mkdir(path.dirname(DATASET_PATH), { recursive: true });
-	await fs.promises.writeFile(DATASET_PATH, `${JSON.stringify(dataset, null, 2)}\n`, 'utf8');
-	logStep('5/5', `Wrote finalized dataset with ${dataset.length} scenes to src/dataset.json`, step5Start);
+	await fs.promises.mkdir(path.dirname(datasetPath), { recursive: true });
+	await fs.promises.writeFile(
+		datasetPath,
+		`${JSON.stringify(dataset, null, 2)}\n`,
+		'utf8',
+	);
+	logStep('5/5', `Wrote finalized dataset with ${dataset.length} scenes to ${datasetPath}`, step5Start);
 
 	const totalFrames = dataset.reduce((sum, s) => sum + s.durationInFrames, 0);
 	const totalSeconds = (totalFrames / FRAMES_PER_SECOND).toFixed(1);
 
-	console.log(`\n${'═'.repeat(60)}`);
-	console.log(`[PIPELINE] ✅  Documentary Engine Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
-	console.log(`[PIPELINE] Extended Scenes: ${dataset.length}`);
-	console.log(`[PIPELINE] Total Duration: ~${totalSeconds}s (${totalFrames} frames)`);
-	console.log(`[PIPELINE] Dataset Path: ${DATASET_PATH}`);
-	console.log(`${'═'.repeat(60)}\n`);
+	log(`\n${'═'.repeat(60)}`);
+	log(`[PIPELINE] ✅  Documentary Engine Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
+	log(`[PIPELINE] Voice: ${voiceLabel}`);
+	log(`[PIPELINE] Extended Scenes: ${dataset.length}`);
+	log(`[PIPELINE] Total Duration: ~${totalSeconds}s (${totalFrames} frames)`);
+	log(`[PIPELINE] Dataset Path: ${datasetPath}`);
+	log(`${'═'.repeat(60)}\n`);
 
 	return dataset;
 }
