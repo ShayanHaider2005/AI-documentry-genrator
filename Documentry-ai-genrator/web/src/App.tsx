@@ -12,9 +12,9 @@ import {
 	Button,
 	ChatPanel,
 	FilePicker,
-	JobPanel,
 	Notice,
 	Player,
+	VoiceRecorder,
 	type ChatMessage,
 } from './components';
 import './styles.css';
@@ -42,6 +42,20 @@ const WELCOME =
 	'3. Optionally record the three sample sentences and upload the MP3 — I will clone your voice and accent.\n' +
 	'4. Press Generate, then Render MP4.\n\n' +
 	'Your finished videos are listed on the left; select one to replay it instantly. You can also ask me about your document.';
+
+/** Numbered step header used to make the flow obvious at a glance. */
+const StepHeader: React.FC<{ step: number; title: string; done: boolean }> = ({
+	step,
+	title,
+	done,
+}) => (
+	<div className="step-header">
+		<span className={`step-badge${done ? ' done' : ''}`}>
+			{done ? '✓' : step}
+		</span>
+		<span className="step-title">{title}</span>
+	</div>
+);
 
 export const App: React.FC = () => {
 	const [config, setConfig] = React.useState<VoiceSampleConfig | null>(null);
@@ -395,39 +409,32 @@ export const App: React.FC = () => {
 					<div className="main-inner">
 						{error ? <Notice kind="err">{error}</Notice> : null}
 
+						{/* the video, when one is selected */}
 						{scenes.length > 0 ? (
-							<>
+							<div className="panel">
 								<div className="panel-head">
 									<h2>{active?.title}</h2>
 									<span className="spacer" />
 									<span className="hint">
-										{scenes.length} scenes · {totalSeconds}s
+										{scenes.length} parts · {totalSeconds}s
 									</span>
 								</div>
 								<Player component={DocumentaryVideo} scenes={scenes} />
-							</>
-						) : (
-							<div className="stage empty">
-								<div className="empty-inner">
-									<div className="empty-title">
-										{loadingSession
-											? 'Loading…'
-											: 'No video selected'}
-									</div>
-									<div className="hint">
-										Pick a video from the left, or press “+ New Video”
-										and add a PDF below.
-									</div>
-								</div>
 							</div>
-						)}
+						) : null}
 
-						{/* controls: PDF input sits directly under the player */}
-						<div className="controls">
+						{/* three simple steps */}
+						<div className="panel">
+							<StepHeader
+								step={1}
+								title="Add your PDF"
+								done={Boolean(pdfName)}
+							/>
+
 							<FilePicker
 								id="pdf-input"
-								label="Source document"
-								hint="PDF with selectable text"
+								label=""
+								hint="A PDF with selectable text works best"
 								accept="application/pdf,.pdf"
 								fileName={pdfName}
 								disabled={!sessionId || Boolean(busy)}
@@ -435,35 +442,41 @@ export const App: React.FC = () => {
 							/>
 							{pdfChars !== null ? (
 								<Notice kind="ok">
-									{pdfChars.toLocaleString()} characters extracted.
+									{pdfChars.toLocaleString()} characters read from your PDF.
 								</Notice>
 							) : null}
 
-							<details className="voice-details">
-								<summary>Use my own voice (optional)</summary>
-								<div className="voice-body">
-									<p className="hint">
-										Read these three sentences aloud in English, record them as
-										one MP3, then upload it. Your voice and accent get cloned
-										for the narration.
-									</p>
-									<ol className="sentences">
-										{(config?.voiceSampleSentences ?? []).map((sentence) => (
-											<li key={sentence}>{sentence}</li>
-										))}
-									</ol>
-									<FilePicker
-										id="voice-input"
-										label="Voice sample"
-										hint="MP3 · about 30 seconds or less"
-										accept="audio/mpeg,audio/wav,.mp3,.wav,.m4a"
-										fileName={voiceName}
-										disabled={!sessionId || Boolean(busy)}
-										onFile={handleVoice}
-									/>
-									{voiceInfo ? <Notice kind="ok">{voiceInfo}</Notice> : null}
-								</div>
-							</details>
+							<StepHeader
+								step={2}
+								title="Add your voice (optional)"
+								done={Boolean(voiceName)}
+							/>
+							<p className="hint">
+								Read these three lines out loud in English, then record them. Your
+								voice and accent become the narration.
+							</p>
+							<ol className="sentences">
+								{(config?.voiceSampleSentences ?? []).map((sentence) => (
+									<li key={sentence}>{sentence}</li>
+								))}
+							</ol>
+							<VoiceRecorder
+								disabled={!sessionId || Boolean(busy)}
+								onUse={handleVoice}
+								onError={setError}
+							/>
+							<FilePicker
+								id="voice-input"
+								label="or upload a file"
+								hint="MP3 preferred · about 30 seconds or less"
+								accept="audio/mpeg,audio/wav,.mp3,.wav,.m4a,.webm,.ogg"
+								fileName={voiceName}
+								disabled={!sessionId || Boolean(busy)}
+								onFile={handleVoice}
+							/>
+							{voiceInfo ? <Notice kind="ok">{voiceInfo}</Notice> : null}
+
+							<StepHeader step={3} title="Make the video" done={scenes.length > 0} />
 
 							<div className="btn-row">
 								<Button
@@ -471,25 +484,36 @@ export const App: React.FC = () => {
 									onClick={handleGenerate}
 									disabled={!pdfName || generateJob?.status === 'running'}
 								>
-									{busy ?? (generateJob?.status === 'running' ? 'Generating…' : 'Generate')}
+									{generateJob?.status === 'running' ? 'Making…' : 'Generate video'}
 								</Button>
 								<Button
 									onClick={handleRender}
-									disabled={
-										scenes.length === 0 || renderJob?.status === 'running'
-									}
+									disabled={scenes.length === 0 || renderJob?.status === 'running'}
 								>
-									{renderJob?.status === 'running' ? 'Rendering…' : 'Render MP4'}
+									{renderJob?.status === 'running' ? 'Rendering…' : 'Download MP4'}
 								</Button>
 							</div>
 
-							{generateJob?.logs.length ? (
-								<div className="logbox">{generateJob.logs.join('\n')}</div>
+							{generateJob?.status === 'running' || generateJob?.logs.length ? (
+								<>
+									{generateJob?.status === 'running' ? (
+										<div className="progress">
+											<div style={{ width: `${Math.round(generateJob.progress)}%` }} />
+										</div>
+									) : null}
+									{generateJob?.logs.length ? (
+										<div className="logbox">{generateJob.logs.join('\n')}</div>
+									) : null}
+								</>
 							) : null}
+
 							{renderJob?.status === 'running' ? (
-								<div className="progress">
-									<div style={{ width: `${Math.round(renderJob.progress)}%` }} />
-								</div>
+								<>
+									<div className="progress">
+										<div style={{ width: `${Math.round(renderJob.progress)}%` }} />
+									</div>
+									<div className="logbox">{renderJob.logs.join('\n')}</div>
+								</>
 							) : null}
 
 							{videoUrl ? (
@@ -502,14 +526,20 @@ export const App: React.FC = () => {
 							) : null}
 						</div>
 
-						<ChatPanel
-							messages={messages}
-							draft={draft}
-							busy={chatBusy}
-							chatEnabled={Boolean(config?.chatEnabled)}
-							onDraft={setDraft}
-							onSend={handleSend}
-						/>
+						{/* chatbot, out of the way until you want it */}
+						<details className="panel chat-details">
+							<summary>Ask DocuBot about your document</summary>
+							<div className="chat-body">
+								<ChatPanel
+									messages={messages}
+									draft={draft}
+									busy={chatBusy}
+									chatEnabled={Boolean(config?.chatEnabled)}
+									onDraft={setDraft}
+									onSend={handleSend}
+								/>
+							</div>
+						</details>
 					</div>
 				</main>
 			</div>

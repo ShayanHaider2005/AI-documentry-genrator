@@ -155,13 +155,19 @@ body {
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-	padding: 18px 22px 24px;
+	padding: 18px 22px 28px;
 	min-height: 100%;
+	max-width: 1080px;
 }
 
-.main-inner .card {
-	flex: 0 0 auto;
-	max-height: 380px;
+.panel {
+	background: var(--panel);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	padding: 18px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 13px;
 }
 
 .panel-head {
@@ -172,7 +178,7 @@ body {
 
 .panel-head h2 {
 	margin: 0;
-	font-size: 17px;
+	font-size: 18px;
 	font-weight: 700;
 	letter-spacing: -0.01em;
 	overflow: hidden;
@@ -180,59 +186,114 @@ body {
 	white-space: nowrap;
 }
 
-.controls {
+/* Numbered steps keep the flow obvious at a glance. */
+.step-header {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	margin-top: 4px;
+}
+
+.step-badge {
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	font-size: 13px;
+	font-weight: 800;
+	background: rgba(250, 204, 21, 0.16);
+	color: var(--accent);
+	border: 1px solid rgba(250, 204, 21, 0.4);
+	flex: 0 0 auto;
+}
+
+.step-badge.done {
+	background: var(--ok);
+	color: #052e16;
+	border-color: transparent;
+}
+
+.step-title {
+	font-size: 14.5px;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+/* Voice recorder */
+.recorder {
 	display: flex;
 	flex-direction: column;
+	gap: 10px;
+}
+
+.recorder-active {
+	display: flex;
+	align-items: center;
 	gap: 12px;
-	background: var(--panel);
-	border: 1px solid var(--line);
-	border-radius: var(--radius);
-	padding: 16px 18px;
-}
-
-.voice-details {
-	border: 1px solid var(--line);
+	padding: 10px 14px;
+	border: 1px solid rgba(248, 113, 113, 0.4);
 	border-radius: var(--radius-sm);
-	padding: 10px 13px;
+	background: rgba(248, 113, 113, 0.08);
+	font-size: 14px;
+	font-weight: 600;
 }
 
-.voice-details summary {
+.rec-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--err);
+	animation: rec-pulse 1.1s ease-in-out infinite;
+	flex: 0 0 auto;
+}
+
+@keyframes rec-pulse {
+	0%, 100% { opacity: 1; transform: scale(1); }
+	50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+.recorder-clip {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 14px;
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-sm);
+	background: rgba(2, 6, 23, 0.4);
+}
+
+.recorder-clip audio {
+	width: 100%;
+}
+
+.chat-details {
+	padding: 0;
+	gap: 0;
+}
+
+.chat-details > summary {
 	cursor: pointer;
-	font-size: 13px;
+	padding: 14px 20px;
+	font-size: 13.5px;
 	font-weight: 600;
 	color: var(--muted);
+	user-select: none;
 }
 
-.voice-details summary:hover {
+.chat-details > summary:hover {
 	color: var(--text);
 }
 
-.voice-body {
-	display: flex;
-	flex-direction: column;
-	gap: 11px;
-	padding-top: 12px;
+.chat-body {
+	border-top: 1px solid var(--line);
 }
 
-.stage.empty {
-	display: grid;
-	place-items: center;
-	background: rgba(2, 6, 23, 0.35);
-	border-style: dashed;
-}
-
-.empty-inner {
-	text-align: center;
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-	padding: 20px;
-}
-
-.empty-title {
-	font-size: 15px;
-	font-weight: 700;
-	color: var(--muted);
+.chat-body .card {
+	border: none;
+	background: transparent;
+	backdrop-filter: none;
+	max-height: 420px;
 }
 
 .topbar {

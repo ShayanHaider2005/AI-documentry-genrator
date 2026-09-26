@@ -175,6 +175,173 @@ export const JobPanel: React.FC<{
 	</div>
 );
 
+/* ------------------------------------------------------------- recorder */
+
+const EXTENSION_BY_MIME: Record<string, string> = {
+	'audio/mpeg': 'mp3',
+	'audio/mp3': 'mp3',
+	'audio/mp4': 'm4a',
+	'audio/x-m4a': 'm4a',
+	'audio/wav': 'wav',
+	'audio/x-wav': 'wav',
+	'audio/webm': 'webm',
+	'audio/ogg': 'ogg',
+	'audio/opus': 'opus',
+};
+
+const formatElapsed = (seconds: number) =>
+	`${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+
+/**
+ * Records a voice sample with the microphone.
+ *
+ * Browsers hand back whatever container they support (Chrome: webm/opus,
+ * Safari: mp4), so the blob is uploaded under a matching extension. MP3 remains
+ * the most widely accepted format for voice cloning, which is why the upload
+ * option sits next to the recorder.
+ */
+export const VoiceRecorder: React.FC<{
+	disabled?: boolean;
+	onUse: (file: File) => void;
+	onError: (message: string) => void;
+}> = ({ disabled, onUse, onError }) => {
+	const [recording, setRecording] = React.useState(false);
+	const [elapsed, setElapsed] = React.useState(0);
+	const [clip, setClip] = React.useState<{ url: string; file: File } | null>(null);
+	const recorderRef = React.useRef<MediaRecorder | null>(null);
+	const chunksRef = React.useRef<Blob[]>([]);
+	const timerRef = React.useRef<number | null>(null);
+
+	// Revoke the preview URL and release the mic on unmount.
+	React.useEffect(
+		() => () => {
+			if (clip) URL.revokeObjectURL(clip.url);
+			recorderRef.current?.stream.getTracks().forEach((t) => t.stop());
+			if (timerRef.current) window.clearInterval(timerRef.current);
+		},
+		[clip],
+	);
+
+	const supported =
+		typeof navigator !== 'undefined' &&
+		Boolean(navigator.mediaDevices?.getUserMedia) &&
+		typeof MediaRecorder !== 'undefined';
+
+	const start = async () => {
+		onError('');
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			const recorder = new MediaRecorder(stream);
+			chunksRef.current = [];
+
+			recorder.ondataavailable = (event) => {
+				if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
+			};
+
+			recorder.onstop = () => {
+				stream.getTracks().forEach((track) => track.stop());
+				if (timerRef.current) window.clearInterval(timerRef.current);
+
+				const type = recorder.mimeType || 'audio/webm';
+				const blob = new Blob(chunksRef.current, { type });
+				if (blob.size === 0) {
+					onError('The recording came out empty. Please try again.');
+					return;
+				}
+
+				const extension = EXTENSION_BY_MIME[type.split(';')[0].trim()] ?? 'webm';
+				const file = new File([blob], `my-voice.${extension}`, { type });
+				setClip((previous) => {
+					if (previous) URL.revokeObjectURL(previous.url);
+					return { url: URL.createObjectURL(blob), file };
+				});
+			};
+
+			recorder.start();
+			recorderRef.current = recorder;
+			setRecording(true);
+			setElapsed(0);
+			timerRef.current = window.setInterval(
+				() => setElapsed((value) => value + 1),
+				1000,
+			);
+		} catch (err) {
+			const name = (err as Error).name;
+			onError(
+				name === 'NotAllowedError'
+					? 'Microphone access was blocked. Allow it in your browser, or upload an MP3 instead.'
+					: `Could not start the microphone: ${(err as Error).message}`,
+			);
+		}
+	};
+
+	const stop = () => {
+		recorderRef.current?.stop();
+		recorderRef.current = null;
+		setRecording(false);
+	};
+
+	const discard = () => {
+		setClip((previous) => {
+			if (previous) URL.revokeObjectURL(previous.url);
+			return null;
+		});
+		setElapsed(0);
+	};
+
+	if (!supported) {
+		return (
+			<p className="hint">
+				This browser cannot record audio. Please upload an MP3 voice sample
+				instead.
+			</p>
+		);
+	}
+
+	return (
+		<div className="recorder">
+			{!recording && !clip ? (
+				<Button onClick={start} disabled={disabled}>
+					Record my voice
+				</Button>
+			) : null}
+
+			{recording ? (
+				<div className="recorder-active">
+					<span className="rec-dot" />
+					<span>Recording · {formatElapsed(elapsed)}</span>
+					<Button variant="primary" onClick={stop}>
+						Stop
+					</Button>
+				</div>
+			) : null}
+
+			{clip && !recording ? (
+				<div className="recorder-clip">
+					<audio src={clip.url} controls />
+					<div className="btn-row">
+						<Button
+							variant="primary"
+							onClick={() => {
+								onUse(clip.file);
+								discard();
+							}}
+						>
+							Use this recording
+						</Button>
+						<Button variant="ghost" onClick={discard}>
+							Discard
+						</Button>
+					</div>
+					<span className="hint">
+						{clip.file.name} · {(clip.file.size / 1024).toFixed(0)} KB
+					</span>
+				</div>
+			) : null}
+		</div>
+	);
+};
+
 /* --------------------------------------------------------------- preview */
 
 export const Player: React.FC<{

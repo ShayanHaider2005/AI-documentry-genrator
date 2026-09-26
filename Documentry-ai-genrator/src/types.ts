@@ -5,7 +5,7 @@ export interface WordTiming {
 }
 
 /**
- * Normalised region of the visual (0..1, origin top-left) that the narrator is
+ * Normalised region of a visual (0..1, origin top-left) that the narrator is
  * describing. Drives the highlight box and the animated pointer.
  */
 export interface FocusArea {
@@ -18,6 +18,30 @@ export interface FocusArea {
 	focus?: number;
 }
 
+/**
+ * One "beat" of a scene: a distinct visual plus the region the narrator is
+ * pointing at while that visual is on screen. A scene is a sequence of beats,
+ * each anchored to a word so the image and the pointer change in time with the
+ * speech.
+ */
+export interface SceneBeat {
+	imageUrl: string;
+	imageSource?: 'pexels' | 'document-diagram';
+	visualPrompt?: string;
+	imageKeyword?: string;
+	/** Where the pointer sits on this beat's visual. */
+	focusArea?: FocusArea;
+	/** Callout label shown beside the pointer. */
+	label?: string;
+	/** Index into the scene's narratorText where this beat begins. */
+	startWord?: number;
+	/**
+	 * Alternative to `startWord`: the word itself at which this beat starts.
+	 * Preferred for LLM output because it survives rewording.
+	 */
+	atWord?: string;
+}
+
 export interface Scene {
 	sceneNumber: number;
 	narratorText: string;
@@ -28,6 +52,11 @@ export interface Scene {
 	durationInFrames: number;
 	/** Where the visual came from: a contextual photo or a document diagram. */
 	imageSource?: 'pexels' | 'document-diagram';
+	/**
+	 * Per-beat visuals. When present the renderer swaps image and pointer on each
+	 * beat boundary; otherwise the scene uses the single `imageUrl`/`focusArea`.
+	 */
+	beats?: SceneBeat[];
 	/** Highlight target(s) for the animated pointer overlay. */
 	focusArea?: FocusArea | FocusArea[];
 	/** Short chapter heading rendered above the caption (optional). */

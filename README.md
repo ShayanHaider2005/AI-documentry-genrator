@@ -82,17 +82,30 @@ A scene's visual must be traceable to the document being narrated:
    the actual heading outline rendered as a page of labelled blocks, wired with flow
    arrows. There is deliberately no generic stock-photo fallback list.
 
-### Pointer & focus overlays
+### Pointer & focus overlays, in sync with the speech
 
-Each scene carries a `focusArea` — a normalised (0–1) rectangle plus a label, describing
-exactly which part of the visual the narrator is discussing. The LLM may return one
-rectangle or several; `normalizeFocusArea()` repairs anything missing using the outline.
+Each scene is split into **beats** — 2 or 3 parts, derived from the narration's own phrase
+boundaries. Every beat carries:
 
-`src/focusOverlay.ts` then drives the on-screen pointer: it flies in over the opening
-frames, travels to each target as the narration reaches it, settles with a pulsing
-highlight box, and shows a callout label. The diagram geometry and the focus rectangles
-come from one shared function (`computeDiagramLayout`), so the pointer always lands
-exactly on the block it highlights.
+- its **own visual** (a different document diagram or contextual photo), so the imagery
+  changes as the narrator moves between ideas rather than sitting still;
+- its own **highlight region** (normalised 0–1 rectangle + label);
+- the **word at which it starts** (`startWord`, or `atWord` for LLM output).
+
+The renderer resolves each beat's start frame from the measured word timings
+(`resolveBeats()` in `src/focusOverlay.ts`), so the visual change and the pointer movement
+happen on the frame that word is spoken — not on an arbitrary fraction of the scene. The
+highlight cross-fades over 6 frames, the pointer travels to the new region, then pulses and
+shows its callout label while that part is being explained. Beats with no usable word
+timing fall back to an even split, so a beat is never unscheduled.
+
+Verified on scene 1 (446 frames, 27 words): beat 1 covers words 0–8 and beat 2 starts at
+word 9 ("Behind", frame 140), where the diagram switches to the next section group and the
+pointer moves to the corresponding block.
+
+`computeDiagramLayout()` is the single source of truth for diagram geometry, shared by the
+renderer and the focus calculator, so the pointer always lands on the block it highlights.
+The page also stops above the caption band so no content hides behind the subtitles.
 
 ### Word-level highlighting
 
@@ -122,9 +135,26 @@ tone:
 >
 > Thank you for listening, and welcome to the next chapter of the story.
 
-Record them as one MP3 and upload it. With `ELEVENLABS_API_KEY` set, the sample is cloned
-instantly and all narration uses that voice. Without a key the sample is still stored and
-the pipeline narrates with `en-US-AndrewNeural`.
+Record them as one audio file and either press **Record my voice** in the browser (Chrome
+records webm/opus, Safari records mp4) or upload an MP3. With `ELEVENLABS_API_KEY` set, the
+sample is cloned instantly and all narration uses that voice. Without a key the sample is
+still stored and the pipeline narrates with `en-US-AndrewNeural`.
+
+> Voice cloning providers usually prefer MP3. If cloning fails with a browser recording,
+> export the clip as MP3 and upload that instead.
+
+---
+
+## Using the website
+
+1. Press **+ New Video** in the sidebar.
+2. **Add your PDF** — drop it on the box.
+3. **Add your voice** (optional) — record the three lines, or upload a file.
+4. **Generate video** — the player appears as soon as it is ready.
+5. **Download MP4** — renders in the background with a progress bar.
+
+Your finished videos stay in the left sidebar. Selecting one loads it instantly; generation
+never re-runs.
 
 ---
 

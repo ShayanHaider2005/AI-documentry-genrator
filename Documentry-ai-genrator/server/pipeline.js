@@ -39,6 +39,8 @@ const {
 	isSpecificKeyword,
 	buildDocumentDiagram,
 	buildFocusArea,
+	deriveBeats,
+	outlineSlices,
 } = require('./visuals');
 const {
 	generateSceneAudio,
@@ -75,7 +77,10 @@ STRICT RULES — VIOLATE NONE:
 9. Output ONLY a valid JSON array matching the required schema.
 10. Each scene MUST include a "title": a short 2–6 word chapter heading rendered as on-screen chapter text.
 11. Each scene MUST include a "badge": a 1–3 word category tag rendered as a small on-screen chip.
-12. Each scene MUST include a "focusArea" object marking the exact part of the visual the narrator is describing. Coordinates are normalised 0–1 relative to the frame, where (0,0) is the top-left and (1,1) is the bottom-right. "focus" is the fraction of the scene at which the pointer arrives (0–1).
+12. Each scene MUST include a "beats" array of 2–3 parts. Every part has its own visual and its own "atWord", so the video changes image and moves the on-screen pointer exactly when that word is spoken:
+    - "atWord": the first word of the sentence in "narratorText" that this part covers (copy it verbatim).
+    - "imageKeyword": a specific 2–5 word query for THIS part.
+    - "focusArea": the region of THIS part's visual to point at, normalised 0–1, plus a short "label".
 13. Never invent concepts that are absent from the source document.
 
 Required output schema (strict):
@@ -87,7 +92,20 @@ Required output schema (strict):
     "badge": "Category Tag",
     "visualPrompt": "What is literally on screen: the document layout, pattern block or diagram being explained...",
     "imageKeyword": "unit test code coverage",
-    "focusArea": { "x": 0.24, "y": 0.31, "w": 0.34, "h": 0.2, "label": "Static analysis", "focus": 0.2 }
+    "beats": [
+      {
+        "atWord": "Every",
+        "imageKeyword": "unit test code coverage",
+        "label": "Static analysis",
+        "focusArea": { "x": 0.24, "y": 0.31, "w": 0.34, "h": 0.2 }
+      },
+      {
+        "atWord": "revealed",
+        "imageKeyword": "defect density report",
+        "label": "Measured defects",
+        "focusArea": { "x": 0.54, "y": 0.31, "w": 0.34, "h": 0.2 }
+      }
+    ]
   }
 ]`;
 
@@ -382,16 +400,34 @@ async function fetchContextualImage(keyword, { log = console.log } = {}) {
 	}
 }
 
-/** Build the per-scene document diagram that stands in for a stock photo. */
-function buildSceneDiagram({ title, outline, imageKeyword, scene, index, total, log }) {
+/** Build the per-beat document diagram that stands in for a stock photo. */
+function buildSceneDiagram({
+	title,
+	outlineSlice,
+	imageKeyword,
+	scene,
+	beat,
+	beatIndex,
+	totalBeats,
+	log,
+}) {
+	// Fewer blocks render larger and more readable, so each beat's visual is
+	// visibly different rather than a near-duplicate.
+	const columns = outlineSlice.length <= 3 ? 1 : 2;
 	const url = buildDocumentDiagram({
 		title,
-		outline,
+		outline: outlineSlice,
 		imageKeyword,
-		sceneNumber: scene.sceneNumber || index + 1,
-		totalScenes: total,
+		sceneNumber: scene.sceneNumber || beatIndex + 1,
+		totalScenes: scene.totalScenes || 1,
+		columns,
+		beatLabel: beat.label,
+		beatIndex,
+		totalBeats,
 	});
-	log(`[VISUAL] composed document diagram for scene ${scene.sceneNumber || index + 1}`);
+	log(
+		`[VISUAL] composed document diagram for scene ${scene.sceneNumber || beatIndex + 1} part ${beatIndex + 1}/${totalBeats}`,
+	);
 	return url;
 }
 
@@ -511,36 +547,73 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	log(`[DOC] Outline: ${outline.map((o, i) => `${i + 1}) ${o}`).join(' | ')}`);
 
 	// ── Step 3: Contextual Visual Resolution ──────────────────────────────
-	// Strictly sequential: one scene at a time. No Promise.all, so a slow or
-	// rate-limited image API can never fan out or freeze the server.
+	// Strictly sequential: one scene, then one beat at a time. No Promise.all,
+	// so a slow or rate-limited image API can never fan out or freeze the server.
 	const step3Start = performance.now();
 	log('[3/5] Resolving contextual visuals (sequential)...');
 
 	const scenesWithImages = [];
 	for (let i = 0; i < scenes.length; i++) {
-		const scene = scenes[i];
+		const scene = { ...scenes[i], totalScenes: scenes.length };
 		const keyword = String(scene.imageKeyword || '').trim();
 
-		const photoUrl = await fetchContextualImage(keyword, { log });
+		// Beats: distinct visuals timed to the narration.
+		const derivedBeats = deriveBeats(scene.narratorText);
+		const slices = outlineSlices(outline, derivedBeats.length);
 
-		const imageUrl =
-			photoUrl ||
-			buildSceneDiagram({
-				title: documentTitle,
-				outline,
-				imageKeyword: keyword,
-				scene,
-				index: i,
-				total: scenes.length,
-				log,
+		// If the LLM supplied per-beat metadata, honour it.
+		const llmBeats = Array.isArray(scene.beats) ? scene.beats : [];
+
+		const beats = [];
+		for (let b = 0; b < derivedBeats.length; b++) {
+			const beat = derivedBeats[b];
+			const llmBeat = llmBeats[b] || {};
+			const beatKeyword = String(
+				llmBeat.imageKeyword || `${keyword} ${beat.label}`.trim(),
+			);
+
+			const photoUrl = await fetchContextualImage(beatKeyword, { log });
+
+			const slice = slices[b] || outline;
+			const imageUrl =
+				photoUrl ||
+				buildSceneDiagram({
+					title: documentTitle,
+					outlineSlice: slice,
+					imageKeyword: beatKeyword,
+					scene,
+					beat,
+					beatIndex: b,
+					totalBeats: derivedBeats.length,
+					log,
+				});
+
+			beats.push({
+				imageUrl,
+				imageSource: photoUrl ? 'pexels' : 'document-diagram',
+				imageKeyword: beatKeyword,
+				visualPrompt: llmBeat.visualPrompt || scene.visualPrompt,
+				label: String(llmBeat.label || beat.label || '').slice(0, 60),
+				startWord: beat.startWord,
+				focusArea: normalizeFocusArea(
+					llmBeat.focusArea,
+					slice,
+					// Highlight the block this beat's phrase relates to.
+					b % Math.max(1, slice.length),
+				),
 			});
+		}
+
+		const primary = beats[0];
 
 		scenesWithImages.push({
 			...scene,
 			imageKeyword: keyword,
-			imageSource: photoUrl ? 'pexels' : 'document-diagram',
-			imageUrl,
-			focusArea: normalizeFocusArea(scene.focusArea, outline, i),
+			imageUrl: primary.imageUrl,
+			imageSource: primary.imageSource,
+			beats,
+			// Kept for the renderer's single-beat fallback.
+			focusArea: primary.focusArea,
 		});
 	}
 	logStep('3/5', `Resolved ${scenesWithImages.length} contextual visual(s)`, step3Start);
@@ -604,6 +677,8 @@ async function runPipeline(optionsOrPdfPath = {}) {
 			imageKeyword: scene.imageKeyword,
 			imageUrl: scene.imageUrl,
 			imageSource: scene.imageSource,
+			// Per-beat visuals + highlight targets, timed to the narration.
+			beats: scene.beats,
 			// Target region for the animated pointer / highlight overlay.
 			focusArea: scene.focusArea,
 			audioPath: scene.audioPath,

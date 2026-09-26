@@ -277,6 +277,9 @@ function buildDocumentDiagram({
 	sceneNumber = 1,
 	totalScenes = 1,
 	columns = 2,
+	beatLabel = '',
+	beatIndex = 0,
+	totalBeats = 1,
 } = {}) {
 	const W = DIAGRAM_WIDTH;
 	const H = DIAGRAM_HEIGHT;
@@ -362,15 +365,115 @@ function buildDocumentDiagram({
 	)}</text>
   <text x="${((pageX + pageW - padX) * W).toFixed(1)}" y="${(
 		(pageY + headerH * 0.7) * H
-	).toFixed(1)}" text-anchor="end" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#64748b">Scene ${sceneNumber} / ${totalScenes}</text>${blocks}${arrows}
+	).toFixed(1)}" text-anchor="end" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#64748b">Scene ${sceneNumber} / ${totalScenes}${
+		totalBeats > 1 ? ` · Part ${beatIndex + 1} / ${totalBeats}` : ''
+	}</text>${blocks}${arrows}
   <text x="${(pageX * W).toFixed(1)}" y="${((pageY + pageH) * H + 40).toFixed(
 		1,
 	)}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" fill="#475569">Visual derived from the source document${
 		imageKeyword ? ` · ${escapeXml(String(imageKeyword).slice(0, 70))}` : ''
-	}</text>
+	}</text>${
+		beatLabel && totalBeats > 1
+			? `
+  <rect x="${(pageX * W).toFixed(1)}" y="${((pageY + pageH) * H + 58).toFixed(
+					1,
+				)}" width="${(Math.min(pageW, 0.34) * W).toFixed(1)}" height="38" rx="9" fill="#1e293b" stroke="#facc15" stroke-width="1.5" opacity="0.9"/>
+  <text x="${((pageX + 0.012) * W).toFixed(1)}" y="${(
+					(pageY + pageH) * H +
+					83
+				).toFixed(1)}" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#fde68a">${escapeXml(
+					String(beatLabel).slice(0, 42),
+				)}</text>`
+			: ''
+	}
 </svg>`;
 
 	return `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
+}
+
+/**
+ * Split a scene's narration into 2–3 beats on natural phrase boundaries.
+ *
+ * Each beat becomes its own visual (and its own highlight target), so the video
+ * changes imagery as the narrator moves from one idea to the next. Boundaries
+ * are returned as word indices, which is what lets the renderer switch the
+ * visual in sync with the measured word timings.
+ */
+function deriveBeats(narratorText, { maxBeats = 3 } = {}) {
+	const words = String(narratorText || '').trim().split(/\s+/).filter(Boolean);
+	if (words.length < 12) {
+		return [{ label: '', startWord: 0 }];
+	}
+
+	// How many beats suits this sentence?
+	const target =
+		words.length >= 34 ? Math.min(maxBeats, 3) : words.length >= 20 ? 2 : 1;
+
+	if (target <= 1) {
+		return [{ label: '', startWord: 0 }];
+	}
+
+	// Prefer splitting on punctuation; fall back to an even split.
+	const boundaryChars = new Set([',', ';', ':', '—', '–']);
+	const candidates = [];
+	for (let i = 4; i < words.length - 4; i++) {
+		const word = words[i].replace(/[.,;:]+$/, '');
+		const endsPhrase = boundaryChars.has(words[i].slice(-1)) || /[.;:]$/.test(words[i]);
+		if (endsPhrase || i % 3 === 0) {
+			candidates.push({ index: i + 1, quality: endsPhrase ? 0 : 1 });
+		}
+	}
+
+	const boundaries = [];
+	for (let b = 1; b < target; b++) {
+		const ideal = Math.round((words.length * b) / target);
+		// Nearest good phrase boundary to the ideal split.
+		const best = candidates
+			.map((candidate) => ({
+				...candidate,
+				distance: Math.abs(candidate.index - ideal),
+			}))
+			.sort(
+				(a, c) => a.quality - c.quality || a.distance - c.distance,
+			)[0];
+
+		const index = best ? best.index : ideal;
+		if (
+			index > (boundaries[boundaries.length - 1] ?? 3) &&
+			index < words.length - 3
+		) {
+			boundaries.push(index);
+		}
+	}
+
+	const points = [0, ...boundaries, words.length];
+	const beats = [];
+	for (let i = 0; i < points.length - 1; i++) {
+		const startWord = points[i];
+		const endWord = points[i + 1];
+		const phrase = words.slice(startWord, endWord).join(' ').replace(/[.,;:]+$/, '');
+		beats.push({
+			// A short callout label drawn from the beat's own opening words.
+			label: phrase.split(/\s+/).slice(0, 4).join(' '),
+			startWord,
+		});
+	}
+
+	return beats.length > 0 ? beats : [{ label: '', startWord: 0 }];
+}
+
+/** Split an outline into one slice per beat, so each visual differs. */
+function outlineSlices(outline, beatCount) {
+	if (beatCount <= 1 || outline.length === 0) {
+		return [outline];
+	}
+	const size = Math.ceil(outline.length / beatCount);
+	const slices = [];
+	for (let i = 0; i < beatCount; i++) {
+		const slice = outline.slice(i * size, (i + 1) * size);
+		if (slice.length > 0) slices.push(slice);
+	}
+	return slices.length > 0 ? slices : [outline];
 }
 
 module.exports = {
@@ -379,4 +482,7 @@ module.exports = {
 	isSpecificKeyword,
 	buildDocumentDiagram,
 	buildFocusArea,
+	computeDiagramLayout,
+	deriveBeats,
+	outlineSlices,
 };

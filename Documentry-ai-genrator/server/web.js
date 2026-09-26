@@ -324,9 +324,11 @@ async function handleApi(req, res, url) {
 
 		const fileName = safeFileName(body.fileName, 'voice-sample.mp3');
 		const buffer = decodeUpload(body.dataBase64);
-		if (!/\.(mp3|wav|m4a)$/i.test(fileName)) {
+		// Browsers record to webm/opus (Chrome) or mp4 (Safari); MP3 stays the
+		// best-supported format for cloning, so it is accepted alongside those.
+		if (!/\.(mp3|wav|m4a|webm|ogg|opus)$/i.test(fileName)) {
 			return sendJson(res, 400, {
-				error: 'Please upload an MP3 (or WAV/M4A) voice sample.',
+				error: 'Please upload a voice sample (MP3, WAV, M4A, WEBM or OGG).',
 			});
 		}
 
