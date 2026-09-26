@@ -8,7 +8,7 @@
  *   2. Pre-filter and extract clean PDF content (server/parsePdf.js)
  *   3. Generate extended 8–12 scene documentary script (LLM or intelligent in-depth synthesizer)
  *   4. Fetch cinematic stock visuals dynamically via Pexels REST API (with reliable fallback)
- *   5. Synthesize scene voiceovers to public/audio/scene-X.mp3 (ElevenLabs or Neural TTS fallback)
+ *   5. Synthesize scene voiceovers to public/audio/scene-X.mp3 (cloned voice or Neural TTS fallback)
  *   6. Calculate exact audio durations in frames (music-metadata, 30 FPS)
  *   7. Write finalized Remotion dataset directly to src/dataset.json
  *
@@ -433,13 +433,52 @@ function buildSceneDiagram({
 // ---------------------------------------------------------------------------
 // Audio Duration Helper (music-metadata)
 // ---------------------------------------------------------------------------
+/**
+ * Read a WAV duration straight from the header.
+ *
+ * The local voice service emits WAV when ffmpeg is not installed. music-metadata
+ * keys off the file extension, so asking it about a `.mp3` that is really a
+ * RIFF/WAVE file returns nothing and used to stall the whole pipeline. Parsing
+ * the header is exact and cannot fail this way.
+ */
+function readWavDurationSeconds(buffer) {
+	if (buffer.length < 44) return null;
+	if (buffer.toString('latin1', 0, 4) !== 'RIFF') return null;
+	if (buffer.toString('latin1', 8, 12) !== 'WAVE') return null;
+
+	const byteRate = buffer.readUInt32LE(28);
+	if (byteRate > 0) {
+		return (buffer.length - 44) / byteRate;
+	}
+
+	// Last resort: sum the declared data chunk sizes.
+	const sampleRate = buffer.readUInt32LE(24);
+	const channels = buffer.readUInt16LE(22);
+	const bitsPerSample = buffer.readUInt16LE(34);
+	const bytesPerSecond = sampleRate * channels * (bitsPerSample / 8);
+	return bytesPerSecond > 0 ? (buffer.length - 44) / bytesPerSecond : null;
+}
+
 async function getAudioDurationInFrames(audioPath) {
-	const { parseFile } = await import('music-metadata');
-	const metadata = await parseFile(audioPath);
-	const durationInSeconds = metadata.format.duration;
+	let durationInSeconds = null;
+
+	try {
+		const { parseFile } = await import('music-metadata');
+		const metadata = await parseFile(audioPath);
+		durationInSeconds = metadata.format.duration;
+	} catch {
+		durationInSeconds = null;
+	}
 
 	if (!Number.isFinite(durationInSeconds) || durationInSeconds <= 0) {
-		throw new Error(`Invalid audio duration for: ${audioPath}`);
+		// Fall back to the container itself rather than trusting the extension.
+		const buffer = await fs.promises.readFile(audioPath);
+		const wav = readWavDurationSeconds(buffer);
+		if (wav && wav > 0) durationInSeconds = wav;
+	}
+
+	if (!Number.isFinite(durationInSeconds) || durationInSeconds <= 0) {
+		throw new Error(`Could not determine the audio duration of: ${audioPath}`);
 	}
 
 	return Math.ceil(durationInSeconds * FRAMES_PER_SECOND);
@@ -643,24 +682,32 @@ async function runPipeline(optionsOrPdfPath = {}) {
 
 	// ── Step 4: Synthesize Neural Audio Files ─────────────────────────────
 	const step4Start = performance.now();
-	log('[4/5] Synthesizing scene voiceovers to public/audio/scene-X.mp3...');
+	log('[4/5] Synthesizing scene voiceovers to public/audio/scene-X...');
 	await fs.promises.mkdir(audioDir, { recursive: true });
 
 	const scenesWithAudio = [];
 	for (const scene of scenesWithImages) {
 		const sceneNum = scene.sceneNumber;
-		const audioFileName = `scene-${sceneNum}.mp3`;
-		const audioPath = path.join(audioDir, audioFileName);
+		const requestedPath = path.join(audioDir, `scene-${sceneNum}.mp3`);
 
 		log(`  Synthesizing scene ${sceneNum}: "${scene.narratorText.slice(0, 45)}..."`);
-		const ttsResult = await generateSceneAudio(scene.narratorText, audioPath, {
+		const ttsResult = await generateSceneAudio(scene.narratorText, requestedPath, {
 			voiceId,
 		});
 
+		// The backend picks the container: MP3 from the neural voice, and from
+		// OpenVoice too when ffmpeg is available, otherwise WAV. Trust the file
+		// that was actually written rather than the extension we asked for.
+		const writtenPath = (ttsResult && ttsResult.filePath) || requestedPath;
+		const writtenName = path.basename(writtenPath);
+		if (writtenName !== path.basename(requestedPath)) {
+			await fs.promises.rm(requestedPath, { force: true });
+		}
+
 		scenesWithAudio.push({
 			...scene,
-			audioPath: `${audioUrlBase}/${audioFileName}`,
-			fullAudioPath: audioPath,
+			audioPath: `${audioUrlBase}/${writtenName}`,
+			fullAudioPath: writtenPath,
 			// Frame-accurate timings when the provider returns an alignment,
 			// otherwise estimated proportionally from the measured duration.
 			measuredWordTimings: (ttsResult && ttsResult.wordTimings) || null,
@@ -722,7 +769,7 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	const totalSeconds = (totalFrames / FRAMES_PER_SECOND).toFixed(1);
 
 	log(`\n${'═'.repeat(60)}`);
-	log(`[PIPELINE] ✅  Documentary Engine Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
+	log(`[PIPELINE] Documentary Engine Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
 	log(`[PIPELINE] Voice: ${voiceLabel}`);
 	log(`[PIPELINE] Script: ${scriptMode === 'llm' ? 'AI written' : 'derived from the document'}`);
 	log(`[PIPELINE] Subject: ${documentTitle}`);

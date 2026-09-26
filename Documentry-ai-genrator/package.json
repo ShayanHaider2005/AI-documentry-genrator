@@ -11,7 +11,10 @@
 		"web:build": "node web/build.js",
 		"web": "npm run web:build && node server/web.js",
 		"web:serve": "node server/web.js",
-		"web:smoke": "node web/smoke.js"
+		"web:smoke": "node web/smoke.js",
+		"voice:setup": "py -3 server/voice/setup.py",
+		"voice:start": "server\\voice\\.venv\\Scripts\\python.exe server/voice/service.py",
+		"voice:check": "node web/check-openvoice.js"
 	},
 	"dependencies": {
 		"@remotion/cli": "^4.0.529",

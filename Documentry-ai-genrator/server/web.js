@@ -38,6 +38,7 @@ const {
 } = require('./tts');
 const { chatCompletion, getAiProvider } = require('./llm');
 const { renderVideo } = require('./render');
+const { isOpenVoiceReachable } = require('./openvoice');
 
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -314,11 +315,14 @@ async function handleApi(req, res, url) {
 	// ── GET /api/config ────────────────────────────────────────────────────
 	if (route === '/api/config' && req.method === 'GET') {
 		const provider = getAiProvider();
+		// Voice cloning is local, so ask the service instead of checking a key.
+		const cloningReady = await isOpenVoiceReachable();
 		return sendJson(res, 200, {
 			voiceSampleSentences: VOICE_SAMPLE_SENTENCES,
 			voiceSampleScript: VOICE_SAMPLE_SCRIPT,
 			fallbackVoice: DEFAULT_EDGE_VOICE,
-			voiceCloningAvailable: Boolean(process.env.ELEVENLABS_API_KEY),
+			voiceCloningAvailable: cloningReady,
+			voiceEngine: 'OpenVoice v2 (local)',
 			chatEnabled: Boolean(provider),
 			llmProvider: provider ? provider.name : null,
 		});
@@ -707,16 +711,19 @@ if (require.main === module) {
 	// Periodic cleanup of idle working sessions and expired rate-limit buckets.
 	setInterval(sweepSessions, 60 * 1000).unref();
 
-	server.listen(PORT, HOST, () => {
+	const banner = async () => {
+		const provider = getAiProvider();
+		const cloning = await isOpenVoiceReachable();
 		console.log('');
 		console.log('  DocuBot - AI Documentary Generator');
 		console.log(`  ready on   http://localhost:${PORT}`);
-		const provider = getAiProvider();
 		console.log(
 			`  chat       ${provider ? provider.name : 'disabled (no LLM key configured)'}`,
 		);
 		console.log(
-			`  voice clone ${process.env.ELEVENLABS_API_KEY ? 'ElevenLabs' : `fallback ${DEFAULT_EDGE_VOICE}`}`,
+			`  voice clone ${
+				cloning ? 'OpenVoice v2 (local)' : `service not running - fallback ${DEFAULT_EDGE_VOICE}`
+			}`,
 		);
 		console.log(
 			`  visuals    ${process.env.PEXELS_API_KEY ? 'Pexels photos + document diagrams' : 'document diagrams (no Pexels key)'}`,
@@ -725,6 +732,10 @@ if (require.main === module) {
 			`  limits     ${RATE_MAX} req/min per IP, ${MAX_CONCURRENT_RENDERS} render at a time`,
 		);
 		console.log('');
+	};
+
+	server.listen(PORT, HOST, () => {
+		banner().catch((err) => console.warn(`  banner check failed: ${err.message}`));
 	});
 }
 

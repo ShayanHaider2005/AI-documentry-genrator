@@ -40,7 +40,7 @@ commit real keys. Every key is optional and the engine degrades gracefully:
 | Key | Effect when present | Effect when missing |
 | --- | --- | --- |
 | `PEXELS_API_KEY` | Each scene part gets a contextual stock photo | Document diagrams built from the PDF |
-| `ELEVENLABS_API_KEY` | Narration uses the cloned client voice | `en-US-AndrewNeural` neural voice |
+| OpenVoice v2 service running (local, no key) | Narration uses the cloned client voice | `en-US-AndrewNeural` neural voice |
 | `GEMINI_API_KEY` / `GROK_API_KEY` / `GROQ_API_KEY` / `OPENAI_API_KEY` | LLM scene writing + "Ask DocuBot" chat | Built-in synthesizer; chat explains itself |
 
 ---
@@ -71,17 +71,37 @@ The pipeline log always states which path was used:
 
 ## Voice cloning
 
-The client reads three fixed sentences aloud, records them, and uploads the clip. With a
-valid `ELEVENLABS_API_KEY` the sample is cloned and all narration uses that voice.
+Voice cloning runs **entirely on your machine** using
+[OpenVoice v2](https://github.com/myshell-ai/OpenVoice) (MIT). There is no vendor
+account, no API key, and no per-character cost.
 
-**A failed clone is reported as a failure (HTTP 501), never a quiet success.** If the key
-is missing, invalid, or the account's free tier is disabled, the response says so
-explicitly and the endpoint does not pretend the voice was used.
+One-time setup, then start the service (leave that window open while you generate):
 
-Common blockers: an ElevenLabs free account can be flagged with
-`401 detected_unusual_activity` (often a VPN or multiple accounts), which requires a paid
-plan. Browsers also record to webm/opus rather than MP3; export to MP3 if cloning is
-rejected.
+```
+npm run voice:setup     # py -3 server/voice/setup.py
+npm run voice:start     # server\voice\.venv\Scripts\python.exe server/voice/service.py
+```
+
+Setup installs CPU-only PyTorch into a local virtualenv, clones OpenVoice and MeloTTS,
+downloads the tone-colour converter (~125 MB), and installs the NLTK corpora the English
+grapheme-to-phoneme step needs. It is safe to re-run. The service listens on
+`http://127.0.0.1:5055` and reports its state on `GET /health`.
+
+The client reads three fixed sentences aloud, records them, and uploads the clip. The
+service extracts a **tone colour** from that sample (2–3 s on CPU) and re-colours the
+narration with it, so all scenes are spoken in the client's voice.
+
+**A failed clone is reported as a failure (HTTP 501), never a quiet success.** The reason
+comes back verbatim — unreadable file, sample too short, service not running — and the
+website shows it in a persistent banner. When the service is down, narration falls back to
+`en-US-AndrewNeural` so the rest of the pipeline still completes.
+
+Keep the sample to roughly 10–15 seconds of clean, single-speaker audio. MP3 and WAV work
+with no extra tools. Browsers record to webm/opus, which needs
+[ffmpeg](https://ffmpeg.org/download.html) on the `PATH`; without it, export to MP3.
+
+`npm run voice:check` clones a sample and speaks a test line, so you can confirm the
+stack works before generating a whole video.
 
 ---
 
@@ -105,9 +125,12 @@ PDF ──► parsePdf.js ──► llm.js ──► pipeline.js ──► tts.j
    synthesizes narration, measures real MP3 durations with `music-metadata`, and emits
    word-level timings. Every external call is **sequential** — one scene at a time, never
    `Promise.all` — so a slow or rate-limited API can never fan out or freeze the server.
-5. **`server/tts.js`** — ElevenLabs voice cloning when a key is present, otherwise a
-   high-quality neural teacher voice.
-6. **`src/DocumentaryVideo.tsx`** — renders the video. Everything on screen comes from
+5. **`server/tts.js`** — voice cloning through the local OpenVoice v2 service when it is
+   running, otherwise a high-quality neural teacher voice. `server/voice/service.py` is
+   the Python service that does the cloning; `server/openvoice.js` is the client.
+6. **`server/voice/setup.py`** — one-time installer for the local voice stack (CPU-only
+   PyTorch, OpenVoice, MeloTTS base speaker, checkpoints).
+7. **`src/DocumentaryVideo.tsx`** — renders the video. Everything on screen comes from
    the dataset: there are no hardcoded strings in the composition.
 
 ### Contextual visuals (never generic stock)
@@ -170,12 +193,12 @@ tone:
 > Thank you for listening, and welcome to the next chapter of the story.
 
 Record them as one audio file and either press **Record my voice** in the browser (Chrome
-records webm/opus, Safari records mp4) or upload an MP3. With `ELEVENLABS_API_KEY` set, the
-sample is cloned instantly and all narration uses that voice. Without a key the sample is
-still stored and the pipeline narrates with `en-US-AndrewNeural`.
+records webm/opus, Safari records mp4) or upload an MP3. With the local OpenVoice service
+running, the sample is cloned and all narration uses that voice. Without the service the
+sample is still stored and the pipeline narrates with `en-US-AndrewNeural`.
 
-> Voice cloning providers usually prefer MP3. If cloning fails with a browser recording,
-> export the clip as MP3 and upload that instead.
+> OpenVoice extracts tone colour from the reference, so roughly 10–15 seconds of clean
+> single-speaker audio is plenty. MP3 or WAV both work.
 
 ---
 
@@ -257,7 +280,9 @@ Cheap reads (`/api/sessions`, `/api/config`, static files) are deliberately unth
 browsing history never degrades.
 
 ```bash
-npm run web:smoke     # end-to-end API test against a running server
+npm run web:smoke      # end-to-end API test against a running server
+npm run voice:check    # clone a sample and speak a test line
+node web/check-e2e.js  # PDF + voice sample -> finished documentary
 ```
 
 ---
@@ -270,7 +295,14 @@ npm run web:smoke     # end-to-end API test against a running server
 - `public/audio/*.mp3`, per-session folders, `.data/`, `server/sessions.json` and
   `web/dist/` are gitignored — they are runtime data, reproducible with
   `npm run pipeline` and `npm run web:build`.
+- The local voice stack is gitignored too, because it is large:
+  `server/voice/.venv/` (~1 GB), `OpenVoice/`, `MeloTTS/`, `checkpoints_v2/`
+  (~125 MB), `nltk_data/`, `.cache/`. Run `py -3 server/voice/setup.py` to rebuild it.
 - The composition's `defaultProps` must stay an object (`{ scenes: dataset }`); Remotion
   rejects a raw array.
-- Everything degrades without API keys: no LLM key uses the built-in script synthesizer,
-  no ElevenLabs key uses `en-US-AndrewNeural`, no Pexels key uses document diagrams.
+- Everything degrades gracefully: no LLM key uses the built-in script synthesizer, the
+  OpenVoice service being down uses `en-US-AndrewNeural`, no Pexels key uses document
+  diagrams.
+- The voice service needs `NLTK_ALLOW_PROXIED_URLOPEN=1` and `NLTK_DATA` pointed at
+  `server/voice/nltk_data` if your network goes through a proxy; the setup script installs
+  the corpora.

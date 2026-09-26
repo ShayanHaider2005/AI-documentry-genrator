@@ -27,4 +27,20 @@ public/audio/*.wav
 out/                             
 
 # Generated website bundle (rebuild with: npm run web:build)
-/Documentry-ai-genrator/web/dist/ 
+/Documentry-ai-genrator/web/dist/
+
+# Local voice-cloning stack (large binaries, never commit)
+#   .venv/                 ~1 GB of Python packages
+#   OpenVoice/             upstream git clone
+#   MeloTTS/              upstream git clone
+#   checkpoints_v2/        ~125 MB model weights
+#   nltk_data/             downloaded corpora
+#   .cache/                extracted tone colours and temp audio
+/Documentry-ai-genrator/server/voice/.venv/
+/Documentry-ai-genrator/server/voice/OpenVoice/
+/Documentry-ai-genrator/server/voice/MeloTTS/
+/Documentry-ai-genrator/server/voice/checkpoints_v2/
+/Documentry-ai-genrator/server/voice/nltk_data/
+/Documentry-ai-genrator/server/voice/.cache/
+#   __pycache__/           compiled Python
+/Documentry-ai-genrator/server/voice/__pycache__/ 

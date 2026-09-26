@@ -3,8 +3,8 @@
 /**
  * tts.js — Text-to-Speech synthesis with Runtime Client Voice Cloning.
  *
- * Primary:  ElevenLabs API (Instant Voice Cloning + Timestamp Word Alignment)
- * Fallback: msedge-tts with en-US-AndrewNeural (high-quality neural teacher voice)
+ * Primary:  OpenVoice v2 running locally (tone-colour cloning + synthesis)
+ * Fallback: msedge-tts with en-US-AndrewNeural (neural teacher voice)
  *
  * Exports:
  *   generateSceneAudio(text, outputPath, options?) → Promise<{wordTimings: Array|null}>
@@ -16,6 +16,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const openvoice = require('./openvoice');
 
 const DEFAULT_EDGE_VOICE = 'en-US-AndrewNeural';
 
@@ -25,7 +26,7 @@ const DEFAULT_EDGE_VOICE = 'en-US-AndrewNeural';
  * These are intentionally fixed (not generated) so that every clone request
  * contains the same phonetic material: one neutral statement, one sentence with
  * a natural cadence/rhythm, and one short closing line with a distinct ending
- * tone. ElevenLabs needs a clean, single-speaker sample of roughly 30s or less.
+ * tone. OpenVoice clones well from 3-15s; a clean single-speaker sample is best.
  */
 const VOICE_SAMPLE_SENTENCES = [
 	'The quality of a system is never an accident, it is engineered one careful decision at a time.',
@@ -140,134 +141,71 @@ function computeProportionalWordTimings(text, totalDurationInFrames) {
 // ---------------------------------------------------------------------------
 // Client Voice Cloning (Runtime)
 // ---------------------------------------------------------------------------
+/**
+ * Clone the client's voice locally with OpenVoice v2.
+ *
+ * Replaces the hosted provider. If the local service is not running, or the
+ * model is not installed, the reason is returned instead of being swallowed —
+ * the caller can then tell the user exactly what to do.
+ */
 async function cloneClientVoice(voiceSamplePath) {
 	if (!voiceSamplePath || !fs.existsSync(voiceSamplePath)) {
 		throw new Error(`Voice sample file not found: ${voiceSamplePath}`);
 	}
 
-	const apiKey = process.env.ELEVENLABS_API_KEY;
-	if (!apiKey) {
-		console.warn('\n[VOICE SETUP] ⚠️  Voice cloning is NOT available: ELEVENLABS_API_KEY is not set.');
-		console.warn('[VOICE SETUP] The sample is saved, but narration will use the default neural voice.');
-		console.warn('[VOICE SETUP] To clone the client voice, add ELEVENLABS_API_KEY to .env and restart.\n');
-		return { voiceId: null, status: 'no-key', voiceName: DEFAULT_EDGE_VOICE, reason: 'ELEVENLABS_API_KEY is not set on the server.' };
+	if (!(await openvoice.isOpenVoiceReachable())) {
+		const message =
+			'Local voice cloning is not running. First time: run ' +
+			'"py -3 server/voice/setup.py" to install it, then start the service ' +
+			'with "server/voice/.venv/Scripts/python.exe server/voice/service.py" ' +
+			'(leave that window open while you generate).';
+		console.warn(`\n[VOICE SETUP] WARNING: ${message}\n`);
+		return {
+			voiceId: null,
+			status: 'service-down',
+			voiceName: DEFAULT_EDGE_VOICE,
+			reason: message,
+		};
 	}
 
-	console.log(`[VOICE SETUP] 🎙️  Cloning client voice from "${path.basename(voiceSamplePath)}"...`);
-	const fileName = path.basename(voiceSamplePath);
-	const fileBuffer = await fs.promises.readFile(voiceSamplePath);
-	const blob = new Blob([fileBuffer], { type: 'audio/mpeg' });
+	console.log(
+		`[VOICE SETUP] Cloning locally with ${openvoice.describeOpenVoice()} from "${path.basename(
+			voiceSamplePath,
+		)}"...`,
+	);
 
-	const formData = new FormData();
-	formData.append('name', `Client Voice (${fileName})`);
-	formData.append('description', `Cloned from client voice sample ${fileName} at runtime`);
-	formData.append('files', blob, fileName);
+	const clone = await openvoice.cloneVoice(voiceSamplePath, 'client');
+	console.log(`[VOICE SETUP] Tone colour captured (${clone.voiceId})\n`);
 
-	const response = await fetch('https://api.elevenlabs.io/v1/voices/add', {
-		method: 'POST',
-		headers: {
-			'xi-api-key': apiKey,
-		},
-		body: formData,
-		signal: AbortSignal.timeout(60000),
-	});
-
-	if (!response.ok) {
-		// Surface the provider's own reason. Silently falling back is what made
-		// this look broken: the user uploaded a voice and nothing happened.
-		const errorText = await response.text();
-		let reason = errorText.slice(0, 400);
-		try {
-			const parsed = JSON.parse(errorText);
-			reason = parsed?.detail?.message || parsed?.detail || parsed?.message || reason;
-		} catch {
-			/* keep the raw text */
-		}
-		if (response.status === 401) {
-			reason = `ElevenLabs rejected the API key (401). ${reason}`;
-		}
-		throw new Error(
-			`Voice cloning failed (HTTP ${response.status}): ${reason}\n` +
-				'  The account may need voice-cloning access, or the free tier may be disabled.',
-		);
-	}
-
-	const data = await response.json();
-	const voiceId = data.voice_id;
-	console.log(`[VOICE SETUP] ✅  Client voice cloned successfully! Cloned Voice ID: ${voiceId}\n`);
-	return { voiceId, status: 'cloned', voiceName: `Client Voice (${voiceId})` };
+	return {
+		voiceId: clone.voiceId,
+		status: 'cloned',
+		voiceName: `Client Voice (${clone.voiceId})`,
+		reason: null,
+	};
 }
 
 // ---------------------------------------------------------------------------
-// ElevenLabs synthesis
-// ---------------------------------------------------------------------------
-async function synthesizeWithElevenLabs(text, outputPath, voiceId) {
-	const apiKey = process.env.ELEVENLABS_API_KEY;
-	const targetVoiceId = voiceId || process.env.ELEVENLABS_VOICE_ID;
-
-	if (!apiKey || !targetVoiceId) {
-		throw new Error('ElevenLabs env vars missing (ELEVENLABS_API_KEY / target voice ID)');
+// OpenVoice v2 synthesis (local)
+/**
+ * Synthesize narration in a locally cloned voice via the OpenVoice v2 service.
+ *
+ * The service does tone-colour conversion, so the output follows the client's
+ * voice and accent rather than the base speaker.
+ */
+async function synthesizeWithOpenVoice(text, outputPath, voiceId) {
+	if (!voiceId) {
+		throw new Error('synthesizeWithOpenVoice: no voice id');
 	}
-
-	const sanitized = sanitizeNarratorText(text);
-
-	// Attempt with-timestamps for exact word alignment
-	try {
-		const url = `https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}/with-timestamps`;
-		const response = await fetch(url, {
-			method: 'POST',
-			headers: {
-				'xi-api-key': apiKey,
-				'Content-Type': 'application/json',
-				Accept: 'application/json',
-			},
-			body: JSON.stringify({
-				text: sanitized,
-				model_id: 'eleven_multilingual_v2',
-				voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.0 },
-			}),
-		});
-
-		if (response.ok) {
-			const payload = await response.json();
-			const audioBuffer = Buffer.from(payload.audio_base64, 'base64');
-			await fs.promises.writeFile(outputPath, audioBuffer);
-			const timings = extractTimingsFromAlignment(payload.alignment);
-			return { wordTimings: timings };
-		}
-	} catch (timestampErr) {
-		console.warn(`[TTS] Timestamps notice: ${timestampErr.message}, trying standard endpoint`);
+	const written = await openvoice.synthesize(text, voiceId, outputPath);
+	if (!written) {
+		throw new Error('OpenVoice produced no audio');
 	}
-
-	// Standard synthesis fallback
-	const url = `https://api.elevenlabs.io/v1/text-to-speech/${targetVoiceId}`;
-	const response = await fetch(url, {
-		method: 'POST',
-		headers: {
-			'xi-api-key': apiKey,
-			'Content-Type': 'application/json',
-			Accept: 'audio/mpeg',
-		},
-		body: JSON.stringify({
-			text: sanitized,
-			model_id: 'eleven_turbo_v2_5',
-			voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.0 },
-		}),
-	});
-
-	if (!response.ok) {
-		const body = await response.text();
-		throw new Error(`ElevenLabs HTTP ${response.status}: ${body.slice(0, 300)}`);
-	}
-
-	const arrayBuffer = await response.arrayBuffer();
-	await fs.promises.writeFile(outputPath, Buffer.from(arrayBuffer));
-	return { wordTimings: null };
+	// The service returns MP3 only when ffmpeg is installed, otherwise WAV.
+	// Use whichever it actually wrote so the extension is never a lie.
+	return { wordTimings: null, filePath: written };
 }
 
-// ---------------------------------------------------------------------------
-// Edge TTS synthesis (fallback)
-// ---------------------------------------------------------------------------
 async function synthesizeWithEdgeTts(text, outputPath, voice = DEFAULT_EDGE_VOICE) {
 	const { MsEdgeTTS, OUTPUT_FORMAT } = await import('msedge-tts');
 	const tts = new MsEdgeTTS();
@@ -297,13 +235,17 @@ async function synthesizeWithEdgeTts(text, outputPath, voice = DEFAULT_EDGE_VOIC
 // ---------------------------------------------------------------------------
 
 /**
- * Generate an MP3 audio file for a single narration text string.
- * Tries ElevenLabs (or cloned voice) first; falls back to Edge TTS (en-US-AndrewNeural).
+ * Generate an audio file for a single narration text string.
+ * Uses the locally cloned voice when available, otherwise the default voice.
+ *
+ * The returned `filePath` is authoritative: backends differ in container
+ * (OpenVoice emits WAV unless ffmpeg is installed, Edge TTS emits MP3), so the
+ * extension of the file actually written is what callers must use.
  *
  * @param {string} text        Spoken narrator text.
- * @param {string} outputPath  Absolute path to write the .mp3 file.
+ * @param {string} outputPath  Absolute path to write the audio file.
  * @param {object} [options]   Optional: { voiceId, voice }
- * @returns {Promise<{wordTimings: Array|null}>}
+ * @returns {Promise<{wordTimings: Array|null, filePath: string}>}
  */
 async function generateSceneAudio(text, outputPath, options = {}) {
 	const clean = sanitizeNarratorText(text);
@@ -312,32 +254,46 @@ async function generateSceneAudio(text, outputPath, options = {}) {
 	await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
 
 	let result = { wordTimings: null };
+	let clonedVoiceError = null;
+	let filePath = outputPath;
 
-	// ── Attempt 1: ElevenLabs (with custom voiceId if provided) ─────────────
-	try {
-		result = await synthesizeWithElevenLabs(clean, outputPath, options.voiceId);
-		console.log(`[TTS] ElevenLabs ✓  ${outputPath}`);
-	} catch (elevenErr) {
-		if (options.voiceId || process.env.ELEVENLABS_VOICE_ID) {
-			console.warn(`[TTS] ElevenLabs unavailable (${elevenErr.message}) — falling back to Edge TTS`);
-		}
-
-		// ── Attempt 2: Edge TTS ───────────────────────────────────────────
+	// Attempt 1: the locally cloned client voice (OpenVoice v2).
+	if (options.voiceId) {
 		try {
-			await synthesizeWithEdgeTts(clean, outputPath, options.voice || DEFAULT_EDGE_VOICE);
-			console.log(`[TTS] Edge TTS (${options.voice || DEFAULT_EDGE_VOICE}) ✓  ${outputPath}`);
-		} catch (edgeErr) {
-			throw new Error(
-				`Both TTS providers failed.\n  ElevenLabs: ${elevenErr.message}\n  Edge TTS: ${edgeErr.message}`,
+			const produced = await synthesizeWithOpenVoice(clean, outputPath, options.voiceId);
+			result.wordTimings = produced.wordTimings || null;
+			filePath = produced.filePath || outputPath;
+			console.log(`[TTS] OpenVoice (cloned voice) OK  ${filePath}`);
+		} catch (err) {
+			clonedVoiceError = err;
+			console.warn(
+				`[TTS] Cloned voice unavailable (${err.message}) - using the default voice`,
 			);
 		}
 	}
 
-	// Validate file size > 0
-	const { size } = await fs.promises.stat(outputPath);
-	if (size <= 0) throw new Error(`Generated MP3 is empty: ${outputPath}`);
+	// Attempt 2: the built-in neural teacher voice.
+	if (!options.voiceId || clonedVoiceError) {
+		try {
+			const voice = options.voice || DEFAULT_EDGE_VOICE;
+			await synthesizeWithEdgeTts(clean, outputPath, voice);
+			filePath = outputPath;
+			console.log(`[TTS] ${voice} OK  ${filePath}`);
+		} catch (edgeErr) {
+			throw new Error(
+				`All voice backends failed.${
+					clonedVoiceError
+						? `\n  Cloned voice: ${clonedVoiceError.message}`
+						: ''
+				}\n  Neural TTS: ${edgeErr.message}`,
+			);
+		}
+	}
 
-	return result;
+	const { size } = await fs.promises.stat(filePath);
+	if (size <= 0) throw new Error(`Generated audio is empty: ${filePath}`);
+
+	return { ...result, filePath };
 }
 
 // ---------------------------------------------------------------------------

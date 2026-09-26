@@ -453,8 +453,9 @@ export const App: React.FC = () => {
 									<span className="hint">
 										Narration will use the default neural voice
 										{config?.fallbackVoice ? ` (${config.fallbackVoice})` : ''}.
-										Cloning needs an ElevenLabs plan that includes
-										instant voice cloning.
+										Cloning runs locally on this machine with OpenVoice
+										v2 &mdash; it needs no account or API key. Check that the
+										service is running:
 									</span>
 								</Notice>
 							) : null}
