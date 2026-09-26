@@ -10,12 +10,10 @@ import type {
 } from './api';
 import {
 	Button,
-	ChatPanel,
 	FilePicker,
 	Notice,
 	Player,
 	VoiceRecorder,
-	type ChatMessage,
 } from './components';
 import './styles.css';
 
@@ -66,12 +64,6 @@ export const App: React.FC = () => {
 	const [active, setActive] = React.useState<StoredSession | null>(null);
 	const [loadingSession, setLoadingSession] = React.useState<string | null>(null);
 
-	const [messages, setMessages] = React.useState<ChatMessage[]>([
-		{ id: uid(), role: 'bot', text: WELCOME },
-	]);
-	const [draft, setDraft] = React.useState('');
-	const [chatBusy, setChatBusy] = React.useState(false);
-
 	const [pdfName, setPdfName] = React.useState<string | null>(null);
 	const [pdfChars, setPdfChars] = React.useState<number | null>(null);
 	const [voiceName, setVoiceName] = React.useState<string | null>(null);
@@ -83,9 +75,6 @@ export const App: React.FC = () => {
 
 	const [generateJob, setGenerateJob] = React.useState<JobStatus | null>(null);
 	const [renderJob, setRenderJob] = React.useState<JobStatus | null>(null);
-
-	const pushMessage = (role: ChatMessage['role'], text: string) =>
-		setMessages((current) => [...current, { id: uid(), role, text }]);
 
 	const refreshHistory = React.useCallback(async () => {
 		try {
@@ -222,10 +211,6 @@ export const App: React.FC = () => {
 			setPdfChars(result.characters);
 			setActive(null);
 			setVideoUrl(null);
-			pushMessage(
-				'bot',
-				`Extracted ${result.characters.toLocaleString()} characters from ${result.fileName}. Press Generate to build the video.`,
-			);
 		} catch (err) {
 			setError((err as Error).message);
 		} finally {
@@ -250,22 +235,6 @@ export const App: React.FC = () => {
 			setError((err as Error).message);
 		} finally {
 			setBusy(null);
-		}
-	};
-
-	const handleSend = async () => {
-		if (!sessionId || !draft.trim()) return;
-		const message = draft.trim();
-		setDraft('');
-		pushMessage('user', message);
-		setChatBusy(true);
-		try {
-			const result = await api.chat(sessionId, message);
-			pushMessage('bot', result.reply);
-		} catch (err) {
-			pushMessage('bot', `Sorry — ${(err as Error).message}`);
-		} finally {
-			setChatBusy(false);
 		}
 	};
 
@@ -295,10 +264,6 @@ export const App: React.FC = () => {
 			const record = await api.storedSession(finished.result?.sessionId ?? sessionId);
 			setActive(record);
 			refreshHistory();
-			pushMessage(
-				'bot',
-				`Done: "${record.title}" with ${record.scenes.length} scenes. Preview it above, then press Render MP4.`,
-			);
 		} catch (err) {
 			setError((err as Error).message);
 		}
@@ -526,20 +491,6 @@ export const App: React.FC = () => {
 							) : null}
 						</div>
 
-						{/* chatbot, out of the way until you want it */}
-						<details className="panel chat-details">
-							<summary>Ask DocuBot about your document</summary>
-							<div className="chat-body">
-								<ChatPanel
-									messages={messages}
-									draft={draft}
-									busy={chatBusy}
-									chatEnabled={Boolean(config?.chatEnabled)}
-									onDraft={setDraft}
-									onSend={handleSend}
-								/>
-							</div>
-						</details>
 					</div>
 				</main>
 			</div>

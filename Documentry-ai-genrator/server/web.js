@@ -405,7 +405,21 @@ async function handleApi(req, res, url) {
 			voiceId: clone.voiceId,
 			fileName,
 			bytes: buffer.length,
+			reason: clone.reason || null,
 		};
+
+		// A failed clone is reported as a failure, not a quiet success. Silently
+		// accepting the file and narrating in a different voice is exactly what
+		// made this look broken.
+		if (!clone.voiceId) {
+			return sendJson(res, 501, {
+				error: `Your voice sample was saved, but it is NOT being used. ${
+					clone.reason || 'Voice cloning is unavailable.'
+				}`,
+				status: clone.status,
+				voiceName: clone.voiceName,
+			});
+		}
 
 		return sendJson(res, 200, session.voice);
 	}

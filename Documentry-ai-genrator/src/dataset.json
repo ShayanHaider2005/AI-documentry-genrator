@@ -1,1837 +1,59 @@
 [
   {
     "sceneNumber": 1,
-    "narratorText": "Every complex software system begins as an abstract architecture. Behind every seamless digital interaction lies an intricate foundation of engineering discipline, designed to endure immense operational stress.",
-    "title": "The Architecture of Quality",
+    "narratorText": "Coral Reef Ecosystems and their Decline What Corals Actually Are Corals are colonies of tiny polyps Skeleton composition and calcium carbonate Zooxanthellae and the symbiotic partnership How a Reef is Structured Fringing reefs and barrier reefs Atolls and.",
+    "title": "Coral Reef Ecosystems and their Decline",
     "badge": "Foundations",
-    "visualPrompt": "Vast luminous digital blueprint and architectural schematics glowing in a dark modern studio",
-    "imageKeyword": "digital software architecture",
-    "imageUrl": "https://images.pexels.com/photos/39694481/pexels-photo-39694481.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "visualPrompt": "The section \"Coral Reef Ecosystems and their Decline\" of the source document, showing its own wording and structure.",
+    "imageKeyword": "ecosystems decline corals reefs",
+    "imageUrl": "https://images.pexels.com/photos/17598833/pexels-photo-17598833.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     "imageSource": "pexels",
     "beats": [
       {
-        "imageUrl": "https://images.pexels.com/photos/39694481/pexels-photo-39694481.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageUrl": "https://images.pexels.com/photos/17598833/pexels-photo-17598833.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
         "imageSource": "pexels",
-        "imageKeyword": "digital software architecture correctness and",
-        "visualPrompt": "Vast luminous digital blueprint and architectural schematics glowing in a dark modern studio",
-        "label": "Every complex software system",
+        "imageKeyword": "ecosystems decline corals coral reef",
+        "visualPrompt": "The section \"Coral Reef Ecosystems and their Decline\" of the source document, showing its own wording and structure.",
+        "label": "Coral Reef Ecosystems and",
         "startWord": 0,
         "focusArea": {
           "x": 0.2543,
           "y": 0.2231,
           "w": 0.2214,
           "h": 0.1683,
-          "label": "Correctness and its measures",
+          "label": "Coral Reef Ecosystems and their Decline",
           "focus": 0.35
         }
       },
       {
-        "imageUrl": "https://images.pexels.com/photos/15764116/pexels-photo-15764116.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageUrl": "https://images.pexels.com/photos/9080914/pexels-photo-9080914.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
         "imageSource": "pexels",
-        "imageKeyword": "digital software architecture quality models",
-        "visualPrompt": "Vast luminous digital blueprint and architectural schematics glowing in a dark modern studio",
-        "label": "Behind every seamless digital",
-        "startWord": 9,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-1.mp3",
-    "durationInFrames": 446,
-    "wordTimings": [
-      {
-        "word": "Every",
-        "startFrame": 0,
-        "endFrame": 11
-      },
-      {
-        "word": "complex",
-        "startFrame": 11,
-        "endFrame": 27
-      },
-      {
-        "word": "software",
-        "startFrame": 27,
-        "endFrame": 45
-      },
-      {
-        "word": "system",
-        "startFrame": 45,
-        "endFrame": 58
-      },
-      {
-        "word": "begins",
-        "startFrame": 58,
-        "endFrame": 71
-      },
-      {
-        "word": "as",
-        "startFrame": 71,
-        "endFrame": 75
-      },
-      {
-        "word": "an",
-        "startFrame": 75,
-        "endFrame": 79
-      },
-      {
-        "word": "abstract",
-        "startFrame": 79,
-        "endFrame": 97
-      },
-      {
-        "word": "architecture.",
-        "startFrame": 97,
-        "endFrame": 140
-      },
-      {
-        "word": "Behind",
-        "startFrame": 140,
-        "endFrame": 153
-      },
-      {
-        "word": "every",
-        "startFrame": 153,
-        "endFrame": 164
-      },
-      {
-        "word": "seamless",
-        "startFrame": 164,
-        "endFrame": 182
-      },
-      {
-        "word": "digital",
-        "startFrame": 182,
-        "endFrame": 198
-      },
-      {
-        "word": "interaction",
-        "startFrame": 198,
-        "endFrame": 223
-      },
-      {
-        "word": "lies",
-        "startFrame": 223,
-        "endFrame": 232
-      },
-      {
-        "word": "an",
-        "startFrame": 232,
-        "endFrame": 236
-      },
-      {
-        "word": "intricate",
-        "startFrame": 236,
-        "endFrame": 256
-      },
-      {
-        "word": "foundation",
-        "startFrame": 256,
-        "endFrame": 278
-      },
-      {
-        "word": "of",
-        "startFrame": 278,
-        "endFrame": 282
-      },
-      {
-        "word": "engineering",
-        "startFrame": 282,
-        "endFrame": 307
-      },
-      {
-        "word": "discipline,",
-        "startFrame": 307,
-        "endFrame": 338
-      },
-      {
-        "word": "designed",
-        "startFrame": 338,
-        "endFrame": 356
-      },
-      {
-        "word": "to",
-        "startFrame": 356,
-        "endFrame": 360
-      },
-      {
-        "word": "endure",
-        "startFrame": 360,
-        "endFrame": 373
-      },
-      {
-        "word": "immense",
-        "startFrame": 373,
-        "endFrame": 389
-      },
-      {
-        "word": "operational",
-        "startFrame": 389,
-        "endFrame": 414
-      },
-      {
-        "word": "stress.",
-        "startFrame": 414,
-        "endFrame": 446
-      }
-    ]
-  },
-  {
-    "sceneNumber": 2,
-    "narratorText": "Quality is never an accidental triumph. In modern computer science, we do not merely hope our software functions reliably; we systematically engineer quality directly into every line of source code.",
-    "title": "Quality by Design",
-    "badge": "Foundations",
-    "visualPrompt": "Close up of ultra crisp code algorithms streaming across dual high resolution curved monitors",
-    "imageKeyword": "programming code screen",
-    "imageUrl": "https://images.pexels.com/photos/27427258/pexels-photo-27427258.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/27427258/pexels-photo-27427258.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "programming code screen correctness and",
-        "visualPrompt": "Close up of ultra crisp code algorithms streaming across dual high resolution curved monitors",
-        "label": "Quality is never an",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/1102797/pexels-photo-1102797.png?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "programming code screen quality models",
-        "visualPrompt": "Close up of ultra crisp code algorithms streaming across dual high resolution curved monitors",
-        "label": "we systematically engineer quality",
-        "startWord": 19,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-2.mp3",
-    "durationInFrames": 418,
-    "wordTimings": [
-      {
-        "word": "Quality",
-        "startFrame": 0,
-        "endFrame": 16
-      },
-      {
-        "word": "is",
-        "startFrame": 16,
-        "endFrame": 20
-      },
-      {
-        "word": "never",
-        "startFrame": 20,
-        "endFrame": 31
-      },
-      {
-        "word": "an",
-        "startFrame": 31,
-        "endFrame": 35
-      },
-      {
-        "word": "accidental",
-        "startFrame": 35,
-        "endFrame": 57
-      },
-      {
-        "word": "triumph.",
-        "startFrame": 57,
-        "endFrame": 88
-      },
-      {
-        "word": "In",
-        "startFrame": 88,
-        "endFrame": 92
-      },
-      {
-        "word": "modern",
-        "startFrame": 92,
-        "endFrame": 105
-      },
-      {
-        "word": "computer",
-        "startFrame": 105,
-        "endFrame": 123
-      },
-      {
-        "word": "science,",
-        "startFrame": 123,
-        "endFrame": 148
-      },
-      {
-        "word": "we",
-        "startFrame": 148,
-        "endFrame": 152
-      },
-      {
-        "word": "do",
-        "startFrame": 152,
-        "endFrame": 156
-      },
-      {
-        "word": "not",
-        "startFrame": 156,
-        "endFrame": 163
-      },
-      {
-        "word": "merely",
-        "startFrame": 163,
-        "endFrame": 176
-      },
-      {
-        "word": "hope",
-        "startFrame": 176,
-        "endFrame": 185
-      },
-      {
-        "word": "our",
-        "startFrame": 185,
-        "endFrame": 192
-      },
-      {
-        "word": "software",
-        "startFrame": 192,
-        "endFrame": 210
-      },
-      {
-        "word": "functions",
-        "startFrame": 210,
-        "endFrame": 230
-      },
-      {
-        "word": "reliably;",
-        "startFrame": 230,
-        "endFrame": 257
-      },
-      {
-        "word": "we",
-        "startFrame": 257,
-        "endFrame": 261
-      },
-      {
-        "word": "systematically",
-        "startFrame": 261,
-        "endFrame": 292
-      },
-      {
-        "word": "engineer",
-        "startFrame": 292,
-        "endFrame": 310
-      },
-      {
-        "word": "quality",
-        "startFrame": 310,
-        "endFrame": 326
-      },
-      {
-        "word": "directly",
-        "startFrame": 326,
-        "endFrame": 344
-      },
-      {
-        "word": "into",
-        "startFrame": 344,
-        "endFrame": 353
-      },
-      {
-        "word": "every",
-        "startFrame": 353,
-        "endFrame": 364
-      },
-      {
-        "word": "line",
-        "startFrame": 364,
-        "endFrame": 373
-      },
-      {
-        "word": "of",
-        "startFrame": 373,
-        "endFrame": 377
-      },
-      {
-        "word": "source",
-        "startFrame": 377,
-        "endFrame": 390
-      },
-      {
-        "word": "code.",
-        "startFrame": 390,
-        "endFrame": 418
-      }
-    ]
-  },
-  {
-    "sceneNumber": 3,
-    "narratorText": "Global benchmarks like ISO standards provide the mathematical scaffolding for engineering teams, establishing unambiguous definitions for software maintainability, operational efficiency, and cryptographic resilience across every stage of development and deployment.",
-    "title": "Standards and Definitions",
-    "badge": "Standards",
-    "visualPrompt": "Holographic network grid with data verification checks and standardized compliance metrics",
-    "imageKeyword": "cyber security network",
-    "imageUrl": "https://images.pexels.com/photos/38482455/pexels-photo-38482455.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/38482455/pexels-photo-38482455.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "cyber security network correctness and",
-        "visualPrompt": "Holographic network grid with data verification checks and standardized compliance metrics",
-        "label": "Global benchmarks like ISO",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/38482451/pexels-photo-38482451.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "cyber security network quality models",
-        "visualPrompt": "Holographic network grid with data verification checks and standardized compliance metrics",
-        "label": "establishing unambiguous definitions for",
-        "startWord": 12,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-3.mp3",
-    "durationInFrames": 515,
-    "wordTimings": [
-      {
-        "word": "Global",
-        "startFrame": 0,
-        "endFrame": 12
-      },
-      {
-        "word": "benchmarks",
-        "startFrame": 12,
-        "endFrame": 32
-      },
-      {
-        "word": "like",
-        "startFrame": 32,
-        "endFrame": 40
-      },
-      {
-        "word": "ISO",
-        "startFrame": 40,
-        "endFrame": 46
-      },
-      {
-        "word": "standards",
-        "startFrame": 46,
-        "endFrame": 64
-      },
-      {
-        "word": "provide",
-        "startFrame": 64,
-        "endFrame": 78
-      },
-      {
-        "word": "the",
-        "startFrame": 78,
-        "endFrame": 84
-      },
-      {
-        "word": "mathematical",
-        "startFrame": 84,
-        "endFrame": 109
-      },
-      {
-        "word": "scaffolding",
-        "startFrame": 109,
-        "endFrame": 131
-      },
-      {
-        "word": "for",
-        "startFrame": 131,
-        "endFrame": 137
-      },
-      {
-        "word": "engineering",
-        "startFrame": 137,
-        "endFrame": 159
-      },
-      {
-        "word": "teams,",
-        "startFrame": 159,
-        "endFrame": 177
-      },
-      {
-        "word": "establishing",
-        "startFrame": 177,
-        "endFrame": 202
-      },
-      {
-        "word": "unambiguous",
-        "startFrame": 202,
-        "endFrame": 224
-      },
-      {
-        "word": "definitions",
-        "startFrame": 224,
-        "endFrame": 246
-      },
-      {
-        "word": "for",
-        "startFrame": 246,
-        "endFrame": 252
-      },
-      {
-        "word": "software",
-        "startFrame": 252,
-        "endFrame": 268
-      },
-      {
-        "word": "maintainability,",
-        "startFrame": 268,
-        "endFrame": 307
-      },
-      {
-        "word": "operational",
-        "startFrame": 307,
-        "endFrame": 329
-      },
-      {
-        "word": "efficiency,",
-        "startFrame": 329,
-        "endFrame": 358
-      },
-      {
-        "word": "and",
-        "startFrame": 358,
-        "endFrame": 364
-      },
-      {
-        "word": "cryptographic",
-        "startFrame": 364,
-        "endFrame": 391
-      },
-      {
-        "word": "resilience",
-        "startFrame": 391,
-        "endFrame": 411
-      },
-      {
-        "word": "across",
-        "startFrame": 411,
-        "endFrame": 423
-      },
-      {
-        "word": "every",
-        "startFrame": 423,
-        "endFrame": 433
-      },
-      {
-        "word": "stage",
-        "startFrame": 433,
-        "endFrame": 443
-      },
-      {
-        "word": "of",
-        "startFrame": 443,
-        "endFrame": 447
-      },
-      {
-        "word": "development",
-        "startFrame": 447,
-        "endFrame": 469
-      },
-      {
-        "word": "and",
-        "startFrame": 469,
-        "endFrame": 475
-      },
-      {
-        "word": "deployment.",
-        "startFrame": 475,
-        "endFrame": 515
-      }
-    ]
-  },
-  {
-    "sceneNumber": 4,
-    "narratorText": "The Software Quality Assurance Plan serves as the master contract of reliability, guiding development teams through formal design verification and rigorous architectural reviews before a single deployment occurs.",
-    "title": "The Quality Assurance Plan",
-    "badge": "Planning",
-    "visualPrompt": "Collaborative engineering war room with architects analyzing system architecture blueprints",
-    "imageKeyword": "software engineer team",
-    "imageUrl": "https://images.pexels.com/photos/6804071/pexels-photo-6804071.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/6804071/pexels-photo-6804071.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "software engineer team correctness and",
-        "visualPrompt": "Collaborative engineering war room with architects analyzing system architecture blueprints",
-        "label": "The Software Quality Assurance",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/6804068/pexels-photo-6804068.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "software engineer team quality models",
-        "visualPrompt": "Collaborative engineering war room with architects analyzing system architecture blueprints",
-        "label": "guiding development teams through",
-        "startWord": 12,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-4.mp3",
-    "durationInFrames": 407,
-    "wordTimings": [
-      {
-        "word": "The",
-        "startFrame": 0,
-        "endFrame": 6
-      },
-      {
-        "word": "Software",
-        "startFrame": 6,
-        "endFrame": 23
-      },
-      {
-        "word": "Quality",
-        "startFrame": 23,
-        "endFrame": 38
-      },
-      {
-        "word": "Assurance",
-        "startFrame": 38,
-        "endFrame": 57
-      },
-      {
-        "word": "Plan",
-        "startFrame": 57,
-        "endFrame": 65
-      },
-      {
-        "word": "serves",
-        "startFrame": 65,
-        "endFrame": 78
-      },
-      {
-        "word": "as",
-        "startFrame": 78,
-        "endFrame": 82
-      },
-      {
-        "word": "the",
-        "startFrame": 82,
-        "endFrame": 88
-      },
-      {
-        "word": "master",
-        "startFrame": 88,
-        "endFrame": 101
-      },
-      {
-        "word": "contract",
-        "startFrame": 101,
-        "endFrame": 118
-      },
-      {
-        "word": "of",
-        "startFrame": 118,
-        "endFrame": 122
-      },
-      {
-        "word": "reliability,",
-        "startFrame": 122,
-        "endFrame": 153
-      },
-      {
-        "word": "guiding",
-        "startFrame": 153,
-        "endFrame": 168
-      },
-      {
-        "word": "development",
-        "startFrame": 168,
-        "endFrame": 191
-      },
-      {
-        "word": "teams",
-        "startFrame": 191,
-        "endFrame": 201
-      },
-      {
-        "word": "through",
-        "startFrame": 201,
-        "endFrame": 216
-      },
-      {
-        "word": "formal",
-        "startFrame": 216,
-        "endFrame": 229
-      },
-      {
-        "word": "design",
-        "startFrame": 229,
-        "endFrame": 242
-      },
-      {
-        "word": "verification",
-        "startFrame": 242,
-        "endFrame": 267
-      },
-      {
-        "word": "and",
-        "startFrame": 267,
-        "endFrame": 273
-      },
-      {
-        "word": "rigorous",
-        "startFrame": 273,
-        "endFrame": 290
-      },
-      {
-        "word": "architectural",
-        "startFrame": 290,
-        "endFrame": 317
-      },
-      {
-        "word": "reviews",
-        "startFrame": 317,
-        "endFrame": 332
-      },
-      {
-        "word": "before",
-        "startFrame": 332,
-        "endFrame": 345
-      },
-      {
-        "word": "a",
-        "startFrame": 345,
-        "endFrame": 347
-      },
-      {
-        "word": "single",
-        "startFrame": 347,
-        "endFrame": 360
-      },
-      {
-        "word": "deployment",
-        "startFrame": 360,
-        "endFrame": 381
-      },
-      {
-        "word": "occurs.",
-        "startFrame": 381,
-        "endFrame": 407
-      }
-    ]
-  },
-  {
-    "sceneNumber": 5,
-    "narratorText": "Static testing forms our primary defensive perimeter. Through structured peer reviews and automated code inspections, engineers uncover subtle logic flaws long before software ever executes in memory.",
-    "title": "The Static Testing Perimeter",
-    "badge": "Testing",
-    "visualPrompt": "Deep abstract inspection tree parsing complex syntax structures with neon highlight nodes",
-    "imageKeyword": "data analytics server",
-    "imageUrl": "https://images.pexels.com/photos/37730212/pexels-photo-37730212.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/37730212/pexels-photo-37730212.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "data analytics server correctness and",
-        "visualPrompt": "Deep abstract inspection tree parsing complex syntax structures with neon highlight nodes",
-        "label": "Static testing forms our",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/19891028/pexels-photo-19891028.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "data analytics server quality models",
-        "visualPrompt": "Deep abstract inspection tree parsing complex syntax structures with neon highlight nodes",
-        "label": "engineers uncover subtle logic",
-        "startWord": 15,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-5.mp3",
-    "durationInFrames": 405,
-    "wordTimings": [
-      {
-        "word": "Static",
-        "startFrame": 0,
-        "endFrame": 13
-      },
-      {
-        "word": "testing",
-        "startFrame": 13,
-        "endFrame": 28
-      },
-      {
-        "word": "forms",
-        "startFrame": 28,
-        "endFrame": 39
-      },
-      {
-        "word": "our",
-        "startFrame": 39,
-        "endFrame": 45
-      },
-      {
-        "word": "primary",
-        "startFrame": 45,
-        "endFrame": 60
-      },
-      {
-        "word": "defensive",
-        "startFrame": 60,
-        "endFrame": 79
-      },
-      {
-        "word": "perimeter.",
-        "startFrame": 79,
-        "endFrame": 113
-      },
-      {
-        "word": "Through",
-        "startFrame": 113,
-        "endFrame": 128
-      },
-      {
-        "word": "structured",
-        "startFrame": 128,
-        "endFrame": 149
-      },
-      {
-        "word": "peer",
-        "startFrame": 149,
-        "endFrame": 158
-      },
-      {
-        "word": "reviews",
-        "startFrame": 158,
-        "endFrame": 173
-      },
-      {
-        "word": "and",
-        "startFrame": 173,
-        "endFrame": 179
-      },
-      {
-        "word": "automated",
-        "startFrame": 179,
-        "endFrame": 198
-      },
-      {
-        "word": "code",
-        "startFrame": 198,
-        "endFrame": 207
-      },
-      {
-        "word": "inspections,",
-        "startFrame": 207,
-        "endFrame": 239
-      },
-      {
-        "word": "engineers",
-        "startFrame": 239,
-        "endFrame": 258
-      },
-      {
-        "word": "uncover",
-        "startFrame": 258,
-        "endFrame": 273
-      },
-      {
-        "word": "subtle",
-        "startFrame": 273,
-        "endFrame": 286
-      },
-      {
-        "word": "logic",
-        "startFrame": 286,
-        "endFrame": 297
-      },
-      {
-        "word": "flaws",
-        "startFrame": 297,
-        "endFrame": 308
-      },
-      {
-        "word": "long",
-        "startFrame": 308,
-        "endFrame": 317
-      },
-      {
-        "word": "before",
-        "startFrame": 317,
-        "endFrame": 330
-      },
-      {
-        "word": "software",
-        "startFrame": 330,
-        "endFrame": 347
-      },
-      {
-        "word": "ever",
-        "startFrame": 347,
-        "endFrame": 356
-      },
-      {
-        "word": "executes",
-        "startFrame": 356,
-        "endFrame": 373
-      },
-      {
-        "word": "in",
-        "startFrame": 373,
-        "endFrame": 377
-      },
-      {
-        "word": "memory.",
-        "startFrame": 377,
-        "endFrame": 405
-      }
-    ]
-  },
-  {
-    "sceneNumber": 6,
-    "narratorText": "Dynamic testing shifts the paradigm from theoretical inspection to aggressive operational execution, bombarding the system with unpredictable boundary conditions, stress loads, and concurrent transactions while revealing weaknesses hidden beneath normal operating conditions.",
-    "title": "Dynamic Testing Under Load",
-    "badge": "Testing",
-    "visualPrompt": "Server cluster processing high volume transaction streams with pulsing server indicators",
-    "imageKeyword": "server room datacenter",
-    "imageUrl": "https://images.pexels.com/photos/37730212/pexels-photo-37730212.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/37730212/pexels-photo-37730212.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "server room datacenter correctness and",
-        "visualPrompt": "Server cluster processing high volume transaction streams with pulsing server indicators",
-        "label": "Dynamic testing shifts the",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/37730212/pexels-photo-37730212.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "server room datacenter quality models",
-        "visualPrompt": "Server cluster processing high volume transaction streams with pulsing server indicators",
-        "label": "stress loads, and concurrent",
-        "startWord": 19,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-6.mp3",
-    "durationInFrames": 508,
-    "wordTimings": [
-      {
-        "word": "Dynamic",
-        "startFrame": 0,
-        "endFrame": 14
-      },
-      {
-        "word": "testing",
-        "startFrame": 14,
-        "endFrame": 28
-      },
-      {
-        "word": "shifts",
-        "startFrame": 28,
-        "endFrame": 40
-      },
-      {
-        "word": "the",
-        "startFrame": 40,
-        "endFrame": 46
-      },
-      {
-        "word": "paradigm",
-        "startFrame": 46,
-        "endFrame": 62
-      },
-      {
-        "word": "from",
-        "startFrame": 62,
-        "endFrame": 70
-      },
-      {
-        "word": "theoretical",
-        "startFrame": 70,
-        "endFrame": 92
-      },
-      {
-        "word": "inspection",
-        "startFrame": 92,
-        "endFrame": 112
-      },
-      {
-        "word": "to",
-        "startFrame": 112,
-        "endFrame": 116
-      },
-      {
-        "word": "aggressive",
-        "startFrame": 116,
-        "endFrame": 136
-      },
-      {
-        "word": "operational",
-        "startFrame": 136,
-        "endFrame": 158
-      },
-      {
-        "word": "execution,",
-        "startFrame": 158,
-        "endFrame": 183
-      },
-      {
-        "word": "bombarding",
-        "startFrame": 183,
-        "endFrame": 203
-      },
-      {
-        "word": "the",
-        "startFrame": 203,
-        "endFrame": 209
-      },
-      {
-        "word": "system",
-        "startFrame": 209,
-        "endFrame": 221
-      },
-      {
-        "word": "with",
-        "startFrame": 221,
-        "endFrame": 229
-      },
-      {
-        "word": "unpredictable",
-        "startFrame": 229,
-        "endFrame": 254
-      },
-      {
-        "word": "boundary",
-        "startFrame": 254,
-        "endFrame": 270
-      },
-      {
-        "word": "conditions,",
-        "startFrame": 270,
-        "endFrame": 297
-      },
-      {
-        "word": "stress",
-        "startFrame": 297,
-        "endFrame": 309
-      },
-      {
-        "word": "loads,",
-        "startFrame": 309,
-        "endFrame": 327
-      },
-      {
-        "word": "and",
-        "startFrame": 327,
-        "endFrame": 333
-      },
-      {
-        "word": "concurrent",
-        "startFrame": 333,
-        "endFrame": 353
-      },
-      {
-        "word": "transactions",
-        "startFrame": 353,
-        "endFrame": 377
-      },
-      {
-        "word": "while",
-        "startFrame": 377,
-        "endFrame": 387
-      },
-      {
-        "word": "revealing",
-        "startFrame": 387,
-        "endFrame": 405
-      },
-      {
-        "word": "weaknesses",
-        "startFrame": 405,
-        "endFrame": 425
-      },
-      {
-        "word": "hidden",
-        "startFrame": 425,
-        "endFrame": 437
-      },
-      {
-        "word": "beneath",
-        "startFrame": 437,
-        "endFrame": 451
-      },
-      {
-        "word": "normal",
-        "startFrame": 451,
-        "endFrame": 463
-      },
-      {
-        "word": "operating",
-        "startFrame": 463,
-        "endFrame": 481
-      },
-      {
-        "word": "conditions.",
-        "startFrame": 481,
-        "endFrame": 508
-      }
-    ]
-  },
-  {
-    "sceneNumber": 7,
-    "narratorText": "From isolated unit tests to end-to-end integration across distributed clusters, specification-based testing guarantees that every microservice behaves harmoniously under real-world pressure, so complex products feel coherent, responsive, and dependable.",
-    "title": "From Units to Integration",
-    "badge": "Testing",
-    "visualPrompt": "Interconnected glowing cloud microservices exchanging data packets across a digital globe",
-    "imageKeyword": "cloud technology network",
-    "imageUrl": "https://images.pexels.com/photos/17323801/pexels-photo-17323801.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/17323801/pexels-photo-17323801.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "cloud technology network correctness and",
-        "visualPrompt": "Interconnected glowing cloud microservices exchanging data packets across a digital globe",
-        "label": "From isolated unit tests",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/17323801/pexels-photo-17323801.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "cloud technology network quality models",
-        "visualPrompt": "Interconnected glowing cloud microservices exchanging data packets across a digital globe",
-        "label": "specification-based testing guarantees that",
-        "startWord": 10,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-7.mp3",
-    "durationInFrames": 505,
-    "wordTimings": [
-      {
-        "word": "From",
-        "startFrame": 0,
-        "endFrame": 8
-      },
-      {
-        "word": "isolated",
-        "startFrame": 8,
-        "endFrame": 25
-      },
-      {
-        "word": "unit",
-        "startFrame": 25,
-        "endFrame": 33
-      },
-      {
-        "word": "tests",
-        "startFrame": 33,
-        "endFrame": 43
-      },
-      {
-        "word": "to",
-        "startFrame": 43,
-        "endFrame": 47
-      },
-      {
-        "word": "end-to-end",
-        "startFrame": 47,
-        "endFrame": 68
-      },
-      {
-        "word": "integration",
-        "startFrame": 68,
-        "endFrame": 91
-      },
-      {
-        "word": "across",
-        "startFrame": 91,
-        "endFrame": 103
-      },
-      {
-        "word": "distributed",
-        "startFrame": 103,
-        "endFrame": 126
-      },
-      {
-        "word": "clusters,",
-        "startFrame": 126,
-        "endFrame": 151
-      },
-      {
-        "word": "specification-based",
-        "startFrame": 151,
-        "endFrame": 190
-      },
-      {
-        "word": "testing",
-        "startFrame": 190,
-        "endFrame": 205
-      },
-      {
-        "word": "guarantees",
-        "startFrame": 205,
-        "endFrame": 226
-      },
-      {
-        "word": "that",
-        "startFrame": 226,
-        "endFrame": 234
-      },
-      {
-        "word": "every",
-        "startFrame": 234,
-        "endFrame": 244
-      },
-      {
-        "word": "microservice",
-        "startFrame": 244,
-        "endFrame": 269
-      },
-      {
-        "word": "behaves",
-        "startFrame": 269,
-        "endFrame": 284
-      },
-      {
-        "word": "harmoniously",
-        "startFrame": 284,
-        "endFrame": 309
-      },
-      {
-        "word": "under",
-        "startFrame": 309,
-        "endFrame": 319
-      },
-      {
-        "word": "real-world",
-        "startFrame": 319,
-        "endFrame": 340
-      },
-      {
-        "word": "pressure,",
-        "startFrame": 340,
-        "endFrame": 365
-      },
-      {
-        "word": "so",
-        "startFrame": 365,
-        "endFrame": 369
-      },
-      {
-        "word": "complex",
-        "startFrame": 369,
-        "endFrame": 384
-      },
-      {
-        "word": "products",
-        "startFrame": 384,
-        "endFrame": 401
-      },
-      {
-        "word": "feel",
-        "startFrame": 401,
-        "endFrame": 409
-      },
-      {
-        "word": "coherent,",
-        "startFrame": 409,
-        "endFrame": 434
-      },
-      {
-        "word": "responsive,",
-        "startFrame": 434,
-        "endFrame": 463
-      },
-      {
-        "word": "and",
-        "startFrame": 463,
-        "endFrame": 469
-      },
-      {
-        "word": "dependable.",
-        "startFrame": 469,
-        "endFrame": 505
-      }
-    ]
-  },
-  {
-    "sceneNumber": 8,
-    "narratorText": "Quantifiable quality measurement models allow engineering leaders to track defect densities and reliability growth curves, transforming subjective hunches into empirical mathematical certainty across teams, releases, and changing operational conditions.",
-    "title": "Measuring Reliability",
-    "badge": "Metrics",
-    "visualPrompt": "Financial and operational telemetry dashboards showing system stability trajectories and performance metrics",
-    "imageKeyword": "technology dashboard analytics",
-    "imageUrl": "https://images.pexels.com/photos/577210/pexels-photo-577210.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/577210/pexels-photo-577210.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "technology dashboard analytics correctness and",
-        "visualPrompt": "Financial and operational telemetry dashboards showing system stability trajectories and performance metrics",
-        "label": "Quantifiable quality measurement models",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/577210/pexels-photo-577210.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "technology dashboard analytics quality models",
-        "visualPrompt": "Financial and operational telemetry dashboards showing system stability trajectories and performance metrics",
-        "label": "transforming subjective hunches into",
-        "startWord": 15,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-8.mp3",
-    "durationInFrames": 493,
-    "wordTimings": [
-      {
-        "word": "Quantifiable",
-        "startFrame": 0,
-        "endFrame": 25
-      },
-      {
-        "word": "quality",
-        "startFrame": 25,
-        "endFrame": 39
-      },
-      {
-        "word": "measurement",
-        "startFrame": 39,
-        "endFrame": 62
-      },
-      {
-        "word": "models",
-        "startFrame": 62,
-        "endFrame": 74
-      },
-      {
-        "word": "allow",
-        "startFrame": 74,
-        "endFrame": 84
-      },
-      {
-        "word": "engineering",
-        "startFrame": 84,
-        "endFrame": 107
-      },
-      {
-        "word": "leaders",
-        "startFrame": 107,
-        "endFrame": 121
-      },
-      {
-        "word": "to",
-        "startFrame": 121,
-        "endFrame": 125
-      },
-      {
-        "word": "track",
-        "startFrame": 125,
-        "endFrame": 135
-      },
-      {
-        "word": "defect",
-        "startFrame": 135,
-        "endFrame": 147
-      },
-      {
-        "word": "densities",
-        "startFrame": 147,
-        "endFrame": 165
-      },
-      {
-        "word": "and",
-        "startFrame": 165,
-        "endFrame": 171
-      },
-      {
-        "word": "reliability",
-        "startFrame": 171,
-        "endFrame": 194
-      },
-      {
-        "word": "growth",
-        "startFrame": 194,
-        "endFrame": 206
-      },
-      {
-        "word": "curves,",
-        "startFrame": 206,
-        "endFrame": 227
-      },
-      {
-        "word": "transforming",
-        "startFrame": 227,
-        "endFrame": 252
-      },
-      {
-        "word": "subjective",
-        "startFrame": 252,
-        "endFrame": 273
-      },
-      {
-        "word": "hunches",
-        "startFrame": 273,
-        "endFrame": 287
-      },
-      {
-        "word": "into",
-        "startFrame": 287,
-        "endFrame": 295
-      },
-      {
-        "word": "empirical",
-        "startFrame": 295,
-        "endFrame": 313
-      },
-      {
-        "word": "mathematical",
-        "startFrame": 313,
-        "endFrame": 338
-      },
-      {
-        "word": "certainty",
-        "startFrame": 338,
-        "endFrame": 356
-      },
-      {
-        "word": "across",
-        "startFrame": 356,
-        "endFrame": 368
-      },
-      {
-        "word": "teams,",
-        "startFrame": 368,
-        "endFrame": 386
-      },
-      {
-        "word": "releases,",
-        "startFrame": 386,
-        "endFrame": 411
-      },
-      {
-        "word": "and",
-        "startFrame": 411,
-        "endFrame": 417
-      },
-      {
-        "word": "changing",
-        "startFrame": 417,
-        "endFrame": 433
-      },
-      {
-        "word": "operational",
-        "startFrame": 433,
-        "endFrame": 456
-      },
-      {
-        "word": "conditions.",
-        "startFrame": 456,
-        "endFrame": 493
-      }
-    ]
-  },
-  {
-    "sceneNumber": 9,
-    "narratorText": "Ultimately, software quality engineering is not about finding bugs; it is about building unwavering human trust in the invisible digital systems that power our modern world.",
-    "title": "Trust in the Invisible",
-    "badge": "Impact",
-    "visualPrompt": "Wide panoramic sunrise over a modern smart metropolis connected by streams of light and data",
-    "imageKeyword": "modern smart city",
-    "imageUrl": "https://images.pexels.com/photos/35630647/pexels-photo-35630647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/35630647/pexels-photo-35630647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "modern smart city correctness and",
-        "visualPrompt": "Wide panoramic sunrise over a modern smart metropolis connected by streams of light and data",
-        "label": "Ultimately, software quality engineering",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/35630647/pexels-photo-35630647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "modern smart city quality models",
-        "visualPrompt": "Wide panoramic sunrise over a modern smart metropolis connected by streams of light and data",
-        "label": "it is about building",
-        "startWord": 9,
-        "focusArea": {
-          "x": 0.5243,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
-          "focus": 0.35
-        }
-      }
-    ],
-    "focusArea": {
-      "x": 0.2543,
-      "y": 0.2231,
-      "w": 0.2214,
-      "h": 0.1683,
-      "label": "Correctness and its measures",
-      "focus": 0.35
-    },
-    "audioPath": "audio/scene-9.mp3",
-    "durationInFrames": 347,
-    "wordTimings": [
-      {
-        "word": "Ultimately,",
-        "startFrame": 0,
-        "endFrame": 30
-      },
-      {
-        "word": "software",
-        "startFrame": 30,
-        "endFrame": 47
-      },
-      {
-        "word": "quality",
-        "startFrame": 47,
-        "endFrame": 62
-      },
-      {
-        "word": "engineering",
-        "startFrame": 62,
-        "endFrame": 86
-      },
-      {
-        "word": "is",
-        "startFrame": 86,
-        "endFrame": 90
-      },
-      {
-        "word": "not",
-        "startFrame": 90,
-        "endFrame": 97
-      },
-      {
-        "word": "about",
-        "startFrame": 97,
-        "endFrame": 108
-      },
-      {
-        "word": "finding",
-        "startFrame": 108,
-        "endFrame": 123
-      },
-      {
-        "word": "bugs;",
-        "startFrame": 123,
-        "endFrame": 140
-      },
-      {
-        "word": "it",
-        "startFrame": 140,
-        "endFrame": 144
-      },
-      {
-        "word": "is",
-        "startFrame": 144,
-        "endFrame": 148
-      },
-      {
-        "word": "about",
-        "startFrame": 148,
-        "endFrame": 159
-      },
-      {
-        "word": "building",
-        "startFrame": 159,
-        "endFrame": 176
-      },
-      {
-        "word": "unwavering",
-        "startFrame": 176,
-        "endFrame": 198
-      },
-      {
-        "word": "human",
-        "startFrame": 198,
-        "endFrame": 209
-      },
-      {
-        "word": "trust",
-        "startFrame": 209,
-        "endFrame": 220
-      },
-      {
-        "word": "in",
-        "startFrame": 220,
-        "endFrame": 224
-      },
-      {
-        "word": "the",
-        "startFrame": 224,
-        "endFrame": 231
-      },
-      {
-        "word": "invisible",
-        "startFrame": 231,
-        "endFrame": 251
-      },
-      {
-        "word": "digital",
-        "startFrame": 251,
-        "endFrame": 266
-      },
-      {
-        "word": "systems",
-        "startFrame": 266,
-        "endFrame": 281
-      },
-      {
-        "word": "that",
-        "startFrame": 281,
-        "endFrame": 290
-      },
-      {
-        "word": "power",
-        "startFrame": 290,
-        "endFrame": 301
-      },
-      {
-        "word": "our",
-        "startFrame": 301,
-        "endFrame": 308
-      },
-      {
-        "word": "modern",
-        "startFrame": 308,
-        "endFrame": 321
-      },
-      {
-        "word": "world.",
-        "startFrame": 321,
-        "endFrame": 347
-      }
-    ]
-  },
-  {
-    "sceneNumber": 10,
-    "narratorText": "Risk-based testing helps teams spend their strongest attention where failure would matter most, balancing technical evidence, user impact, and operational uncertainty before each release reaches the public.",
-    "title": "Risk-Based Prioritization",
-    "badge": "Strategy",
-    "visualPrompt": "Cinematic operations center with engineers studying risk maps and release readiness indicators",
-    "imageKeyword": "risk analysis technology",
-    "imageUrl": "https://images.pexels.com/photos/38963051/pexels-photo-38963051.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-    "imageSource": "pexels",
-    "beats": [
-      {
-        "imageUrl": "https://images.pexels.com/photos/38963051/pexels-photo-38963051.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "risk analysis technology correctness and",
-        "visualPrompt": "Cinematic operations center with engineers studying risk maps and release readiness indicators",
-        "label": "Risk-based testing helps teams",
-        "startWord": 0,
-        "focusArea": {
-          "x": 0.2543,
-          "y": 0.2231,
-          "w": 0.2214,
-          "h": 0.1683,
-          "label": "Correctness and its measures",
-          "focus": 0.35
-        }
-      },
-      {
-        "imageUrl": "https://images.pexels.com/photos/38892300/pexels-photo-38892300.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "imageSource": "pexels",
-        "imageKeyword": "risk analysis technology quality models",
-        "visualPrompt": "Cinematic operations center with engineers studying risk maps and release readiness indicators",
-        "label": "balancing technical evidence, user",
+        "imageKeyword": "ecosystems decline corals atolls and",
+        "visualPrompt": "The section \"Coral Reef Ecosystems and their Decline\" of the source document, showing its own wording and structure.",
+        "label": "of tiny polyps Skeleton",
         "startWord": 13,
         "focusArea": {
           "x": 0.5243,
           "y": 0.2231,
           "w": 0.2214,
           "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
+          "label": "Reef zonation by depth",
+          "focus": 0.35
+        }
+      },
+      {
+        "imageUrl": "https://images.pexels.com/photos/13610647/pexels-photo-13610647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageSource": "pexels",
+        "imageKeyword": "ecosystems decline corals thermal stress",
+        "visualPrompt": "The section \"Coral Reef Ecosystems and their Decline\" of the source document, showing its own wording and structure.",
+        "label": "partnership How a Reef",
+        "startWord": 25,
+        "focusArea": {
+          "x": 0.2543,
+          "y": 0.2591,
+          "w": 0.2214,
+          "h": 0.3367,
+          "label": "Thermal stress and bleaching",
           "focus": 0.35
         }
       }
@@ -1841,188 +63,259 @@
       "y": 0.2231,
       "w": 0.2214,
       "h": 0.1683,
-      "label": "Correctness and its measures",
+      "label": "Coral Reef Ecosystems and their Decline",
       "focus": 0.35
     },
-    "audioPath": "audio/scene-10.mp3",
-    "durationInFrames": 386,
+    "audioPath": "audio/scene-1.mp3",
+    "durationInFrames": 505,
     "wordTimings": [
       {
-        "word": "Risk-based",
+        "word": "Coral",
         "startFrame": 0,
+        "endFrame": 11
+      },
+      {
+        "word": "Reef",
+        "startFrame": 11,
         "endFrame": 20
       },
       {
-        "word": "testing",
+        "word": "Ecosystems",
         "startFrame": 20,
-        "endFrame": 34
-      },
-      {
-        "word": "helps",
-        "startFrame": 34,
-        "endFrame": 44
-      },
-      {
-        "word": "teams",
-        "startFrame": 44,
-        "endFrame": 54
-      },
-      {
-        "word": "spend",
-        "startFrame": 54,
-        "endFrame": 64
-      },
-      {
-        "word": "their",
-        "startFrame": 64,
-        "endFrame": 74
-      },
-      {
-        "word": "strongest",
-        "startFrame": 74,
-        "endFrame": 92
-      },
-      {
-        "word": "attention",
-        "startFrame": 92,
-        "endFrame": 110
-      },
-      {
-        "word": "where",
-        "startFrame": 110,
-        "endFrame": 120
-      },
-      {
-        "word": "failure",
-        "startFrame": 120,
-        "endFrame": 134
-      },
-      {
-        "word": "would",
-        "startFrame": 134,
-        "endFrame": 144
-      },
-      {
-        "word": "matter",
-        "startFrame": 144,
-        "endFrame": 156
-      },
-      {
-        "word": "most,",
-        "startFrame": 156,
-        "endFrame": 172
-      },
-      {
-        "word": "balancing",
-        "startFrame": 172,
-        "endFrame": 190
-      },
-      {
-        "word": "technical",
-        "startFrame": 190,
-        "endFrame": 208
-      },
-      {
-        "word": "evidence,",
-        "startFrame": 208,
-        "endFrame": 232
-      },
-      {
-        "word": "user",
-        "startFrame": 232,
-        "endFrame": 240
-      },
-      {
-        "word": "impact,",
-        "startFrame": 240,
-        "endFrame": 260
+        "endFrame": 42
       },
       {
         "word": "and",
-        "startFrame": 260,
-        "endFrame": 266
+        "startFrame": 42,
+        "endFrame": 49
       },
       {
-        "word": "operational",
-        "startFrame": 266,
-        "endFrame": 288
+        "word": "their",
+        "startFrame": 49,
+        "endFrame": 60
       },
       {
-        "word": "uncertainty",
-        "startFrame": 288,
-        "endFrame": 310
+        "word": "Decline",
+        "startFrame": 60,
+        "endFrame": 76
       },
       {
-        "word": "before",
-        "startFrame": 310,
-        "endFrame": 322
+        "word": "What",
+        "startFrame": 76,
+        "endFrame": 85
       },
       {
-        "word": "each",
-        "startFrame": 322,
-        "endFrame": 330
+        "word": "Corals",
+        "startFrame": 85,
+        "endFrame": 98
       },
       {
-        "word": "release",
-        "startFrame": 330,
-        "endFrame": 344
+        "word": "Actually",
+        "startFrame": 98,
+        "endFrame": 116
       },
       {
-        "word": "reaches",
-        "startFrame": 344,
-        "endFrame": 358
+        "word": "Are",
+        "startFrame": 116,
+        "endFrame": 123
+      },
+      {
+        "word": "Corals",
+        "startFrame": 123,
+        "endFrame": 136
+      },
+      {
+        "word": "are",
+        "startFrame": 136,
+        "endFrame": 143
+      },
+      {
+        "word": "colonies",
+        "startFrame": 143,
+        "endFrame": 161
+      },
+      {
+        "word": "of",
+        "startFrame": 161,
+        "endFrame": 165
+      },
+      {
+        "word": "tiny",
+        "startFrame": 165,
+        "endFrame": 174
+      },
+      {
+        "word": "polyps",
+        "startFrame": 174,
+        "endFrame": 187
+      },
+      {
+        "word": "Skeleton",
+        "startFrame": 187,
+        "endFrame": 205
+      },
+      {
+        "word": "composition",
+        "startFrame": 205,
+        "endFrame": 230
+      },
+      {
+        "word": "and",
+        "startFrame": 230,
+        "endFrame": 237
+      },
+      {
+        "word": "calcium",
+        "startFrame": 237,
+        "endFrame": 253
+      },
+      {
+        "word": "carbonate",
+        "startFrame": 253,
+        "endFrame": 273
+      },
+      {
+        "word": "Zooxanthellae",
+        "startFrame": 273,
+        "endFrame": 302
+      },
+      {
+        "word": "and",
+        "startFrame": 302,
+        "endFrame": 309
       },
       {
         "word": "the",
-        "startFrame": 358,
-        "endFrame": 364
+        "startFrame": 309,
+        "endFrame": 316
       },
       {
-        "word": "public.",
-        "startFrame": 364,
-        "endFrame": 386
+        "word": "symbiotic",
+        "startFrame": 316,
+        "endFrame": 336
+      },
+      {
+        "word": "partnership",
+        "startFrame": 336,
+        "endFrame": 361
+      },
+      {
+        "word": "How",
+        "startFrame": 361,
+        "endFrame": 368
+      },
+      {
+        "word": "a",
+        "startFrame": 368,
+        "endFrame": 370
+      },
+      {
+        "word": "Reef",
+        "startFrame": 370,
+        "endFrame": 379
+      },
+      {
+        "word": "is",
+        "startFrame": 379,
+        "endFrame": 383
+      },
+      {
+        "word": "Structured",
+        "startFrame": 383,
+        "endFrame": 405
+      },
+      {
+        "word": "Fringing",
+        "startFrame": 405,
+        "endFrame": 423
+      },
+      {
+        "word": "reefs",
+        "startFrame": 423,
+        "endFrame": 434
+      },
+      {
+        "word": "and",
+        "startFrame": 434,
+        "endFrame": 441
+      },
+      {
+        "word": "barrier",
+        "startFrame": 441,
+        "endFrame": 457
+      },
+      {
+        "word": "reefs",
+        "startFrame": 457,
+        "endFrame": 468
+      },
+      {
+        "word": "Atolls",
+        "startFrame": 468,
+        "endFrame": 481
+      },
+      {
+        "word": "and.",
+        "startFrame": 481,
+        "endFrame": 505
       }
     ]
   },
   {
-    "sceneNumber": 11,
-    "narratorText": "Continuous integration turns quality into a daily practice. Small changes are assembled, tested, and measured repeatedly, allowing teams to discover regression early while the source of a problem remains visible.",
-    "title": "The Daily Practice of Integration",
-    "badge": "Practice",
-    "visualPrompt": "Automated deployment pipeline visualized as luminous connected stages across a modern control room",
-    "imageKeyword": "continuous integration pipeline",
-    "imageUrl": "https://images.pexels.com/photos/18784617/pexels-photo-18784617.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "sceneNumber": 2,
+    "narratorText": "coral islands Reef zonation by depth Biodiversity of reef fish and invertebrates Threats to Coral Reefs Thermal stress and bleaching Sedimentation and nutrient runoff Predation by the crown of thorns starfish Physiological response to heat stress Expulsion of.",
+    "title": "What Corals Actually Are",
+    "badge": "Concepts",
+    "visualPrompt": "The section \"What Corals Actually Are\" of the source document, showing its own wording and structure.",
+    "imageKeyword": "actually corals stress coral",
+    "imageUrl": "https://images.pexels.com/photos/9004341/pexels-photo-9004341.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     "imageSource": "pexels",
     "beats": [
       {
-        "imageUrl": "https://images.pexels.com/photos/18784617/pexels-photo-18784617.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageUrl": "https://images.pexels.com/photos/9004341/pexels-photo-9004341.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
         "imageSource": "pexels",
-        "imageKeyword": "continuous integration pipeline correctness and",
-        "visualPrompt": "Automated deployment pipeline visualized as luminous connected stages across a modern control room",
-        "label": "Continuous integration turns quality",
+        "imageKeyword": "actually corals stress coral reef",
+        "visualPrompt": "The section \"What Corals Actually Are\" of the source document, showing its own wording and structure.",
+        "label": "coral islands Reef zonation",
         "startWord": 0,
         "focusArea": {
           "x": 0.2543,
           "y": 0.2231,
           "w": 0.2214,
           "h": 0.1683,
-          "label": "Correctness and its measures",
+          "label": "Coral Reef Ecosystems and their Decline",
           "focus": 0.35
         }
       },
       {
-        "imageUrl": "https://images.pexels.com/photos/18784617/pexels-photo-18784617.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageUrl": "https://images.pexels.com/photos/13262090/pexels-photo-13262090.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
         "imageSource": "pexels",
-        "imageKeyword": "continuous integration pipeline quality models",
-        "visualPrompt": "Automated deployment pipeline visualized as luminous connected stages across a modern control room",
-        "label": "allowing teams to discover",
-        "startWord": 16,
+        "imageKeyword": "actually corals stress atolls and",
+        "visualPrompt": "The section \"What Corals Actually Are\" of the source document, showing its own wording and structure.",
+        "label": "to Coral Reefs Thermal",
+        "startWord": 13,
         "focusArea": {
           "x": 0.5243,
           "y": 0.2231,
           "w": 0.2214,
           "h": 0.1683,
-          "label": "Quality Measurements, Quality improvement",
+          "label": "Reef zonation by depth",
+          "focus": 0.35
+        }
+      },
+      {
+        "imageUrl": "https://images.pexels.com/photos/39570852/pexels-photo-39570852.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageSource": "pexels",
+        "imageKeyword": "actually corals stress thermal stress",
+        "visualPrompt": "The section \"What Corals Actually Are\" of the source document, showing its own wording and structure.",
+        "label": "by the crown of",
+        "startWord": 25,
+        "focusArea": {
+          "x": 0.2543,
+          "y": 0.2591,
+          "w": 0.2214,
+          "h": 0.3367,
+          "label": "Thermal stress and bleaching",
           "focus": 0.35
         }
       }
@@ -2032,135 +325,150 @@
       "y": 0.2231,
       "w": 0.2214,
       "h": 0.1683,
-      "label": "Correctness and its measures",
+      "label": "Coral Reef Ecosystems and their Decline",
       "focus": 0.35
     },
-    "audioPath": "audio/scene-11.mp3",
-    "durationInFrames": 420,
+    "audioPath": "audio/scene-2.mp3",
+    "durationInFrames": 497,
     "wordTimings": [
       {
-        "word": "Continuous",
+        "word": "coral",
         "startFrame": 0,
-        "endFrame": 21
+        "endFrame": 11
       },
       {
-        "word": "integration",
-        "startFrame": 21,
-        "endFrame": 44
+        "word": "islands",
+        "startFrame": 11,
+        "endFrame": 26
       },
       {
-        "word": "turns",
-        "startFrame": 44,
-        "endFrame": 54
+        "word": "Reef",
+        "startFrame": 26,
+        "endFrame": 35
       },
       {
-        "word": "quality",
-        "startFrame": 54,
-        "endFrame": 68
+        "word": "zonation",
+        "startFrame": 35,
+        "endFrame": 52
       },
       {
-        "word": "into",
-        "startFrame": 68,
-        "endFrame": 76
+        "word": "by",
+        "startFrame": 52,
+        "endFrame": 56
       },
       {
-        "word": "a",
-        "startFrame": 76,
-        "endFrame": 78
+        "word": "depth",
+        "startFrame": 56,
+        "endFrame": 67
       },
       {
-        "word": "daily",
-        "startFrame": 78,
-        "endFrame": 88
+        "word": "Biodiversity",
+        "startFrame": 67,
+        "endFrame": 93
       },
       {
-        "word": "practice.",
-        "startFrame": 88,
-        "endFrame": 119
+        "word": "of",
+        "startFrame": 93,
+        "endFrame": 97
       },
       {
-        "word": "Small",
-        "startFrame": 119,
-        "endFrame": 129
+        "word": "reef",
+        "startFrame": 97,
+        "endFrame": 106
       },
       {
-        "word": "changes",
-        "startFrame": 129,
-        "endFrame": 143
-      },
-      {
-        "word": "are",
-        "startFrame": 143,
-        "endFrame": 149
-      },
-      {
-        "word": "assembled,",
-        "startFrame": 149,
-        "endFrame": 176
-      },
-      {
-        "word": "tested,",
-        "startFrame": 176,
-        "endFrame": 197
+        "word": "fish",
+        "startFrame": 106,
+        "endFrame": 115
       },
       {
         "word": "and",
-        "startFrame": 197,
-        "endFrame": 203
+        "startFrame": 115,
+        "endFrame": 122
       },
       {
-        "word": "measured",
-        "startFrame": 203,
-        "endFrame": 219
+        "word": "invertebrates",
+        "startFrame": 122,
+        "endFrame": 150
       },
       {
-        "word": "repeatedly,",
-        "startFrame": 219,
-        "endFrame": 248
-      },
-      {
-        "word": "allowing",
-        "startFrame": 248,
-        "endFrame": 264
-      },
-      {
-        "word": "teams",
-        "startFrame": 264,
-        "endFrame": 274
+        "word": "Threats",
+        "startFrame": 150,
+        "endFrame": 165
       },
       {
         "word": "to",
+        "startFrame": 165,
+        "endFrame": 169
+      },
+      {
+        "word": "Coral",
+        "startFrame": 169,
+        "endFrame": 180
+      },
+      {
+        "word": "Reefs",
+        "startFrame": 180,
+        "endFrame": 191
+      },
+      {
+        "word": "Thermal",
+        "startFrame": 191,
+        "endFrame": 206
+      },
+      {
+        "word": "stress",
+        "startFrame": 206,
+        "endFrame": 219
+      },
+      {
+        "word": "and",
+        "startFrame": 219,
+        "endFrame": 226
+      },
+      {
+        "word": "bleaching",
+        "startFrame": 226,
+        "endFrame": 246
+      },
+      {
+        "word": "Sedimentation",
+        "startFrame": 246,
+        "endFrame": 274
+      },
+      {
+        "word": "and",
         "startFrame": 274,
-        "endFrame": 278
+        "endFrame": 281
       },
       {
-        "word": "discover",
-        "startFrame": 278,
-        "endFrame": 294
+        "word": "nutrient",
+        "startFrame": 281,
+        "endFrame": 298
       },
       {
-        "word": "regression",
-        "startFrame": 294,
-        "endFrame": 315
+        "word": "runoff",
+        "startFrame": 298,
+        "endFrame": 311
       },
       {
-        "word": "early",
-        "startFrame": 315,
-        "endFrame": 325
+        "word": "Predation",
+        "startFrame": 311,
+        "endFrame": 331
       },
       {
-        "word": "while",
-        "startFrame": 325,
+        "word": "by",
+        "startFrame": 331,
         "endFrame": 335
       },
       {
         "word": "the",
         "startFrame": 335,
-        "endFrame": 341
+        "endFrame": 342
       },
       {
-        "word": "source",
-        "startFrame": 341,
+        "word": "crown",
+        "startFrame": 342,
         "endFrame": 353
       },
       {
@@ -2169,82 +477,107 @@
         "endFrame": 357
       },
       {
-        "word": "a",
+        "word": "thorns",
         "startFrame": 357,
-        "endFrame": 359
+        "endFrame": 370
       },
       {
-        "word": "problem",
-        "startFrame": 359,
-        "endFrame": 373
-      },
-      {
-        "word": "remains",
-        "startFrame": 373,
+        "word": "starfish",
+        "startFrame": 370,
         "endFrame": 387
       },
       {
-        "word": "visible.",
+        "word": "Physiological",
         "startFrame": 387,
-        "endFrame": 420
+        "endFrame": 415
+      },
+      {
+        "word": "response",
+        "startFrame": 415,
+        "endFrame": 432
+      },
+      {
+        "word": "to",
+        "startFrame": 432,
+        "endFrame": 436
+      },
+      {
+        "word": "heat",
+        "startFrame": 436,
+        "endFrame": 445
+      },
+      {
+        "word": "stress",
+        "startFrame": 445,
+        "endFrame": 458
+      },
+      {
+        "word": "Expulsion",
+        "startFrame": 458,
+        "endFrame": 478
+      },
+      {
+        "word": "of.",
+        "startFrame": 478,
+        "endFrame": 497
       }
     ]
   },
   {
-    "sceneNumber": 12,
-    "narratorText": "When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build with confidence, clarity, and accountability.",
-    "title": "Reliability as a Habit",
-    "badge": "Closing",
-    "visualPrompt": "Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails",
-    "imageKeyword": "future technology city",
-    "imageUrl": "https://images.pexels.com/photos/35630647/pexels-photo-35630647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "sceneNumber": 3,
+    "narratorText": "symbiotic algae Mass bleaching events of 1998 and 2016 Coral Growth and Reproduction Sexual and asexual reproduction Larval dispersal across currents Calcification rates in changing chemistry Reef accretion and island formation Coral gardening and nursery transplantation Heat tolerant.",
+    "title": "How a Reef is Structured",
+    "badge": "Standards",
+    "visualPrompt": "The section \"How a Reef is Structured\" of the source document, showing its own wording and structure.",
+    "imageKeyword": "structured reef reproduction coral",
+    "imageUrl": "https://images.pexels.com/photos/13211929/pexels-photo-13211929.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
     "imageSource": "pexels",
     "beats": [
       {
-        "imageUrl": "https://images.pexels.com/photos/35630647/pexels-photo-35630647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageUrl": "https://images.pexels.com/photos/13211929/pexels-photo-13211929.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
         "imageSource": "pexels",
-        "imageKeyword": "future technology city correctness and",
-        "visualPrompt": "Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails",
-        "label": "When measurement, testing, and",
+        "imageKeyword": "structured reef reproduction coral reef",
+        "visualPrompt": "The section \"How a Reef is Structured\" of the source document, showing its own wording and structure.",
+        "label": "symbiotic algae Mass bleaching",
         "startWord": 0,
         "focusArea": {
           "x": 0.2543,
           "y": 0.2231,
           "w": 0.2214,
           "h": 0.1683,
-          "label": "Correctness and its measures",
+          "label": "Coral Reef Ecosystems and their Decline",
           "focus": 0.35
         }
       },
       {
-        "imageUrl": "https://images.pexels.com/photos/35630647/pexels-photo-35630647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageUrl": "https://images.pexels.com/photos/14615246/pexels-photo-14615246.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
         "imageSource": "pexels",
-        "imageKeyword": "future technology city scenarios development",
-        "visualPrompt": "Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails",
-        "label": "It becomes an enduring",
-        "startWord": 15,
+        "imageKeyword": "structured reef reproduction atolls and",
+        "visualPrompt": "The section \"How a Reef is Structured\" of the source document, showing its own wording and structure.",
+        "label": "Sexual and asexual reproduction",
+        "startWord": 13,
         "focusArea": {
           "x": 0.5243,
           "y": 0.2231,
           "w": 0.2214,
           "h": 0.1683,
-          "label": "Quality Models, Models for quality assessment, Product quality",
+          "label": "Reef zonation by depth",
           "focus": 0.35
         }
       },
       {
-        "imageUrl": "https://images.pexels.com/photos/35630647/pexels-photo-35630647.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageUrl": "https://images.pexels.com/photos/35497187/pexels-photo-35497187.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
         "imageSource": "pexels",
-        "imageKeyword": "future technology city importance of",
-        "visualPrompt": "Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails",
-        "label": "organizations, and the future",
-        "startWord": 24,
+        "imageKeyword": "structured reef reproduction thermal stress",
+        "visualPrompt": "The section \"How a Reef is Structured\" of the source document, showing its own wording and structure.",
+        "label": "chemistry Reef accretion and",
+        "startWord": 25,
         "focusArea": {
           "x": 0.2543,
           "y": 0.2591,
           "w": 0.2214,
           "h": 0.3367,
-          "label": "Importance of software quality",
+          "label": "Thermal stress and bleaching",
           "focus": 0.35
         }
       }
@@ -2254,186 +587,382 @@
       "y": 0.2231,
       "w": 0.2214,
       "h": 0.1683,
-      "label": "Correctness and its measures",
+      "label": "Coral Reef Ecosystems and their Decline",
       "focus": 0.35
     },
-    "audioPath": "audio/scene-12.mp3",
-    "durationInFrames": 516,
+    "audioPath": "audio/scene-3.mp3",
+    "durationInFrames": 623,
     "wordTimings": [
       {
-        "word": "When",
+        "word": "symbiotic",
         "startFrame": 0,
-        "endFrame": 8
+        "endFrame": 22
       },
       {
-        "word": "measurement,",
-        "startFrame": 8,
-        "endFrame": 38
+        "word": "algae",
+        "startFrame": 22,
+        "endFrame": 34
       },
       {
-        "word": "testing,",
-        "startFrame": 38,
-        "endFrame": 60
+        "word": "Mass",
+        "startFrame": 34,
+        "endFrame": 44
       },
       {
-        "word": "and",
-        "startFrame": 60,
+        "word": "bleaching",
+        "startFrame": 44,
         "endFrame": 66
       },
       {
-        "word": "thoughtful",
+        "word": "events",
         "startFrame": 66,
+        "endFrame": 81
+      },
+      {
+        "word": "of",
+        "startFrame": 81,
         "endFrame": 86
       },
       {
-        "word": "design",
+        "word": "1998",
         "startFrame": 86,
-        "endFrame": 98
+        "endFrame": 96
       },
       {
-        "word": "work",
-        "startFrame": 98,
-        "endFrame": 106
+        "word": "and",
+        "startFrame": 96,
+        "endFrame": 103
       },
       {
-        "word": "together,",
-        "startFrame": 106,
-        "endFrame": 130
+        "word": "2016",
+        "startFrame": 103,
+        "endFrame": 113
       },
       {
-        "word": "reliability",
-        "startFrame": 130,
-        "endFrame": 152
+        "word": "Coral",
+        "startFrame": 113,
+        "endFrame": 125
       },
       {
-        "word": "becomes",
-        "startFrame": 152,
-        "endFrame": 166
+        "word": "Growth",
+        "startFrame": 125,
+        "endFrame": 140
       },
       {
-        "word": "more",
-        "startFrame": 166,
-        "endFrame": 174
+        "word": "and",
+        "startFrame": 140,
+        "endFrame": 147
       },
       {
-        "word": "than",
-        "startFrame": 174,
-        "endFrame": 182
+        "word": "Reproduction",
+        "startFrame": 147,
+        "endFrame": 176
       },
       {
-        "word": "a",
-        "startFrame": 182,
-        "endFrame": 184
+        "word": "Sexual",
+        "startFrame": 176,
+        "endFrame": 191
       },
       {
-        "word": "final",
-        "startFrame": 184,
-        "endFrame": 194
+        "word": "and",
+        "startFrame": 191,
+        "endFrame": 198
       },
       {
-        "word": "inspection.",
-        "startFrame": 194,
-        "endFrame": 227
+        "word": "asexual",
+        "startFrame": 198,
+        "endFrame": 215
       },
       {
-        "word": "It",
-        "startFrame": 227,
-        "endFrame": 231
+        "word": "reproduction",
+        "startFrame": 215,
+        "endFrame": 244
       },
       {
-        "word": "becomes",
-        "startFrame": 231,
-        "endFrame": 245
+        "word": "Larval",
+        "startFrame": 244,
+        "endFrame": 259
       },
       {
-        "word": "an",
-        "startFrame": 245,
-        "endFrame": 249
+        "word": "dispersal",
+        "startFrame": 259,
+        "endFrame": 281
       },
       {
-        "word": "enduring",
-        "startFrame": 249,
-        "endFrame": 265
+        "word": "across",
+        "startFrame": 281,
+        "endFrame": 296
       },
       {
-        "word": "engineering",
-        "startFrame": 265,
-        "endFrame": 287
+        "word": "currents",
+        "startFrame": 296,
+        "endFrame": 316
       },
       {
-        "word": "habit",
-        "startFrame": 287,
-        "endFrame": 297
+        "word": "Calcification",
+        "startFrame": 316,
+        "endFrame": 348
+      },
+      {
+        "word": "rates",
+        "startFrame": 348,
+        "endFrame": 360
+      },
+      {
+        "word": "in",
+        "startFrame": 360,
+        "endFrame": 365
+      },
+      {
+        "word": "changing",
+        "startFrame": 365,
+        "endFrame": 385
+      },
+      {
+        "word": "chemistry",
+        "startFrame": 385,
+        "endFrame": 407
+      },
+      {
+        "word": "Reef",
+        "startFrame": 407,
+        "endFrame": 417
+      },
+      {
+        "word": "accretion",
+        "startFrame": 417,
+        "endFrame": 439
+      },
+      {
+        "word": "and",
+        "startFrame": 439,
+        "endFrame": 446
+      },
+      {
+        "word": "island",
+        "startFrame": 446,
+        "endFrame": 461
+      },
+      {
+        "word": "formation",
+        "startFrame": 461,
+        "endFrame": 483
+      },
+      {
+        "word": "Coral",
+        "startFrame": 483,
+        "endFrame": 495
+      },
+      {
+        "word": "gardening",
+        "startFrame": 495,
+        "endFrame": 517
+      },
+      {
+        "word": "and",
+        "startFrame": 517,
+        "endFrame": 524
+      },
+      {
+        "word": "nursery",
+        "startFrame": 524,
+        "endFrame": 541
+      },
+      {
+        "word": "transplantation",
+        "startFrame": 541,
+        "endFrame": 578
+      },
+      {
+        "word": "Heat",
+        "startFrame": 578,
+        "endFrame": 588
+      },
+      {
+        "word": "tolerant.",
+        "startFrame": 588,
+        "endFrame": 623
+      }
+    ]
+  },
+  {
+    "sceneNumber": 4,
+    "narratorText": "Notice that coral breeding Marine protected area design Community based reef management The Future of Living Reefs Reef restoration at scale Monitoring bleaching from orbit.",
+    "title": "Atolls and coral islands",
+    "badge": "Planning",
+    "visualPrompt": "The section \"Atolls and coral islands\" of the source document, showing its own wording and structure.",
+    "imageKeyword": "islands atolls reef restoration",
+    "imageUrl": "https://images.pexels.com/photos/14615246/pexels-photo-14615246.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "imageSource": "pexels",
+    "beats": [
+      {
+        "imageUrl": "https://images.pexels.com/photos/14615246/pexels-photo-14615246.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageSource": "pexels",
+        "imageKeyword": "islands atolls reef coral reef",
+        "visualPrompt": "The section \"Atolls and coral islands\" of the source document, showing its own wording and structure.",
+        "label": "Notice that coral breeding",
+        "startWord": 0,
+        "focusArea": {
+          "x": 0.2543,
+          "y": 0.2231,
+          "w": 0.2214,
+          "h": 0.1683,
+          "label": "Coral Reef Ecosystems and their Decline",
+          "focus": 0.35
+        }
+      },
+      {
+        "imageUrl": "https://images.pexels.com/photos/14615246/pexels-photo-14615246.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "imageSource": "pexels",
+        "imageKeyword": "islands atolls reef reef zonation",
+        "visualPrompt": "The section \"Atolls and coral islands\" of the source document, showing its own wording and structure.",
+        "label": "Future of Living Reefs",
+        "startWord": 13,
+        "focusArea": {
+          "x": 0.5243,
+          "y": 0.2231,
+          "w": 0.2214,
+          "h": 0.1683,
+          "label": "Threats to Coral Reefs",
+          "focus": 0.35
+        }
+      }
+    ],
+    "focusArea": {
+      "x": 0.2543,
+      "y": 0.2231,
+      "w": 0.2214,
+      "h": 0.1683,
+      "label": "Coral Reef Ecosystems and their Decline",
+      "focus": 0.35
+    },
+    "audioPath": "audio/scene-4.mp3",
+    "durationInFrames": 342,
+    "wordTimings": [
+      {
+        "word": "Notice",
+        "startFrame": 0,
+        "endFrame": 13
       },
       {
         "word": "that",
-        "startFrame": 297,
-        "endFrame": 305
+        "startFrame": 13,
+        "endFrame": 22
       },
       {
-        "word": "protects",
-        "startFrame": 305,
-        "endFrame": 321
+        "word": "coral",
+        "startFrame": 22,
+        "endFrame": 33
       },
       {
-        "word": "people,",
-        "startFrame": 321,
-        "endFrame": 341
+        "word": "breeding",
+        "startFrame": 33,
+        "endFrame": 51
       },
       {
-        "word": "organizations,",
-        "startFrame": 341,
-        "endFrame": 374
+        "word": "Marine",
+        "startFrame": 51,
+        "endFrame": 64
       },
       {
-        "word": "and",
-        "startFrame": 374,
-        "endFrame": 380
+        "word": "protected",
+        "startFrame": 64,
+        "endFrame": 84
       },
       {
-        "word": "the",
-        "startFrame": 380,
-        "endFrame": 386
+        "word": "area",
+        "startFrame": 84,
+        "endFrame": 93
       },
       {
-        "word": "future",
-        "startFrame": 386,
-        "endFrame": 398
+        "word": "design",
+        "startFrame": 93,
+        "endFrame": 106
       },
       {
-        "word": "they",
-        "startFrame": 398,
-        "endFrame": 406
+        "word": "Community",
+        "startFrame": 106,
+        "endFrame": 126
       },
       {
-        "word": "build",
-        "startFrame": 406,
-        "endFrame": 416
+        "word": "based",
+        "startFrame": 126,
+        "endFrame": 137
       },
       {
-        "word": "with",
-        "startFrame": 416,
-        "endFrame": 424
+        "word": "reef",
+        "startFrame": 137,
+        "endFrame": 146
       },
       {
-        "word": "confidence,",
-        "startFrame": 424,
-        "endFrame": 452
+        "word": "management",
+        "startFrame": 146,
+        "endFrame": 168
       },
       {
-        "word": "clarity,",
-        "startFrame": 452,
-        "endFrame": 474
+        "word": "The",
+        "startFrame": 168,
+        "endFrame": 175
       },
       {
-        "word": "and",
-        "startFrame": 474,
-        "endFrame": 480
+        "word": "Future",
+        "startFrame": 175,
+        "endFrame": 188
       },
       {
-        "word": "accountability.",
-        "startFrame": 480,
-        "endFrame": 516
+        "word": "of",
+        "startFrame": 188,
+        "endFrame": 192
+      },
+      {
+        "word": "Living",
+        "startFrame": 192,
+        "endFrame": 205
+      },
+      {
+        "word": "Reefs",
+        "startFrame": 205,
+        "endFrame": 216
+      },
+      {
+        "word": "Reef",
+        "startFrame": 216,
+        "endFrame": 225
+      },
+      {
+        "word": "restoration",
+        "startFrame": 225,
+        "endFrame": 249
+      },
+      {
+        "word": "at",
+        "startFrame": 249,
+        "endFrame": 253
+      },
+      {
+        "word": "scale",
+        "startFrame": 253,
+        "endFrame": 264
+      },
+      {
+        "word": "Monitoring",
+        "startFrame": 264,
+        "endFrame": 286
+      },
+      {
+        "word": "bleaching",
+        "startFrame": 286,
+        "endFrame": 306
+      },
+      {
+        "word": "from",
+        "startFrame": 306,
+        "endFrame": 315
+      },
+      {
+        "word": "orbit.",
+        "startFrame": 315,
+        "endFrame": 342
       }
     ]
   }

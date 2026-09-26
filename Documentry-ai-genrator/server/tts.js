@@ -147,11 +147,10 @@ async function cloneClientVoice(voiceSamplePath) {
 
 	const apiKey = process.env.ELEVENLABS_API_KEY;
 	if (!apiKey) {
-		console.warn(`\n[VOICE SETUP] ⚠️  Client voice sample specified: "${voiceSamplePath}"`);
-		console.warn('[VOICE SETUP] Notice: ELEVENLABS_API_KEY is not set in environment.');
-		console.warn('[VOICE SETUP] To clone the client voice with ElevenLabs, set ELEVENLABS_API_KEY in your .env or environment.');
-		console.warn('[VOICE SETUP] Proceeding with high-quality neural teacher voice (en-US-AndrewNeural).\n');
-		return { voiceId: null, status: 'fallback', voiceName: DEFAULT_EDGE_VOICE };
+		console.warn('\n[VOICE SETUP] ⚠️  Voice cloning is NOT available: ELEVENLABS_API_KEY is not set.');
+		console.warn('[VOICE SETUP] The sample is saved, but narration will use the default neural voice.');
+		console.warn('[VOICE SETUP] To clone the client voice, add ELEVENLABS_API_KEY to .env and restart.\n');
+		return { voiceId: null, status: 'no-key', voiceName: DEFAULT_EDGE_VOICE, reason: 'ELEVENLABS_API_KEY is not set on the server.' };
 	}
 
 	console.log(`[VOICE SETUP] 🎙️  Cloning client voice from "${path.basename(voiceSamplePath)}"...`);
@@ -170,11 +169,27 @@ async function cloneClientVoice(voiceSamplePath) {
 			'xi-api-key': apiKey,
 		},
 		body: formData,
+		signal: AbortSignal.timeout(60000),
 	});
 
 	if (!response.ok) {
+		// Surface the provider's own reason. Silently falling back is what made
+		// this look broken: the user uploaded a voice and nothing happened.
 		const errorText = await response.text();
-		throw new Error(`ElevenLabs Voice Cloning HTTP ${response.status}: ${errorText.slice(0, 300)}`);
+		let reason = errorText.slice(0, 400);
+		try {
+			const parsed = JSON.parse(errorText);
+			reason = parsed?.detail?.message || parsed?.detail || parsed?.message || reason;
+		} catch {
+			/* keep the raw text */
+		}
+		if (response.status === 401) {
+			reason = `ElevenLabs rejected the API key (401). ${reason}`;
+		}
+		throw new Error(
+			`Voice cloning failed (HTTP ${response.status}): ${reason}\n` +
+				'  The account may need voice-cloning access, or the free tier may be disabled.',
+		);
 	}
 
 	const data = await response.json();

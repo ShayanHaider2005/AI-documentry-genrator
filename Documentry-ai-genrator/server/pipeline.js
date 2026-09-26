@@ -33,7 +33,8 @@ try {
 
 const { parseAndCleanPdf } = require('./parsePdf');
 const { ensureSamplePdf } = require('./sample');
-const { getAiProvider } = require('./llm');
+const { generateDocumentScenes } = require('./script');
+const { getAiProvider, chatCompletion } = require('./llm');
 const {
 	deriveTitle,
 	extractOutline,
@@ -64,21 +65,21 @@ const FRAMES_PER_SECOND = 30;
 // LLM system prompt — Executive Documentary Host (Neil deGrasse Tyson style)
 // ---------------------------------------------------------------------------
 const SCRIPT_SYSTEM_PROMPT = `You are an Executive Documentary Host and Producer in the tradition of Neil deGrasse Tyson and David Attenborough.
-Your sole mission: synthesize the core concepts from the provided educational text into an extended, in-depth documentary structure of 8 to 12 scenes (producing a longer, 3-5 minute video).
+Your sole mission: synthesize the core concepts from the provided educational text into an in-depth documentary structure of 6 to 8 scenes.
 
 STRICT RULES — VIOLATE NONE:
 1. NEVER read slide layouts, headers, footers, bullet headers, or administrative notes.
 2. NEVER output course codes, instructor names, email addresses, room numbers, or grading policies.
-3. DO NOT produce meta-commentary, conversational remarks, or markdown fences outside the JSON payload.
-4. Produce between 8 and 12 sequential documentary scenes covering the educational journey in progressive depth.
-5. Each scene's "narratorText" MUST be 100% natural, spoken conversational prose (25–40 words per scene) tailored for human ears.
+3. DO NOT produce meta-commentary, conversational remarks, or markdown fences outside the JSON payload. Keep the JSON compact: no extra fields, no repetition.
+4. Produce between 6 and 8 sequential documentary scenes covering the educational journey in progressive depth.
+5. Each scene's "narratorText" MUST be 100% natural, spoken conversational prose (25–45 words per scene) tailored for human ears.
 6. Each "narratorText" MUST end with a sentence-terminating punctuation mark (. ! ?).
 7. Each scene MUST include an "imageKeyword" of 2–5 words that names the SPECIFIC concept being narrated, taken from the source text. Vague queries such as "technology", "business team", "modern office" or "abstract background" are FORBIDDEN. Every visual must be traceable to the document's subject matter.
 8. Each scene MUST include a "visualPrompt" describing what is literally on screen, including the document structure, pattern, diagram or artefact the narrator is explaining.
 9. Output ONLY a valid JSON array matching the required schema.
 10. Each scene MUST include a "title": a short 2–6 word chapter heading rendered as on-screen chapter text.
 11. Each scene MUST include a "badge": a 1–3 word category tag rendered as a small on-screen chip.
-12. Each scene MUST include a "beats" array of 2–3 parts. Every part has its own visual and its own "atWord", so the video changes image and moves the on-screen pointer exactly when that word is spoken:
+12. Each scene MUST include a "beats" array of 2 parts. Every part has its own visual and its own "atWord", so the video changes image exactly when that word is spoken:
     - "atWord": the first word of the sentence in "narratorText" that this part covers (copy it verbatim).
     - "imageKeyword": a specific 2–5 word query for THIS part.
     - "focusArea": the region of THIS part's visual to point at, normalised 0–1, plus a short "label".
@@ -123,7 +124,68 @@ function parseAiJson(content) {
 		.replace(/^```(?:json)?\s*/i, '')
 		.replace(/\s*```$/i, '')
 		.trim();
-	return JSON.parse(unwrapped || '[]');
+
+	try {
+		return JSON.parse(unwrapped || '[]');
+	} catch {
+		// The response may have been cut off mid-object by the token limit.
+		// Salvage the longest run of complete top-level objects.
+		const salvaged = salvageJsonArray(unwrapped);
+		if (salvaged.length > 0) {
+			console.warn(
+				`[SCRIPT] JSON was truncated; salvaged ${salvaged.length} complete scene(s)`,
+			);
+		}
+		return salvaged;
+	}
+}
+
+/** Recover complete objects from a truncated JSON array. */
+function salvageJsonArray(text) {
+	const start = text.indexOf('[');
+	if (start < 0) return [];
+
+	const objects = [];
+	let depth = 0;
+	let inString = false;
+	let escaped = false;
+	let objectStart = -1;
+
+	for (let i = start + 1; i < text.length; i++) {
+		const char = text[i];
+
+		if (escaped) {
+			escaped = false;
+			continue;
+		}
+		if (char === '\\') {
+			escaped = true;
+			continue;
+		}
+		if (char === '"') {
+			inString = !inString;
+			continue;
+		}
+		if (inString) continue;
+
+		if (char === '{') {
+			if (depth === 0) objectStart = i;
+			depth++;
+		} else if (char === '}') {
+			depth--;
+			if (depth === 0 && objectStart >= 0) {
+				const candidate = text.slice(objectStart, i + 1);
+				try {
+					objects.push(JSON.parse(candidate));
+				} catch {
+					/* skip malformed object */
+				}
+				objectStart = -1;
+			}
+		}
+	}
+
+	return objects;
 }
 
 /** Clamp a number into 0..1. */
@@ -167,136 +229,63 @@ function normalizeFocusArea(raw, outline, sceneIndex) {
 	return buildFocusArea(outline, sceneIndex, { focus: 0.35 });
 }
 
+/** Fill in anything the model omitted, so a scene is always renderable. */
+function normalizeScene(scene, index) {
+	const narratorText = String(scene.narratorText || '')
+		.replace(/\s+/g, ' ')
+		.trim();
+	if (!narratorText) return null;
+
+	const keyword = String(scene.imageKeyword || '').trim();
+
+	return {
+		sceneNumber: Number.isInteger(scene.sceneNumber) ? scene.sceneNumber : index + 1,
+		narratorText: /[.!?]$/.test(narratorText) ? narratorText : `${narratorText}.`,
+		title: String(scene.title || `Chapter ${index + 1}`).slice(0, 70),
+		badge: String(scene.badge || 'Chapter').slice(0, 40),
+		visualPrompt: String(scene.visualPrompt || '').slice(0, 300),
+		imageKeyword: keyword || 'document overview',
+		beats: Array.isArray(scene.beats) ? scene.beats : undefined,
+	};
+}
+
+/** Prefer strictly valid scenes, but never throw away usable LLM output. */
+function collectScenes(parsed) {
+	const raw = Array.isArray(parsed) ? parsed : [];
+	const withText = raw
+		.map((scene, index) => normalizeScene(scene, index))
+		.filter(Boolean);
+
+	if (withText.length === 0) return [];
+
+	const strict = raw.filter(isValidScene);
+	if (strict.length > 0) {
+		if (strict.length < withText.length) {
+			console.warn(
+				`[SCRIPT] ${withText.length - strict.length} scene(s) failed the quality gate and were repaired`,
+			);
+		}
+		return withText;
+	}
+
+	console.warn(
+		`[SCRIPT] No scene passed the strict quality gate; using all ${withText.length} repaired scene(s)`,
+	);
+	return withText;
+}
+
 function isValidScene(scene) {
 	const text = String(scene?.narratorText || '').trim();
 	const wordCount = text.split(/\s+/).filter(Boolean).length;
 	const keyword = String(scene?.imageKeyword || '').trim();
 	return (
 		Number.isInteger(scene?.sceneNumber) &&
-		wordCount >= 25 &&
-		wordCount <= 45 &&
+		wordCount >= 20 &&
+		wordCount <= 55 &&
 		/[.!?]$/.test(text) &&
 		// The keyword must be specific to the subject, not a vague stock query.
 		isSpecificKeyword(keyword)
 	);
-}
-
-// ---------------------------------------------------------------------------
-// Extended Thematic Fallback Synthesizer (Generates 8-10 in-depth scenes)
-// ---------------------------------------------------------------------------
-function generateExtendedThematicScenes(cleanText) {
-	console.log('[SCRIPT] Generating extended 8-scene documentary script from educational concepts...');
-
-	return [
-		{
-			sceneNumber: 1,
-			narratorText:
-				'Every complex software system begins as an abstract architecture. Behind every seamless digital interaction lies an intricate foundation of engineering discipline, designed to endure immense operational stress.',
-			title: 'The Architecture of Quality',
-			badge: 'Foundations',
-			visualPrompt: 'Vast luminous digital blueprint and architectural schematics glowing in a dark modern studio',
-			imageKeyword: 'digital software architecture',
-		},
-		{
-			sceneNumber: 2,
-			narratorText:
-				'Quality is never an accidental triumph. In modern computer science, we do not merely hope our software functions reliably; we systematically engineer quality directly into every line of source code.',
-			title: 'Quality by Design',
-			badge: 'Foundations',
-			visualPrompt: 'Close up of ultra crisp code algorithms streaming across dual high resolution curved monitors',
-			imageKeyword: 'programming code screen',
-		},
-		{
-			sceneNumber: 3,
-			narratorText:
-				'Global benchmarks like ISO standards provide the mathematical scaffolding for engineering teams, establishing unambiguous definitions for software maintainability, operational efficiency, and cryptographic resilience across every stage of development and deployment.',
-			title: 'Standards and Definitions',
-			badge: 'Standards',
-			visualPrompt: 'Holographic network grid with data verification checks and standardized compliance metrics',
-			imageKeyword: 'cyber security network',
-		},
-		{
-			sceneNumber: 4,
-			narratorText:
-				'The Software Quality Assurance Plan serves as the master contract of reliability, guiding development teams through formal design verification and rigorous architectural reviews before a single deployment occurs.',
-			title: 'The Quality Assurance Plan',
-			badge: 'Planning',
-			visualPrompt: 'Collaborative engineering war room with architects analyzing system architecture blueprints',
-			imageKeyword: 'software engineer team',
-		},
-		{
-			sceneNumber: 5,
-			narratorText:
-				'Static testing forms our primary defensive perimeter. Through structured peer reviews and automated code inspections, engineers uncover subtle logic flaws long before software ever executes in memory.',
-			title: 'The Static Testing Perimeter',
-			badge: 'Testing',
-			visualPrompt: 'Deep abstract inspection tree parsing complex syntax structures with neon highlight nodes',
-			imageKeyword: 'data analytics server',
-		},
-		{
-			sceneNumber: 6,
-			narratorText:
-				'Dynamic testing shifts the paradigm from theoretical inspection to aggressive operational execution, bombarding the system with unpredictable boundary conditions, stress loads, and concurrent transactions while revealing weaknesses hidden beneath normal operating conditions.',
-			title: 'Dynamic Testing Under Load',
-			badge: 'Testing',
-			visualPrompt: 'Server cluster processing high volume transaction streams with pulsing server indicators',
-			imageKeyword: 'server room datacenter',
-		},
-		{
-			sceneNumber: 7,
-			narratorText:
-				'From isolated unit tests to end-to-end integration across distributed clusters, specification-based testing guarantees that every microservice behaves harmoniously under real-world pressure, so complex products feel coherent, responsive, and dependable.',
-			title: 'From Units to Integration',
-			badge: 'Testing',
-			visualPrompt: 'Interconnected glowing cloud microservices exchanging data packets across a digital globe',
-			imageKeyword: 'cloud technology network',
-		},
-		{
-			sceneNumber: 8,
-			narratorText:
-				'Quantifiable quality measurement models allow engineering leaders to track defect densities and reliability growth curves, transforming subjective hunches into empirical mathematical certainty across teams, releases, and changing operational conditions.',
-			title: 'Measuring Reliability',
-			badge: 'Metrics',
-			visualPrompt: 'Financial and operational telemetry dashboards showing system stability trajectories and performance metrics',
-			imageKeyword: 'technology dashboard analytics',
-		},
-		{
-			sceneNumber: 9,
-			narratorText:
-				'Ultimately, software quality engineering is not about finding bugs; it is about building unwavering human trust in the invisible digital systems that power our modern world.',
-			title: 'Trust in the Invisible',
-			badge: 'Impact',
-			visualPrompt: 'Wide panoramic sunrise over a modern smart metropolis connected by streams of light and data',
-			imageKeyword: 'modern smart city',
-		},
-		{
-			sceneNumber: 10,
-			narratorText:
-				'Risk-based testing helps teams spend their strongest attention where failure would matter most, balancing technical evidence, user impact, and operational uncertainty before each release reaches the public.',
-			title: 'Risk-Based Prioritization',
-			badge: 'Strategy',
-			visualPrompt: 'Cinematic operations center with engineers studying risk maps and release readiness indicators',
-			imageKeyword: 'risk analysis technology',
-		},
-		{
-			sceneNumber: 11,
-			narratorText:
-				'Continuous integration turns quality into a daily practice. Small changes are assembled, tested, and measured repeatedly, allowing teams to discover regression early while the source of a problem remains visible.',
-			title: 'The Daily Practice of Integration',
-			badge: 'Practice',
-			visualPrompt: 'Automated deployment pipeline visualized as luminous connected stages across a modern control room',
-			imageKeyword: 'continuous integration pipeline',
-		},
-		{
-			sceneNumber: 12,
-			narratorText:
-				'When measurement, testing, and thoughtful design work together, reliability becomes more than a final inspection. It becomes an enduring engineering habit that protects people, organizations, and the future they build with confidence, clarity, and accountability.',
-			title: 'Reliability as a Habit',
-			badge: 'Closing',
-			visualPrompt: 'Hopeful wide shot of engineers overlooking a connected city at sunrise with subtle data trails',
-			imageKeyword: 'future technology city',
-		},
-	];
 }
 
 // ---------------------------------------------------------------------------
@@ -309,47 +298,37 @@ async function requestLlmScript(sourceText) {
 		return null;
 	}
 
-	console.log(`[SCRIPT] Requesting extended 8-12 scene script from ${provider.name} (${provider.model})`);
+	console.log(`[SCRIPT] Requesting script from ${provider.name} (${provider.model})`);
 
-	const response = await fetch(provider.baseUrl, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${provider.apiKey}`,
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-			model: provider.model,
-			temperature: 0.72,
-			messages: [
-				{ role: 'system', content: SCRIPT_SYSTEM_PROMPT },
-				{
-					role: 'user',
-					content:
-						`Transform the following pre-filtered educational text into an extended 8 to 12 scene documentary script. ` +
-						`Write conversational, spoken documentary prose (25–40 words per scene). ` +
-						`Ensure each scene has a 2–3 word "imageKeyword" suitable for stock landscape photos. ` +
-						`Also supply a short "title" chapter heading and a 1–3 word "badge" category tag per scene.\n\n` +
-						sourceText.slice(0, 28000),
-				},
-			],
-		}),
-	});
+	// Uses the shared retrying client, which fails over between providers.
+	const { text: raw, provider: usedProvider, model: usedModel } =
+		await chatCompletion({
+			system: SCRIPT_SYSTEM_PROMPT,
+			user:
+				`Transform the following pre-filtered educational text into a 6 to 8 scene documentary script. ` +
+				`Write conversational, spoken documentary prose (25-45 words per scene). ` +
+				`Ensure each scene has a 2–5 word "imageKeyword" specific to the concept being narrated, suitable for a stock photo search. ` +
+				`Also supply a short "title" chapter heading, a 1–3 word "badge" category tag, and a "beats" array of 2 parts, each with its own imageKeyword, focusArea and the "atWord" it starts on.\n\n` +
+				`SOURCE DOCUMENT:\n"""\n${sourceText.slice(0, 24000)}\n"""`,
+			temperature: 0.7,
+			// Kept modest on purpose: long generations exhaust free-tier quotas
+			// and return 429. If every provider refuses, the document-derived
+			// path takes over.
+			maxTokens: 2500,
+		});
 
-	if (!response.ok) {
-		const body = await response.text();
-		throw new Error(`${provider.name} HTTP ${response.status}: ${body.slice(0, 300)}`);
-	}
-
-	const payload = await response.json();
-	const raw = payload.choices?.[0]?.message?.content ?? '';
 	const parsed = parseAiJson(raw);
-	const scenes = Array.isArray(parsed) ? parsed.filter(isValidScene) : [];
+	const scenes = collectScenes(parsed);
 
 	if (scenes.length === 0) {
-		throw new Error(`${provider.name} returned no valid scenes. Raw output: ${raw.slice(0, 400)}`);
+		throw new Error(
+			`${usedProvider} returned no usable scenes. Raw output: ${raw.slice(0, 400)}`,
+		);
 	}
 
-	console.log(`[SCRIPT] ${provider.name} produced ${scenes.length} valid documentary scene(s)`);
+	console.log(
+		`[SCRIPT] ${usedProvider}/${usedModel} produced ${scenes.length} valid scene(s)`,
+	);
 	return scenes;
 }
 
@@ -540,23 +519,43 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	if (!cleanText.trim()) throw new Error('PDF produced no usable content after sanitization');
 	logStep('1/5', `Extracted ${cleanText.length} sanitized characters`, step1Start);
 
-	// ── Step 2: Extended Documentary Script Generation ────────────────────
+	// ── Step 2: Documentary Script Generation ────────────────────────────
 	const step2Start = performance.now();
-	log('[2/5] Generating extended 8–12 scene documentary script...');
+	log('[2/5] Writing the documentary script from your document...');
 
-	let scenes;
-	try {
-		scenes = await requestLlmScript(cleanText);
-	} catch (llmErr) {
-		console.warn(`[SCRIPT] LLM failed (${llmErr.message}) — using extended synthesizer`);
-		scenes = null;
+	let scenes = null;
+	let scriptMode = 'llm';
+	let scriptProvider = null;
+
+	if (getAiProvider()) {
+		try {
+			scenes = await requestLlmScript(cleanText);
+			scriptProvider = 'llm';
+		} catch (llmErr) {
+			log(`[SCRIPT] LLM unavailable (${llmErr.message})`);
+			scenes = null;
+		}
+	} else {
+		log('[SCRIPT] No LLM key configured — using the document itself as the script');
 	}
 
 	if (!scenes || scenes.length === 0) {
-		scenes = generateExtendedThematicScenes(cleanText);
+		// Offline path: build the script from the document's own headings and
+		// sentences. Nothing here is fixed or pre-written.
+		scriptMode = 'document';
+		scenes = generateDocumentScenes(cleanText, extractOutline(cleanText, 10), {
+			targetScenes: 10,
+		});
+		log(
+			`[SCRIPT] Derived ${scenes.length} scene(s) directly from the document text`,
+		);
 	}
 
-	logStep('2/5', `Generated ${scenes.length} extended scene(s)`, step2Start);
+	if (!scenes || scenes.length === 0) {
+		throw new Error(
+			'Could not build a script from this document. It may be a scan with no selectable text.',
+		);
+	}
 
 	// ── Step 2b: Derive subject title + document outline ──────────────────
 	// The outline drives the synthesised document diagrams, so every visual
@@ -725,6 +724,7 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	log(`\n${'═'.repeat(60)}`);
 	log(`[PIPELINE] ✅  Documentary Engine Complete in ${(performance.now() - pipelineStart).toFixed(0)} ms`);
 	log(`[PIPELINE] Voice: ${voiceLabel}`);
+	log(`[PIPELINE] Script: ${scriptMode === 'llm' ? 'AI written' : 'derived from the document'}`);
 	log(`[PIPELINE] Subject: ${documentTitle}`);
 	log(`[PIPELINE] Extended Scenes: ${dataset.length}`);
 	log(`[PIPELINE] Total Duration: ~${totalSeconds}s (${totalFrames} frames)`);
@@ -752,7 +752,6 @@ if (require.main === module) {
 module.exports = {
 	runPipeline,
 	requestLlmScript,
-	generateExtendedThematicScenes,
 	fetchContextualImage,
 	normalizeFocusArea,
 	SCRIPT_SYSTEM_PROMPT,

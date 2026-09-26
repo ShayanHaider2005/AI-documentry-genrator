@@ -45,6 +45,46 @@ commit real keys. Every key is optional and the engine degrades gracefully:
 
 ---
 
+## How the script is written
+
+The narration is **always derived from the document you uploaded** — there is no
+pre-written script in the codebase. Two paths, in order:
+
+1. **AI-written.** If an LLM key is configured, the document is turned into a 6–8 scene
+   documentary script (`server/llm.js`). Providers are tried in order — Gemini → Groq →
+   Grok → OpenAI — and each is retried with backoff on 429/5xx, so an overloaded or
+   quota-limited provider falls through to the next instead of failing the run.
+2. **Derived from the document.** If no provider answers, `server/script.js` builds the
+   scenes from the document's own sentences and headings. The narration quotes the
+   document verbatim, so it is still specific to what you uploaded.
+
+The pipeline log always states which path was used:
+
+```
+[PIPELINE] Script: AI written
+[PIPELINE] Script: derived from the document
+```
+
+> Note: Gemini's free tier returns `429 exceeded quota` and `503 high demand` often.
+> That is why provider failover exists — configure at least two providers, or rely on
+> the document-derived path.
+
+## Voice cloning
+
+The client reads three fixed sentences aloud, records them, and uploads the clip. With a
+valid `ELEVENLABS_API_KEY` the sample is cloned and all narration uses that voice.
+
+**A failed clone is reported as a failure (HTTP 501), never a quiet success.** If the key
+is missing, invalid, or the account's free tier is disabled, the response says so
+explicitly and the endpoint does not pretend the voice was used.
+
+Common blockers: an ElevenLabs free account can be flagged with
+`401 detected_unusual_activity` (often a VPN or multiple accounts), which requires a paid
+plan. Browsers also record to webm/opus rather than MP3; export to MP3 if cloning is
+rejected.
+
+---
+
 ## How it works
 
 ```
@@ -88,30 +128,18 @@ highlights (`buildBeatKeyword`), never from the narration prose — filler like 
 complex" makes a useless stock query. With a Pexels key the current output is 12/12 scenes
 on contextual photos.
 
-### Pointer & focus overlays, in sync with the speech
+### Visuals
 
-Each scene is split into **beats** — 2 or 3 parts, derived from the narration's own phrase
-boundaries. Every beat carries:
+Each scene is split into 2–3 **beats** — parts derived from the narration's own phrase
+boundaries. Every beat carries its own visual, so imagery changes as the narrator moves
+between ideas. Beats are anchored to a word (`startWord`, or `atWord` for LLM output), and
+`resolveBeats()` resolves that to a scene-relative frame using the measured word timings,
+so the image change happens on the frame the word is spoken. The visual cross-fades over
+6 frames.
 
-- its **own visual** (a different document diagram or contextual photo), so the imagery
-  changes as the narrator moves between ideas rather than sitting still;
-- its own **highlight region** (normalised 0–1 rectangle + label);
-- the **word at which it starts** (`startWord`, or `atWord` for LLM output).
-
-The renderer resolves each beat's start frame from the measured word timings
-(`resolveBeats()` in `src/focusOverlay.ts`), so the visual change and the pointer movement
-happen on the frame that word is spoken — not on an arbitrary fraction of the scene. The
-highlight cross-fades over 6 frames, the pointer travels to the new region, then pulses and
-shows its callout label while that part is being explained. Beats with no usable word
-timing fall back to an even split, so a beat is never unscheduled.
-
-Verified on scene 1 (446 frames, 27 words): beat 1 covers words 0–8 and beat 2 starts at
-word 9 ("Behind", frame 140), where the diagram switches to the next section group and the
-pointer moves to the corresponding block.
-
-`computeDiagramLayout()` is the single source of truth for diagram geometry, shared by the
-renderer and the focus calculator, so the pointer always lands on the block it highlights.
-The page also stops above the caption band so no content hides behind the subtitles.
+There is deliberately **no pointer, cursor or highlight box** — that overlay was removed
+after it proved hard to keep in sync. The caption still highlights and underlines each word
+as it is spoken.
 
 ### Word-level highlighting
 

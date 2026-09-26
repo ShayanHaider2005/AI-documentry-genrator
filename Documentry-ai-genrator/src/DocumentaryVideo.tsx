@@ -18,7 +18,6 @@ import {
 	activeBeatIndex,
 	beatCrossfade,
 	resolveBeats,
-	resolvePointerState,
 } from './focusOverlay';
 
 const FADE_IN_FRAMES = 15;
@@ -174,13 +173,13 @@ const ProgressiveCaption: React.FC<{ scene: Scene; frame: number }> = ({
 };
 
 /**
- * Renders the active beat's visual, cross-fading to the previous one on a beat
- * change, plus the highlight callout and animated pointer.
+ * Renders the visual for the active beat, cross-fading to the previous one.
+ *
+ * Visuals change on word-anchored beat boundaries, so each part of the scene
+ * gets its own image at the point the narration reaches it. There is
+ * deliberately no pointer, callout or highlight box.
  */
-const FocusOverlay: React.FC<{ scene: Scene; frame: number }> = ({
-	scene,
-	frame,
-}) => {
+const BeatVisual: React.FC<{ scene: Scene; frame: number }> = ({ scene, frame }) => {
 	const beats = React.useMemo(() => resolveBeats(scene), [scene]);
 	const beatIndex = activeBeatIndex(beats, frame);
 	const beat = beats[beatIndex];
@@ -189,14 +188,6 @@ const FocusOverlay: React.FC<{ scene: Scene; frame: number }> = ({
 		beatIndex,
 		frame,
 	);
-
-	const pointer = resolvePointerState(beat, frame);
-	const area = pointer?.area ?? null;
-	const settled = pointer?.settled ?? false;
-
-	// Gentle breathing pulse so a settled highlight still reads as "active".
-	const pulse = settled ? 0.55 + 0.45 * Math.abs(Math.sin((frame / 34) * Math.PI)) : 1;
-	const cursorSize = 34;
 
 	const layer = (url: string | undefined, opacity: number) => {
 		const src = resolveImageUrl(url);
@@ -209,7 +200,7 @@ const FocusOverlay: React.FC<{ scene: Scene; frame: number }> = ({
 						width: '100%',
 						height: '100%',
 						objectFit: 'cover',
-						// Subtle Ken-Burns drift keeps each visual alive.
+						// Gentle drift so a still visual does not feel frozen.
 						transform: `scale(${1 + 0.04 * (frame / Math.max(1, scene.durationInFrames))})`,
 					}}
 				/>
@@ -223,82 +214,6 @@ const FocusOverlay: React.FC<{ scene: Scene; frame: number }> = ({
 				? layer(beats[previousIndex].imageUrl, previousOpacity)
 				: null}
 			{layer(beat.imageUrl, currentOpacity)}
-
-			{area ? (
-				<>
-					{/* Highlight callout around the active region */}
-					<div
-						style={{
-							position: 'absolute',
-							left: `${area.x * 100}%`,
-							top: `${area.y * 100}%`,
-							width: `${area.w * 100}%`,
-							height: `${area.h * 100}%`,
-							border: `3px solid rgba(250, 204, 21, ${settled ? 0.85 * pulse : 0.45})`,
-							borderRadius: 14,
-							backgroundColor: `rgba(250, 204, 21, ${settled ? 0.1 * pulse : 0.04})`,
-							boxShadow: settled
-								? `0 0 0 2px rgba(15, 23, 42, 0.5), 0 0 34px rgba(250, 204, 21, ${0.4 * pulse})`
-								: '0 0 18px rgba(250, 204, 21, 0.18)',
-							zIndex: 5,
-						}}
-					/>
-
-					{/* Callout label */}
-					{beat.label ? (
-						<div
-							style={{
-								position: 'absolute',
-								left: `${area.x * 100}%`,
-								top: `calc(${area.y * 100}% - 60px)`,
-								maxWidth: '34%',
-								padding: '7px 14px',
-								borderRadius: 9,
-								backgroundColor: 'rgba(15, 23, 42, 0.92)',
-								border: '1px solid rgba(250, 204, 21, 0.45)',
-								color: '#fde68a',
-								fontSize: 20,
-								fontWeight: 700,
-								letterSpacing: '0.01em',
-								whiteSpace: 'nowrap',
-								overflow: 'hidden',
-								textOverflow: 'ellipsis',
-								boxShadow: '0 8px 22px rgba(0, 0, 0, 0.55)',
-								opacity: settled ? 1 : 0,
-								transform: `translateY(${settled ? 0 : -6}px)`,
-								transition: 'opacity 200ms linear, transform 200ms ease-out',
-								zIndex: 6,
-							}}
-						>
-							{beat.label}
-						</div>
-					) : null}
-
-					{/* Animated pointer at the top-left corner of the target region */}
-					<div
-						style={{
-							position: 'absolute',
-							left: `calc(${area.x * 100}% - ${cursorSize / 3}px)`,
-							top: `calc(${area.y * 100}% - ${cursorSize / 2}px)`,
-							width: cursorSize,
-							height: cursorSize,
-							filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.65))',
-							opacity: settled ? 1 : 0.75,
-							zIndex: 7,
-						}}
-					>
-						<svg viewBox="0 0 24 24" width={cursorSize} height={cursorSize}>
-							<path
-								d="M4 2 L4 20 L9 15.5 L12.2 22 L15 20.9 L11.9 14.5 L18.5 14.5 Z"
-								fill="#facc15"
-								stroke="#0f172a"
-								strokeWidth="1.4"
-								strokeLinejoin="round"
-							/>
-						</svg>
-					</div>
-				</>
-			) : null}
 		</AbsoluteFill>
 	);
 };
@@ -335,15 +250,15 @@ const SceneContent: React.FC<SceneContentProps> = ({
 				<AbsoluteFill style={{ opacity, background: placeholderBackdrop(scene.sceneNumber) }} />
 			) : null}
 
-			{/* Contextual visuals + pointer / highlight overlay, in step with the narration */}
-			<FocusOverlay scene={scene} frame={frame} />
+			{/* Visual for the active beat, switched in step with the narration */}
+			<BeatVisual scene={scene} frame={frame} />
 
 			{/* Cinematic vignette & shadow gradients */}
 			<div style={VIGNETTE_TOP} />
 			<div style={VIGNETTE_BOTTOM} />
 
-			{/* Contextual pointer / highlight overlay over the active region */}
-			<FocusOverlay scene={scene} frame={frame} />
+			{/* Visual for the active beat, switched in step with the narration */}
+			<BeatVisual scene={scene} frame={frame} />
 
 			{/* Data-driven header: chapter heading + numeric progress only */}
 			{hasHeading || totalScenes > 0 ? (

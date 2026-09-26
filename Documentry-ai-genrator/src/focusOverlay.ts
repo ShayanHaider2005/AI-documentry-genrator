@@ -179,39 +179,3 @@ export const beatCrossfade = (
 		previousIndex: beatIndex - 1,
 	};
 };
-
-/** Frames the pointer takes to travel between two targets. */
-const TRAVEL_FRAMES = 12;
-
-/** Where the pointer should be for the active beat, plus its travel progress. */
-export const resolvePointerState = (
-	beat: ResolvedBeat,
-	frame: number,
-): { area: FocusArea; progress: number; settled: boolean } | null => {
-	const area = beat.area;
-	if (!area) return null;
-
-	// Fly in from below on the first beat of the scene.
-	if (beat.startFrame === 0) {
-		const ENTRY_FRAMES = 10;
-		if (frame < ENTRY_FRAMES) {
-			return {
-				area: { ...area, y: area.y + (1.08 - area.y) * (1 - easeInOut(frame / ENTRY_FRAMES)) },
-				progress: easeInOut(frame / ENTRY_FRAMES),
-				settled: false,
-			};
-		}
-	}
-
-	// Travel in from the previous beat's region when the visual changes.
-	const sinceStart = frame - beat.startFrame;
-	if (sinceStart >= 0 && sinceStart < TRAVEL_FRAMES) {
-		return {
-			area: { ...area },
-			progress: easeInOut(sinceStart / TRAVEL_FRAMES),
-			settled: sinceStart >= TRAVEL_FRAMES - 2,
-		};
-	}
-
-	return { area: { ...area }, progress: 1, settled: true };
-};
