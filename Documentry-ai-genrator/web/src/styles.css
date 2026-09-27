@@ -46,6 +46,30 @@ body {
 	max-height: 100%;
 }
 
+/* Full-width notice that sits above the sidebar/main split */
+.banner {
+	grid-column: 1 / -1;
+	padding: 14px 20px;
+	font-size: 14px;
+	line-height: 1.6;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.banner code {
+	padding: 2px 6px;
+	border-radius: 4px;
+	background: rgba(255, 255, 255, 0.1);
+	font-size: 13px;
+}
+.banner .hint {
+	display: block;
+	margin-top: 6px;
+	opacity: 0.85;
+}
+.banner-err {
+	background: rgba(239, 68, 68, 0.14);
+	color: #fecaca;
+}
+
 /* Sidebar + main split */
 .shell {
 	display: grid;

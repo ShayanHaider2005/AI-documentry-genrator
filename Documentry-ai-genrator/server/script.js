@@ -333,19 +333,28 @@ function buildConclusionScene({ cleanText, outline = [], documentTitle = '' }) {
 		.map((s) =>
 			// A heading on its own line gets joined to the sentence below it, so
 			// "Conclusion Quality is not achieved by..." arrives with the heading
-			// still attached. Strip it.
+			// still attached. Strip it wherever it appears.
 			String(s)
 				.replace(
 					/^\s*(?:conclusion|concluding|conclude|in summary|to conclude|overview|references|bibliography|thank you|thanks|questions?)\s*[:\-—]?\s*/i,
 					'',
 				)
+				.replace(
+					/\s+(?:conclusion|concluding|in summary|to conclude|references|bibliography|thank you|thanks|questions?)\s+(?=[A-Z])/gi,
+					' ',
+				)
 				.trim(),
 		)
-		.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
 		.filter(
 			(s) =>
 				wordCount(s) >= 12 &&
 				wordCount(s) <= 45 &&
+				// Must be a complete sentence. The sentence stream breaks
+				// over-long text at clause boundaries, so a candidate can be a
+				// fragment ending mid-word ("...uncomfortable informatio").
+				// Quoting that as the takeaway reads as a bug.
+				/[.!?]$/.test(s) &&
+				/\p{L}{3,}[.!?]$/u.test(s) &&
 				!/^(thank you|thanks|questions?|q&a|summary|references|bibliography)\b/i.test(s),
 		)
 		.pop() || '';

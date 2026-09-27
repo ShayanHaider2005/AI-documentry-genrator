@@ -325,6 +325,23 @@ export const App: React.FC = () => {
 			</header>
 
 			<div className="shell">
+				{/* Voice cloning depends on a local service. If it is not up, say so
+				    loudly here rather than letting the failure surface much later as
+				    an unexplained "your voice was not used" message. */}
+				{config && !config.voiceCloningAvailable ? (
+					<div className="banner banner-err">
+						<strong>Voice cloning is not running, so your voice will not be used.</strong>{' '}
+						Narration will use {config.fallbackVoice}. Start the local voice
+						service, then reload this page:
+						<code>npm run voice:start</code>
+						<span className="hint">
+							First time on a new machine? Run <code>npm run voice:setup</code> once,
+							then <code>npm run voice:start</code>. <code>npm run web</code> starts
+							both for you.
+						</span>
+					</div>
+				) : null}
+
 				{/* ------------------------------------------------ sidebar */}
 				<aside className="sidebar">
 					<Button variant="primary" block onClick={handleNewVideo}>

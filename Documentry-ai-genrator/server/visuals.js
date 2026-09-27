@@ -44,9 +44,43 @@ const NON_SECTION = /^(introduction|conclusion|overview|objectives?|aims?|summar
 const CREDENTIAL_LINE =
 	/\b(graduat|bachelor|masters?|phd|doctorate)\b|\b(b\.?s\.?|m\.?s\.?|bsse|msse|bscs|mscs)\b/i;
 
-/** Administrative headings that describe the course, not the subject. */
+/**
+ * Administrative headings that describe the course, not the subject.
+ *
+ * Short headings now survive PDF sanitization (they are the section titles),
+ * which also lets course scaffolding through, so the list has to be thorough.
+ * Apostrophes are stripped upstream, so "TODAY'S OUTLINE" arrives as
+ * "TODAY S OUTLINE" and patterns must tolerate the gap.
+ */
 const ADMIN_HEADING =
-	/\b(course|syllabus|credits?|grading|instructor|professor|lecturer|faculty|university|department|assessment\s+criteria|topics?\s+of\s+the\s+course)\b/i;
+	/\b(course|syllabus|credits?|grading|instructor|professor|lecturer|faculty|university|department|assessment|administrative|admin|housekeeping|logistics|welcome|icebreaker|announcements?|schedule|calendar|timetable|evaluation|rubric|plagiarism|honesty|policy|policies|about\s*me|about\s*the\s*(?:course|instructor|lecturer|professor)|contact|office\s*hours?|drop\s*in|q\s*&\s*a|questions?|recap\s*of\s*last|feedback\s*survey|topics?\s+of\s+the\s+course)\b/i;
+
+/** Words too common to describe a subject. */
+const TITLE_STOPWORDS = new Set(
+	`a about above after again against all am an and any are as at be because been before being below
+	 between both but by can cannot could did do does doing down during each few for from further had has
+	 have having he her here hers herself him himself his how i if in into is it its itself just me more
+	 most my myself no nor not of off on once one only or other our ours ourselves out over own same
+	 she should so some such than that the their theirs them themselves then there these they this those
+	 through to too under until up very was we were what when where which while who whom why will with
+	 would you your yours yourself yourselves also may might must shall upon within without via using used`
+		.split(/\s+/)
+		.filter(Boolean),
+);
+
+/** The document's most repeated content words, for a fallback title. */
+function keyTerms(text, limit) {
+	const counts = new Map();
+	for (const raw of String(text || '').match(/[\p{L}][\p{L}-]{2,18}/gu) || []) {
+		const word = raw.toLowerCase();
+		if (TITLE_STOPWORDS.has(word)) continue;
+		counts.set(word, (counts.get(word) || 0) + 1);
+	}
+	return [...counts.entries()]
+		.sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+		.slice(0, limit)
+		.map(([word]) => word);
+}
 
 /**
  * Derive a clean human-readable subject title from sanitized PDF text.
@@ -74,8 +108,18 @@ function deriveTitle(cleanText) {
 		if (isHeadingish) return toTitleCase(cleaned);
 	}
 
-	const fallback = lines[0] || 'Untitled Document';
-	return toTitleCase(fallback.split(/[.!?]/)[0].slice(0, 70));
+	// No heading found. A PDF whose text extracted as one run-on blob has no
+	// usable first line, so do not truncate a sentence into a title. Take its
+	// opening clause instead, and only if that is short enough to read as one.
+	const first = (lines[0] || '').trim();
+	const clause = first.split(/[.!?]/)[0].trim();
+	if (clause && clause.split(/\s+/).length <= 8 && clause.length <= 60) {
+		return toTitleCase(clause);
+	}
+
+	// Last resort: the document's own most distinctive terms.
+	const terms = keyTerms(cleanText, 4);
+	return terms.length ? toTitleCase(terms.join(' ')) : 'Untitled Document';
 }
 
 const toTitleCase = (value) =>
@@ -123,6 +167,9 @@ function extractOutline(cleanText, limit = 8) {
 		if (NON_SECTION.test(cleaned)) continue;
 		if (CREDENTIAL_LINE.test(cleaned)) continue;
 		if (ADMIN_HEADING.test(cleaned)) continue;
+		// An apostrophe is stripped during sanitization, so "TODAY'S OUTLINE"
+		// arrives as "TODAY S OUTLINE". Catch the scaffold either way.
+		if (/\boutlines?\b/i.test(cleaned)) continue;
 		// A heading is title-ish: most words start uppercase (first char of line).
 		const capitalised = words.filter((w) => /^[A-Z]/.test(w)).length;
 		if (capitalised < Math.max(1, Math.ceil(words.length / 2) - 1)) continue;

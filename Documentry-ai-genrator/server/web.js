@@ -706,7 +706,15 @@ const server = http.createServer(async (req, res) => {
 	}
 });
 
-if (require.main === module) {
+/**
+ * Start listening and print the startup banner.
+ *
+ * Exported so `server/serve.js` can run the web server in the same process as
+ * the voice service supervisor. It is safe to call once.
+ */
+function startWebServer() {
+	if (server.listening) return server;
+
 	fs.mkdirSync(DATA_DIR, { recursive: true });
 	// Periodic cleanup of idle working sessions and expired rate-limit buckets.
 	setInterval(sweepSessions, 60 * 1000).unref();
@@ -737,6 +745,11 @@ if (require.main === module) {
 	server.listen(PORT, HOST, () => {
 		banner().catch((err) => console.warn(`  banner check failed: ${err.message}`));
 	});
+	return server;
 }
 
-module.exports = { server, createSession, sessions, jobs, db };
+if (require.main === module) {
+	startWebServer();
+}
+
+module.exports = { server, startWebServer, createSession, sessions, jobs, db, PORT, HOST };

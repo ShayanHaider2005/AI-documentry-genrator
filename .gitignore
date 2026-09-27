@@ -43,4 +43,6 @@ out/
 /Documentry-ai-genrator/server/voice/nltk_data/
 /Documentry-ai-genrator/server/voice/.cache/
 #   __pycache__/           compiled Python
-/Documentry-ai-genrator/server/voice/__pycache__/ 
+/Documentry-ai-genrator/server/voice/__pycache__/
+#   *.log                   service and setup output
+/Documentry-ai-genrator/server/voice/*.log 

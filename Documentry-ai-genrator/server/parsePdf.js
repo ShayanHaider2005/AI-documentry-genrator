@@ -122,6 +122,23 @@ const ADMIN_KEYWORDS_RE =
 // ---------------------------------------------------------------------------
 // Core per-line sanitizer
 // ---------------------------------------------------------------------------
+
+/**
+ * Is a short line a real section heading rather than a stray artefact?
+ *
+ * A heading is short, starts with a capital letter, is mostly letters, and is
+ * not a bare number or page reference.
+ */
+function isUsableHeading(line) {
+	const text = line.trim();
+	if (text.length < 3 || text.length > 60) return false;
+	if (!/^[\p{Lu}][\p{L}\p{N}&'’\- ]*$/u.test(text)) return false;
+	// Needs at least two letters, so "12" or "--" never qualify.
+	if ((text.match(/\p{L}/gu) || []).length < 2) return false;
+	if (/^[\d\s.,:/-]+$/.test(text)) return false;
+	return true;
+}
+
 function sanitizeRawText(rawText) {
 	return (
 		String(rawText)
@@ -162,8 +179,14 @@ function sanitizeRawText(rawText) {
 				const adminHits = (l.match(ADMIN_KEYWORDS_RE) || []).length;
 				if (wordCount > 0 && adminHits / wordCount >= 0.2) return '';
 
-				// Drop very short lines that carry no real educational content (<4 words)
-				if (wordCount < 4) return '';
+				// Short lines are usually section headings ("Technical Debt",
+				// "Self Awareness"), and those are exactly what the scene titles
+				// and the document outline are built from. Dropping them left the
+				// pipeline with no headings, so it fell back to truncating a body
+				// sentence into a title like "Correctness Measures Whether the
+				// Output of a". Only genuinely contentless lines are dropped.
+				if (wordCount === 0) return '';
+				if (wordCount < 4 && !isUsableHeading(l)) return '';
 
 				return l;
 			})

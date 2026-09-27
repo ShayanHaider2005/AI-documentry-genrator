@@ -18,17 +18,37 @@ Two ways to use it:
 cd Documentry-ai-genrator
 npm install
 
-# 1. Website (builds the frontend, then serves it)
+# One time only, on a new machine: install the local voice stack
+npm run voice:setup
+
+# The website. This starts BOTH the web server and the voice service.
 npm run web            # → http://localhost:3100
 
-# 2. Headless pipeline
+# Headless pipeline
 npm run pipeline
 
-# 3. Remotion Studio / preview / render
+# Remotion Studio / preview / render
 npm run studio
 npm run preview
 npm run render
 ```
+
+`npm run web` is the only command you need. Voice cloning runs in a local Python
+service, and this starts it, waits for the model to load, and stops it again when
+you close the window:
+
+```
+  DocuBot - starting services
+
+  voice clone  ready cloning+speech on cpu
+
+  DocuBot - AI Documentary Generator
+  ready on   http://localhost:3100
+```
+
+**Leave that window open.** Closing it stops voice cloning along with the site. If
+you ever start the site without the voice service, the page shows a red banner
+naming the command to run rather than silently narrating in the default voice.
 
 `npm run build` type-checks both the Remotion composition and the website.
 
@@ -49,7 +69,6 @@ commit real keys. Every key is optional and the engine degrades gracefully:
 
 The narration is **always derived from the document you uploaded** — there is no
 pre-written script in the codebase. Two paths, in order:
-
 1. **AI-written.** If an LLM key is configured, the document is turned into a 6–8 scene
    documentary script (`server/llm.js`). Providers are tried in order — Gemini → Groq →
    Grok → OpenAI — and each is retried with backoff on 429/5xx, so an overloaded or
@@ -57,6 +76,15 @@ pre-written script in the codebase. Two paths, in order:
 2. **Derived from the document.** If no provider answers, `server/script.js` builds the
    scenes from the document's own sentences and headings. The narration quotes the
    document verbatim, so it is still specific to what you uploaded.
+
+> A note on PDF extraction, because it is easy to get wrong: short lines are usually
+> section headings ("Technical Debt", "Self Awareness"), and they are exactly what the
+> chapter titles and the document outline are built from. Dropping them leaves the
+> pipeline with no headings, and it falls back to truncating a body sentence into a
+> title like *"Correctness Measures Whether the Output of a"*. Short lines are therefore
+> kept when they look like headings, and the course-scaffolding headings that come with
+> them ("Today's Outline", "Administrative Stuff", "About Me") are filtered out by name
+> instead.
 
 The pipeline log always states which path was used:
 
@@ -303,12 +331,33 @@ Cheap reads (`/api/sessions`, `/api/config`, static files) are deliberately unth
 browsing history never degrades.
 
 ```bash
-npm run web:smoke      # end-to-end API test against a running server
-npm run voice:check    # clone a sample and speak a test line
-node web/check-e2e.js  # PDF + voice sample -> finished documentary
-node web/check-conclusion.js       # every video ends on a real conclusion
-node web/check-conclusion-scene.js # the conclusion builder in isolation
+npm run web:smoke       # end-to-end API test against a running server
+npm run voice:check     # clone a sample and speak a test line
+npm run check:unique    # prove each voice and each PDF makes its own video
+npm run check:conclusion
+node web/check-e2e.js                 # PDF + voice sample -> finished documentary
+node web/check-conclusion-scene.js    # the conclusion builder in isolation
 ```
+
+### Nothing is hardcoded
+
+`npm run check:unique` is the test for that claim. It uploads four deliberately
+different voices, speaks the **same sentence** through each, and then generates two
+unrelated documents, each with its own voice. It asserts:
+
+- every voice gets its own clone id, and every rendition is measurably different in
+  timbre from every other
+- no narration line and no chapter title is shared between the two documents
+- each document's narration quotes its own terminology, and neither drifts into the
+  other's subject
+- each run's audio lives in its own session folder, and each uses the voice uploaded
+  with it
+
+Note what voice cloning does and does not copy. OpenVoice captures **tone colour** —
+timbre, accent and delivery. The base synthesiser supplies the fundamental pitch, so
+four clones of the same sentence sit at a similar f0; what differs is the spectral
+shape, which is the timbre. That is the model's designed behaviour, not a limitation
+being worked around.
 
 ---
 
