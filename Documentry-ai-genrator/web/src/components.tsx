@@ -101,9 +101,9 @@ const formatElapsed = (seconds: number) =>
  * Records a voice sample with the microphone.
  *
  * Browsers hand back whatever container they support (Chrome: webm/opus,
- * Safari: mp4), so the blob is uploaded under a matching extension. MP3 remains
- * the most widely accepted format for voice cloning, which is why the upload
- * option sits next to the recorder.
+ * Safari: mp4). `api.uploadVoice` converts that to mono 16 kHz WAV in the
+ * browser before uploading, so the file the server receives is always
+ * decodable regardless of ffmpeg.
  */
 export const VoiceRecorder: React.FC<{
 	disabled?: boolean;

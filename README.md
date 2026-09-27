@@ -69,6 +69,26 @@ The pipeline log always states which path was used:
 > That is why provider failover exists — configure at least two providers, or rely on
 > the document-derived path.
 
+## Every video ends on a conclusion
+
+The last scene is always a closing statement: it names the document's single most
+important takeaway, ties it back to the opening, and closes on a line addressed to the
+viewer. It is never a "thank you for watching" filler.
+
+A model is asked to write this, but a model that ignores the request just relabels its
+last content scene "Conclusion" and leaves it as an ordinary paragraph. So the conclusion
+is **verified, not trusted** (`withConclusion` in `server/pipeline.js`):
+
+- A model conclusion of 20–70 words is kept, because the prose is better.
+- Anything else is replaced by a closing statement assembled from the document itself
+  (`buildConclusionScene` in `server/script.js`): the document's own final sentence
+  supplies the takeaway, its own key terms name the subject, and its own title frames
+  the close. Still 30–60 words, still specific to that document.
+
+The conclusion is flagged `isConclusion` in the dataset, which gives it its own closing
+card in the composition, and it uses a document summary diagram rather than a stock photo
+— a photo has nothing to summarise.
+
 ## Voice cloning
 
 Voice cloning runs **entirely on your machine** using
@@ -97,8 +117,11 @@ website shows it in a persistent banner. When the service is down, narration fal
 `en-US-AndrewNeural` so the rest of the pipeline still completes.
 
 Keep the sample to roughly 10–15 seconds of clean, single-speaker audio. MP3 and WAV work
-with no extra tools. Browsers record to webm/opus, which needs
-[ffmpeg](https://ffmpeg.org/download.html) on the `PATH`; without it, export to MP3.
+with no extra tools. **You do not need ffmpeg to record in the browser**: the app decodes
+whatever MediaRecorder produced (webm/opus in Chrome and Edge, mp4/aac in Safari) using
+the browser's own `decodeAudioData`, then uploads mono 16 kHz WAV
+(`web/src/audio.ts`). Installing ffmpeg is still useful if you want to upload a webm file
+you recorded elsewhere.
 
 `npm run voice:check` clones a sample and speaks a test line, so you can confirm the
 stack works before generating a whole video.
@@ -283,6 +306,8 @@ browsing history never degrades.
 npm run web:smoke      # end-to-end API test against a running server
 npm run voice:check    # clone a sample and speak a test line
 node web/check-e2e.js  # PDF + voice sample -> finished documentary
+node web/check-conclusion.js       # every video ends on a real conclusion
+node web/check-conclusion-scene.js # the conclusion builder in isolation
 ```
 
 ---

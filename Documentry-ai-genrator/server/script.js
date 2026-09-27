@@ -51,6 +51,8 @@ const BADGE_LABELS = [
 	'Testing', 'Measurement', 'Strategy', 'Practice', 'Impact', 'Review', 'Closing',
 ];
 
+const wordCount = (text) => String(text || '').trim().split(/\s+/).filter(Boolean).length;
+
 /** Split a block of text into clean sentences. */
 const toSentences = (text) =>
 	String(text || '')
@@ -286,7 +288,151 @@ function generateDocumentScenes(cleanText, outline = [], options = {}) {
 		if (scene) scenes.push(scene);
 	}
 
-	return scenes.map((scene, index) => ({ ...scene, sceneNumber: index + 1 }));
+	const numbered = scenes.map((scene, index) => ({ ...scene, sceneNumber: index + 1 }));
+
+	// Replace the final content scene with the closing statement, so the video
+	// ends on a conclusion rather than trailing off mid-topic.
+	const conclusion = buildConclusionScene({
+		cleanText,
+		outline,
+		documentTitle: options.documentTitle || '',
+	});
+	if (!conclusion) return numbered;
+
+	return [
+		...numbered.slice(0, -1),
+		{ ...numbered[numbered.length - 1], ...conclusion, sceneNumber: numbered.length },
+	];
 }
 
-module.exports = { generateDocumentScenes, toSentences, keyTerms };
+/**
+ * Build the closing statement as a standalone scene.
+ *
+ * A documentary needs a landing, and it has to be about THIS document. The
+ * substance comes from the document itself: its own final sentence supplies the
+ * takeaway, its own key terms name what the video was about, and its own title
+ * frames the close. Only the connective tissue is written here, and it is kept
+ * short — a closing statement is 30 to 60 words, not a paragraph.
+ *
+ * This is used for BOTH script paths. Asking a model to write the conclusion
+ * does not work reliably: it labels its last content scene "Conclusion" and
+ * leaves it as an ordinary paragraph. Building it here means every documentary
+ * ends the same way, and the wording is still document-specific.
+ *
+ * @returns {object} a scene, or null when the document has too little text.
+ */
+function buildConclusionScene({ cleanText, outline = [], documentTitle = '' }) {
+	const text = String(cleanText || '').trim();
+	if (!text) return null;
+
+	// The document's own closing sentence, quoted rather than paraphrased. Later
+	// lines are often "Thank you" or "Questions", so take the last substantive
+	// one that is not boilerplate.
+	const sentences = streamSentences(text);
+	const ownClosing = sentences
+		.map((s) =>
+			// A heading on its own line gets joined to the sentence below it, so
+			// "Conclusion Quality is not achieved by..." arrives with the heading
+			// still attached. Strip it.
+			String(s)
+				.replace(
+					/^\s*(?:conclusion|concluding|conclude|in summary|to conclude|overview|references|bibliography|thank you|thanks|questions?)\s*[:\-—]?\s*/i,
+					'',
+				)
+				.trim(),
+		)
+		.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+		.filter(
+			(s) =>
+				wordCount(s) >= 12 &&
+				wordCount(s) <= 45 &&
+				!/^(thank you|thanks|questions?|q&a|summary|references|bibliography)\b/i.test(s),
+		)
+		.pop() || '';
+
+	// A short label for the subject. Outline entries are only usable when they
+	// are real headings: lecture decks put whole sentences on one line, and
+	// quoting a truncated sentence reads terribly.
+	const headingSubjects = outline
+		.map((h) => String(h).trim().replace(/\s*[.:;]\s*$/, ''))
+		.filter((h) => {
+			const n = wordCount(h);
+			return n >= 1 && n <= 5 && /^[A-Za-z]/.test(h);
+		})
+		.filter((h) => !STRUCTURAL_HEADING.test(h));
+
+	// Fall back to the document's own distinctive words, preferring nouns. A bare
+	// frequency list reads as a word salad ("measures quality software"), so
+	// -tion/-ment endings are preferred over verbs and adverbs.
+	const candidates = text.match(/[A-Za-z][A-Za-z-]{3,18}/g) || [];
+	const nouns = candidates.filter((w) => /(?:tion|ment|ness|ity|ance|ence|ism|ics|ology)$/i.test(w));
+	const ranked = (list) => {
+		const counts = new Map();
+		for (const w of list) {
+			const k = w.toLowerCase();
+			if (STOPWORDS.has(k) || STRUCTURAL_HEADING.test(k)) continue;
+			counts.set(k, (counts.get(k) || 0) + 1);
+		}
+		return [...counts.entries()]
+			.sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+			.slice(0, 3)
+			.map(([w]) => w);
+	};
+	const subjectTerms = headingSubjects.length >= 2
+		? headingSubjects.slice(0, 3)
+		: ranked(nouns).length >= 2
+			? ranked(nouns)
+			: ranked(candidates);
+
+	const subject = subjectTerms.join(', ') || 'what this document sets out to explain';
+	// A list of three is plural, so the verb has to agree.
+	const agrees = subjectTerms.length === 1 ? 'is' : 'are';
+
+	const title = String(documentTitle || '').trim().replace(/\s*[.:;]\s*$/, '');
+
+	const parts = [
+		title
+			? `Put side by side, ${subject} ${agrees} what ${title} has been building towards.`
+			: `Put side by side, ${subject} ${agrees} what this material builds towards.`,
+		ownClosing ||
+			`If you keep one thing from it, keep this: ${subject} ${agrees} the thread running through all of it.`,
+		'That is where this leaves us.',
+	];
+
+	const narratorText = parts
+		.join(' ')
+		.replace(/\s+/g, ' ')
+		.replace(/\s+([.!?])/g, '$1')
+		.trim();
+
+	const imageKeyword = (keyTerms(text, 3).join(' ') || 'key takeaway summary')
+		.slice(0, 48)
+		.trim();
+
+	// One beat: the closing card holds for the whole statement.
+	const beatAnchor = narratorText.split(' ').find((w) => w.length > 3) || 'Put';
+
+	return {
+		narratorText,
+		title: 'Conclusion',
+		badge: 'Conclusion',
+		visualPrompt:
+			"The closing statement, with the document's own key terms shown together as a summary.",
+		imageKeyword,
+		beats: [
+			{
+				atWord: beatAnchor,
+				imageKeyword,
+				label: 'Key takeaway',
+				focusArea: { x: 0.3, y: 0.35, w: 0.4, h: 0.22 },
+			},
+		],
+		isConclusion: true,
+	};
+}
+
+/** Headings that organise a document rather than describe its subject. */
+const STRUCTURAL_HEADING =
+	/^(summary|conclusion|concluding|overview|introduction|contents|agenda|references|bibliography|objectives|goals?|outline|topics?|questions?|q&a|thank you|appendix|notes?)$/i;
+
+module.exports = { generateDocumentScenes, buildConclusionScene, toSentences, keyTerms };

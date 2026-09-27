@@ -33,7 +33,7 @@ try {
 
 const { parseAndCleanPdf } = require('./parsePdf');
 const { ensureSamplePdf } = require('./sample');
-const { generateDocumentScenes } = require('./script');
+const { generateDocumentScenes, buildConclusionScene } = require('./script');
 const { getAiProvider, chatCompletion } = require('./llm');
 const {
 	deriveTitle,
@@ -84,6 +84,11 @@ STRICT RULES — VIOLATE NONE:
     - "imageKeyword": a specific 2–5 word query for THIS part.
     - "focusArea": the region of THIS part's visual to point at, normalised 0–1, plus a short "label".
 13. Never invent concepts that are absent from the source document.
+14. The FINAL scene MUST be the conclusion. It carries "badge": "Conclusion", and its "narratorText" must do three things, in this order:
+    a. State the single most important takeaway from THIS document in one sentence.
+    b. Connect it back to the opening scene, so the video feels complete.
+    c. Close with a final short sentence addressed to the viewer that lands the ending. Do NOT end on a "thank you for watching" filler line.
+    The concluding scene follows the same schema as the others and keeps 2 beats.
 
 Required output schema (strict):
 [
@@ -91,7 +96,7 @@ Required output schema (strict):
     "sceneNumber": 1,
     "narratorText": "Deep spoken explanation line in conversational documentary prose...",
     "title": "Short Chapter Heading",
-    "badge": "Category Tag",
+    "badge": "Category Tag", // the final scene MUST use "Conclusion"
     "visualPrompt": "What is literally on screen: the document layout, pattern block or diagram being explained...",
     "imageKeyword": "unit test code coverage",
     "beats": [
@@ -308,7 +313,8 @@ async function requestLlmScript(sourceText) {
 				`Transform the following pre-filtered educational text into a 6 to 8 scene documentary script. ` +
 				`Write conversational, spoken documentary prose (25-45 words per scene). ` +
 				`Ensure each scene has a 2–5 word "imageKeyword" specific to the concept being narrated, suitable for a stock photo search. ` +
-				`Also supply a short "title" chapter heading, a 1–3 word "badge" category tag, and a "beats" array of 2 parts, each with its own imageKeyword, focusArea and the "atWord" it starts on.\n\n` +
+				`Also supply a short "title" chapter heading, a 1–3 word "badge" category tag, and a "beats" array of 2 parts, each with its own imageKeyword, focusArea and the "atWord" it starts on. ` +
+				`The LAST scene must be the conclusion: badge "Conclusion", stating the document's single most important takeaway, tying it back to the opening, and closing on a line addressed to the viewer.\n\n` +
 				`SOURCE DOCUMENT:\n"""\n${sourceText.slice(0, 24000)}\n"""`,
 			temperature: 0.7,
 			// Kept modest on purpose: long generations exhaust free-tier quotas
@@ -326,10 +332,61 @@ async function requestLlmScript(sourceText) {
 		);
 	}
 
-	console.log(
-		`[SCRIPT] ${usedProvider}/${usedModel} produced ${scenes.length} valid scene(s)`,
-	);
+	console.log(`[SCRIPT] ${usedProvider}/${usedModel} produced ${scenes.length} valid scene(s)`);
 	return scenes;
+}
+
+/**
+ * Make sure the video ends on a real closing statement.
+ *
+ * The prompt asks the model to write one, and a good model will. But a model
+ * that ignores the instruction just labels its last content scene "Conclusion",
+ * which leaves the documentary trailing off mid-topic. So the conclusion is
+ * always built here from the document itself, and the model's own last scene is
+ * dropped: a closing statement is a different kind of scene, not a relabelled
+ * content scene.
+ */
+function withConclusion(scenes, { cleanText, outline, documentTitle }) {
+	if (scenes.length === 0) return scenes;
+
+	const conclusion = buildConclusionScene({ cleanText, outline, documentTitle });
+	if (!conclusion) return scenes;
+
+	// The model may have written its own conclusion. If it did and it reads like
+	// one, keep it — the prose is better than anything assembled here.
+	const modelLast = scenes[scenes.length - 1];
+	const badge = String(modelLast.badge || '').trim();
+	const wroteConclusion = /^(conclusion|concluding|conclude|closing)$/i.test(badge);
+
+	if (wroteConclusion) {
+		const text = String(modelLast.narratorText || '');
+		const wordCount = text.split(/\s+/).filter(Boolean).length;
+		// A real conclusion states a takeaway and closes. 20-70 words.
+		if (wordCount >= 20 && wordCount <= 70) {
+			return [
+				...scenes.slice(0, -1),
+				{
+					...modelLast,
+					title: 'Conclusion',
+					badge: 'Conclusion',
+					isConclusion: true,
+				},
+			];
+		}
+		console.warn(
+			`[SCRIPT] The model's final scene was labelled a conclusion but is ${wordCount} words; replacing it with a written closing statement`,
+		);
+	} else {
+		console.warn(
+			`[SCRIPT] The model wrote no conclusion; appending a closing statement derived from the document`,
+		);
+	}
+
+	// Keep the model's scenes, drop its last one, and end on the real conclusion.
+	return [
+		...scenes.slice(0, -1),
+		{ ...modelLast, ...conclusion, sceneNumber: scenes.length },
+	];
 }
 
 // ---------------------------------------------------------------------------
@@ -562,6 +619,13 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	const step2Start = performance.now();
 	log('[2/5] Writing the documentary script from your document...');
 
+	// The title and outline are derived first: the closing statement names the
+	// subject, and the outline drives both the diagrams and the script.
+	const documentTitle = deriveTitle(cleanText);
+	const outline = extractOutline(cleanText, 8);
+	log(`[DOC] Title: "${documentTitle}"`);
+	log(`[DOC] Outline: ${outline.map((o, i) => `${i + 1}) ${o}`).join(' | ')}`);
+
 	let scenes = null;
 	let scriptMode = 'llm';
 	let scriptProvider = null;
@@ -584,6 +648,7 @@ async function runPipeline(optionsOrPdfPath = {}) {
 		scriptMode = 'document';
 		scenes = generateDocumentScenes(cleanText, extractOutline(cleanText, 10), {
 			targetScenes: 10,
+			documentTitle,
 		});
 		log(
 			`[SCRIPT] Derived ${scenes.length} scene(s) directly from the document text`,
@@ -596,13 +661,12 @@ async function runPipeline(optionsOrPdfPath = {}) {
 		);
 	}
 
-	// ── Step 2b: Derive subject title + document outline ──────────────────
-	// The outline drives the synthesised document diagrams, so every visual
-	// reflects the real structure of the source PDF.
-	const documentTitle = deriveTitle(cleanText);
-	const outline = extractOutline(cleanText, 8);
-	log(`[DOC] Title: "${documentTitle}"`);
-	log(`[DOC] Outline: ${outline.map((o, i) => `${i + 1}) ${o}`).join(' | ')}`);
+	// Every documentary ends on a closing statement. When the model wrote a
+	// usable one it is kept; otherwise one is built from the document.
+	scenes = withConclusion(scenes, { cleanText, outline, documentTitle });
+	log(
+		`[SCRIPT] Script ends with a conclusion: "${scenes[scenes.length - 1].narratorText.slice(0, 90)}..."`,
+	);
 
 	// ── Step 3: Contextual Visual Resolution ──────────────────────────────
 	// Strictly sequential: one scene, then one beat at a time. No Promise.all,
@@ -635,7 +699,12 @@ async function runPipeline(optionsOrPdfPath = {}) {
 				String(llmBeat.imageKeyword || '').trim() ||
 				buildBeatKeyword(keyword, slice[0]);
 
-			const photoUrl = await fetchContextualImage(beatKeyword, { log });
+			// The closing statement gets a document summary card rather than a
+			// stock photo. A photo has nothing to summarise: the ending should
+			// show the document's own key terms coming together.
+			const photoUrl = scene.isConclusion
+				? null
+				: await fetchContextualImage(beatKeyword, { log });
 
 			const imageUrl =
 				photoUrl ||
@@ -743,6 +812,8 @@ async function runPipeline(optionsOrPdfPath = {}) {
 			// Optional on-screen chapter heading / category chip (never hardcoded in the UI)
 			...(scene.title ? { title: String(scene.title).trim() } : {}),
 			...(scene.badge ? { badge: String(scene.badge).trim() } : {}),
+			// Marks the closing statement so the composition can land the ending.
+			...(scene.isConclusion ? { isConclusion: true } : {}),
 			visualPrompt: scene.visualPrompt,
 			imageKeyword: scene.imageKeyword,
 			imageUrl: scene.imageUrl,

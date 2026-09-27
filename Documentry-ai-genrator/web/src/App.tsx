@@ -453,9 +453,11 @@ export const App: React.FC = () => {
 									<span className="hint">
 										Narration will use the default neural voice
 										{config?.fallbackVoice ? ` (${config.fallbackVoice})` : ''}.
-										Cloning runs locally on this machine with OpenVoice
-										v2 &mdash; it needs no account or API key. Check that the
-										service is running:
+										Cloning runs locally on this machine with OpenVoice v2,
+										so there is no account or API key. If the reason mentions
+										an undecodable or webm file, your browser is sending a
+										recording in a format the server needs ffmpeg to read
+										&mdash; installing ffmpeg, or uploading an MP3, fixes it.
 									</span>
 								</Notice>
 							) : null}

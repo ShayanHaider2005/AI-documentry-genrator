@@ -3,6 +3,7 @@
 // Re-use the composition's types so the browser and the renderer can never
 // drift apart.
 import type { Scene, WordTiming } from '../../src/types';
+import { normalizeVoiceSample } from './audio';
 export type { Scene, WordTiming };
 
 export interface VoiceSampleConfig {
@@ -114,12 +115,21 @@ export const api = {
 			},
 		),
 
-	uploadVoice: async (sessionId: string, file: File) =>
-		postJson<NonNullable<SessionSnapshot['voice']>>('/api/upload/voice', {
+	/**
+	 * Upload a voice sample, normalising it first.
+	 *
+	 * MediaRecorder produces webm/opus (Chrome, Edge) or mp4/aac (Safari), and
+	 * the local voice service cannot decode those without ffmpeg. The browser
+	 * that produced the clip can, so convert to mono 16 kHz WAV here.
+	 */
+	uploadVoice: async (sessionId: string, file: File) => {
+		const normalized = await normalizeVoiceSample(file);
+		return postJson<NonNullable<SessionSnapshot['voice']>>('/api/upload/voice', {
 			sessionId,
-			fileName: file.name,
-			dataBase64: await fileToBase64(file),
-		}),
+			fileName: normalized.name,
+			dataBase64: await fileToBase64(normalized),
+		});
+	},
 
 	chat: (sessionId: string, message: string) =>
 		postJson<{ reply: string; provider: string | null }>('/api/chat', {

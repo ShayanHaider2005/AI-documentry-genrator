@@ -64,6 +64,11 @@ export interface Scene {
 	/** Short category chip rendered in the header (optional). */
 	badge?: string;
 	/**
+	 * Marks the closing statement. The composition renders a distinct end card
+	 * for it so the documentary lands rather than simply stopping.
+	 */
+	isConclusion?: boolean;
+	/**
 	 * Frame-accurate word timings (relative to the start of the scene) used for
 	 * progressive highlighting. Produced by the TTS step; when absent the
 	 * renderer estimates them proportionally.

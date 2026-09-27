@@ -239,6 +239,16 @@ const SceneContent: React.FC<SceneContentProps> = ({
 
 	const progress = totalScenes > 0 ? (index + 1) / totalScenes : 1;
 	const hasHeading = Boolean(scene.badge || scene.title);
+	const isConclusion = Boolean(scene.isConclusion);
+
+	// The closing statement gets its own treatment: the visual recedes and the
+	// frame darkens so the ending reads as an ending, not just a last scene.
+	const outroOpacity = isConclusion
+		? interpolate(frame, [0, FADE_IN_FRAMES], [0, 1], {
+				extrapolateLeft: 'clamp',
+				extrapolateRight: 'clamp',
+			})
+		: 1;
 
 	return (
 		<AbsoluteFill style={{ backgroundColor: '#090d16', overflow: 'hidden' }}>
@@ -257,8 +267,16 @@ const SceneContent: React.FC<SceneContentProps> = ({
 			<div style={VIGNETTE_TOP} />
 			<div style={VIGNETTE_BOTTOM} />
 
-			{/* Visual for the active beat, switched in step with the narration */}
-			<BeatVisual scene={scene} frame={frame} />
+			{/* Closing statement: settle the visual back so the words land */}
+			{isConclusion ? (
+				<AbsoluteFill
+					style={{
+						background:
+							'linear-gradient(180deg, rgba(9,13,22,0.55) 0%, rgba(9,13,22,0.74) 55%, rgba(9,13,22,0.86) 100%)',
+						opacity: outroOpacity,
+					}}
+				/>
+			) : null}
 
 			{/* Data-driven header: chapter heading + numeric progress only */}
 			{hasHeading || totalScenes > 0 ? (
