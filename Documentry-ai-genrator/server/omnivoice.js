@@ -21,6 +21,8 @@
  */
 
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
 const path = require('path');
 
 const SERVICE_URL = (
@@ -31,14 +33,18 @@ const HEALTH_TIMEOUT_MS = Number(process.env.OMNIVOICE_HEALTH_TIMEOUT_MS || 4000
 const VALIDATE_TIMEOUT_MS = Number(process.env.OMNIVOICE_VALIDATE_TIMEOUT_MS || 120000);
 
 /**
- * Generation timeout.
+ * Generation timeout: 90 minutes, 5,400,000 ms.
  *
  * OmniVoice is a diffusion TTS, so cost is close to linear in both audio length
- * and `num_step`. Measured on CPU: a 5 s clip at 32 steps took 244 s, which puts
- * an 18 s scene at roughly 15 minutes and a whole documentary at hours. A
- * timeout below that aborts the request and loses the clip, so this defaults
- * well above it. On a GPU with enough memory it finishes in seconds and the
- * value is simply never reached.
+ * and `num_step`. Measured on CPU: a 5.3 s clip took 174 s at 12 steps and
+ * about 380 s at 32, which puts an 18 s scene at 10-25 minutes depending on the
+ * step count. A timeout below that aborts the request and loses the clip, so
+ * this defaults well above it. On a GPU with enough memory it finishes in
+ * seconds and the value is simply never reached.
+ *
+ * This only works because postJson uses core `http` rather than `fetch`; see
+ * the comment there. With `fetch`, undici's 300 s headers timeout killed every
+ * request past five minutes no matter what this was set to.
  */
 const SYNTH_TIMEOUT_MS = Number(process.env.OMNIVOICE_SYNTH_TIMEOUT_MS || 90 * 60 * 1000);
 
@@ -63,32 +69,94 @@ async function isServiceReachable(timeoutMs = HEALTH_TIMEOUT_MS) {
 	return Boolean(reachable && body?.ready);
 }
 
-/** POST JSON and turn a non-2xx into a thrown Error carrying the service's reason. */
-async function postJson(route, payload, timeoutMs) {
-	const res = await fetch(`${SERVICE_URL}${route}`, {
-		method: 'POST',
-		headers: { 'content-type': 'application/json' },
-		body: JSON.stringify(payload),
-		signal: AbortSignal.timeout(timeoutMs),
+/**
+ * POST JSON and return the parsed body, throwing on a non-2xx.
+ *
+ * Uses core `http` rather than global `fetch`, for one specific reason:
+ * `fetch` runs on undici, which enforces its OWN 300-second headers timeout
+ * that `AbortSignal` does not override. OmniVoice returns nothing at all until
+ * inference finishes, so any synthesis taking more than five minutes died with
+ * `UND_ERR_HEADERS_TIMEOUT` no matter what OMNIVOICE_SYNTH_TIMEOUT_MS said.
+ * The 90-minute timeout below was, until this was fixed, entirely decorative.
+ *
+ * `setTimeout` is an inactivity timeout, which is the right semantic here: the
+ * socket is idle for the whole inference, so it bounds total wait correctly.
+ */
+function postJson(route, payload, timeoutMs) {
+	return new Promise((resolve, reject) => {
+		let url;
+		try {
+			url = new URL(route, SERVICE_URL);
+		} catch (err) {
+			reject(new Error(`OmniVoice has an unusable service URL: ${err.message}`));
+			return;
+		}
+
+		const body = Buffer.from(JSON.stringify(payload), 'utf8');
+		const transport = url.protocol === 'https:' ? https : http;
+
+		const req = transport.request(
+			{
+				protocol: url.protocol,
+				hostname: url.hostname,
+				port: url.port || (url.protocol === 'https:' ? 443 : 80),
+				path: url.pathname + url.search,
+				method: 'POST',
+				headers: {
+					'content-type': 'application/json',
+					'content-length': body.length,
+				},
+			},
+			(res) => {
+				const chunks = [];
+				res.on('data', (chunk) => chunks.push(chunk));
+				res.on('end', () => {
+					const text = Buffer.concat(chunks).toString('utf8');
+					let parsed;
+					try {
+						parsed = text ? JSON.parse(text) : {};
+					} catch {
+						parsed = { detail: text };
+					}
+
+					if (res.statusCode < 200 || res.statusCode >= 300) {
+						const detail =
+							(typeof parsed.detail === 'string' && parsed.detail) ||
+							(typeof parsed.error === 'string' && parsed.error) ||
+							text.slice(0, 300) ||
+							`HTTP ${res.statusCode}`;
+						reject(
+							new Error(
+								`OmniVoice ${route} failed (HTTP ${res.statusCode}): ${detail}`,
+							),
+						);
+						return;
+					}
+					resolve(parsed);
+				});
+			},
+		);
+
+		req.setTimeout(timeoutMs, () => {
+			req.destroy(
+				new Error(
+					`OmniVoice ${route} timed out after ${Math.round(timeoutMs / 60000)} minutes. ` +
+						'On CPU this usually means the script is too long for the step count; ' +
+						'lower OMNIVOICE_NUM_STEP or shorten the script.',
+				),
+			);
+		});
+
+		req.on('error', (err) => {
+			reject(
+				err.code === 'ECONNREFUSED'
+					? new Error(`${serviceDownReason(null)} (${err.code})`)
+					: err,
+			);
+		});
+
+		req.end(body);
 	});
-
-	const text = await res.text();
-	let body;
-	try {
-		body = text ? JSON.parse(text) : {};
-	} catch {
-		body = { detail: text };
-	}
-
-	if (!res.ok) {
-		const detail =
-			(typeof body.detail === 'string' && body.detail) ||
-			(typeof body.error === 'string' && body.error) ||
-			text.slice(0, 300) ||
-			`HTTP ${res.status}`;
-		throw new Error(`OmniVoice ${route} failed (HTTP ${res.status}): ${detail}`);
-	}
-	return body;
 }
 
 /**

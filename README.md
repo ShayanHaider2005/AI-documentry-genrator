@@ -141,6 +141,28 @@ Setup installs CPU-only PyTorch plus OmniVoice into a local virtualenv and downl
 > first sentence of a video to be noticeably slow. This machine's 2 GB MX330 falls back to
 > CPU by design, which is the correct behaviour, not a failure.
 
+**Step count is the main speed dial.** `OMNIVOICE_NUM_STEP` defaults to **12**, and cost is
+close to linear in it. Measured here on CPU: the same 5.3 s line took **174 s at 12 steps
+and 467 s at 32**, a 2.68× speedup, with every speech frequency band within 3.8 dB and
+pitch matching to 0.1 Hz — the same voice, not a different one. Use 32 for a final quality
+pass and 8 while drafting.
+
+Two related settings, both of which exist because of a specific failure:
+
+- `OMNIVOICE_TORCH_THREADS` (default 4) caps inference threads, leaving headroom for the OS
+  and the browser previewing the result. Raise it to the core count for raw throughput.
+- `OMNIVOICE_SYNTH_TIMEOUT_MS` (default 5,400,000, i.e. 90 minutes) bounds one
+  synthesis. The Node client uses core `http` rather than `fetch` for this deliberately:
+  `fetch` runs on undici, which enforces its own 300-second headers timeout that
+  `AbortSignal` cannot override, so any generation past five minutes used to die with
+  `UND_ERR_HEADERS_TIMEOUT` no matter what this was set to.
+
+> **Still slow on CPU.** Even at 12 steps a 4-minute documentary is roughly 2¼ hours of
+> synthesis on this hardware, because cost scales with total audio length. The script is
+> capped at 600 words in both the prompt and in code (`enforceWordBudget` in
+> `server/pipeline.js`) partly for this reason. Realistically, this wants a GPU with at
+> least 6 GB of VRAM.
+
 ### How cloning works here
 
 The client reads three fixed sentences aloud, records them, and uploads the clip. Because

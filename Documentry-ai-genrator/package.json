@@ -18,6 +18,9 @@
 		"voice:setup": "py -3 server/voice/setup.py",
 		"voice:start": "server\\voice\\.venv\\Scripts\\python.exe server/voice/server.py",
 		"voice:check": "node web/check-voice.js",
+		"voice:check:client": "node web/check-voice-client.js",
+		"check:budget": "node web/check-word-budget.js",
+		"check:audio": "server\\voice\\.venv\\Scripts\\python.exe web/check-audio-quality.py",
 		"voice:probe": "server\\voice\\.venv\\Scripts\\python.exe server/voices/probe_omnivoice.py",
 		"voice:default": "server\\voice\\.venv\\Scripts\\python.exe server/voices/make_default_voice.py"
 	},

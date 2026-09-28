@@ -33,8 +33,7 @@ try {
 
 const { parseAndCleanPdf } = require('./parsePdf');
 const { ensureSamplePdf } = require('./sample');
-const { generateDocumentScenes, buildConclusionScene } = require('./script');
-const { getAiProvider, chatCompletion } = require('./llm');
+const { generateDocumentScenes, buildConclusionScene } = require('./script');const { getAiProvider, chatCompletion } = require('./llm');
 const {
 	deriveTitle,
 	extractOutline,
@@ -56,6 +55,96 @@ const DATASET_PATH = path.resolve(__dirname, '../src/dataset.json');
 const AUDIO_DIR = path.resolve(__dirname, '../public/audio');
 const FRAMES_PER_SECOND = 30;
 
+/**
+ * Total narration budget for one documentary, in words.
+ *
+ * Narration is synthesised locally and the cost is near-linear in audio length,
+ * so script length is the single biggest lever on how long a video takes to
+ * produce. 600 words is roughly 4-5 minutes of speech, which is a full-length
+ * short documentary.
+ *
+ * This is enforced in code as well as asked for in the prompt, because a prompt
+ * instruction is advisory: a model can and does overshoot.
+ */
+const MAX_TOTAL_WORDS = Number(process.env.MAX_TOTAL_WORDS || 600);
+
+const countWords = (text) => String(text || '').trim().split(/\s+/).filter(Boolean).length;
+
+/**
+ * Drop trailing content scenes until the script fits the budget.
+ *
+ * The conclusion is never dropped: a documentary that ends mid-topic is worse
+ * than a short one that lands. If trimming content is not enough, the
+ * conclusion itself is shortened, at a sentence boundary where there is one.
+ */
+function enforceWordBudget(scenes, limit = MAX_TOTAL_WORDS, log = console.log) {
+	if (scenes.length === 0) return scenes;
+
+	const sumWords = (list) => list.reduce((sum, s) => sum + countWords(s.narratorText), 0);
+	if (sumWords(scenes) <= limit) return scenes;
+
+	log(`[SCRIPT] Script is ${sumWords(scenes)} words, over the ${limit}-word budget; trimming`);
+
+	// The last scene is the conclusion. Everything before it is droppable, but
+	// never all of it: a "documentary" that is only a conclusion is worse than a
+	// slightly over-budget one. Keep at least one content scene and let the
+	// conclusion shrink to fit beside it.
+	const body = scenes.slice(0, -1);
+	let conclusion = scenes[scenes.length - 1];
+
+	while (body.length > 1 && sumWords(body) + countWords(conclusion.narratorText) > limit) {
+		body.pop();
+	}
+
+	// Still over: shorten the conclusion to whatever room is left.
+	const room = Math.max(20, limit - sumWords(body));
+	if (countWords(conclusion.narratorText) > room) {
+		conclusion = { ...conclusion, ...shortenNarration(conclusion.narratorText, room) };
+	}
+
+	const result = [...body, conclusion];
+	const final = sumWords(result);
+	log(`[SCRIPT] Trimmed to ${result.length} scene(s), ${final} words`);
+	return result;
+}
+
+/**
+ * Cut narration to roughly `maxWords`, preferring a sentence boundary.
+ *
+ * Falls back to a word-level cut when the text has no terminal punctuation,
+ * because a single 200-word "sentence" would otherwise be unshortenable, and
+ * guarantees the result still ends on punctuation so the TTS and the caption
+ * highlighting both see a finished line.
+ */
+function shortenNarration(text, maxWords) {
+	const original = String(text || '').trim();
+	if (countWords(original) <= maxWords) return { narratorText: original };
+
+	const sentences = original.split(/(?<=[.!?])\s+/).filter(Boolean);
+	if (sentences.length > 1) {
+		let kept = '';
+		for (const sentence of sentences) {
+			if (kept && countWords(`${kept} ${sentence}`) > maxWords) break;
+			kept = `${kept} ${sentence}`.trim();
+		}
+		// Only accept a sentence-level cut if it actually saved something.
+		if (countWords(kept) < countWords(original)) {
+			return {
+				narratorText: kept.replace(/\s+/g, ' ').trim(),
+				wordTimings: undefined,
+			};
+		}
+	}
+
+	// No usable sentence boundary: cut on words and re-terminate.
+	const words = original.split(/\s+/);
+	const kept = words.slice(0, Math.max(1, maxWords)).join(' ').replace(/[,;:]$/, '');
+	return {
+		narratorText: /[.!?]$/.test(kept) ? kept : `${kept}.`,
+		wordTimings: undefined,
+	};
+}
+
 // NOTE: there is deliberately no generic stock-photo fallback list. If a
 // contextual photo cannot be resolved, the scene falls back to a document
 // diagram synthesised from the real PDF content (see server/visuals.js), so a
@@ -73,6 +162,7 @@ STRICT RULES — VIOLATE NONE:
 3. DO NOT produce meta-commentary, conversational remarks, or markdown fences outside the JSON payload. Keep the JSON compact: no extra fields, no repetition.
 4. Produce between 6 and 8 sequential documentary scenes covering the educational journey in progressive depth.
 5. Each scene's "narratorText" MUST be 100% natural, spoken conversational prose (25–45 words per scene) tailored for human ears.
+5b. HARD LIMIT: the whole script MUST total 600 words or fewer across all scenes (about 4-5 minutes of narration). This is a cost limit as much as a style one: narration is synthesised locally, and a longer script takes proportionally longer. Aim for 150-400 words. Exceeding the cap means the pipeline truncates your script.
 6. Each "narratorText" MUST end with a sentence-terminating punctuation mark (. ! ?).
 7. Each scene MUST include an "imageKeyword" of 2–5 words that names the SPECIFIC concept being narrated, taken from the source text. Vague queries such as "technology", "business team", "modern office" or "abstract background" are FORBIDDEN. Every visual must be traceable to the document's subject matter.
 8. Each scene MUST include a "visualPrompt" describing what is literally on screen, including the document structure, pattern, diagram or artefact the narrator is explaining.
@@ -661,8 +751,15 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	// Every documentary ends on a closing statement. When the model wrote a
 	// usable one it is kept; otherwise one is built from the document.
 	scenes = withConclusion(scenes, { cleanText, outline, documentTitle });
+	// Enforced in code as well as requested in the prompt: a model can overshoot,
+	// and narration is synthesised locally, so length is a cost not just a style.
+	scenes = enforceWordBudget(scenes, MAX_TOTAL_WORDS, log);
 	log(
 		`[SCRIPT] Script ends with a conclusion: "${scenes[scenes.length - 1].narratorText.slice(0, 90)}..."`,
+	);
+	log(
+		`[SCRIPT] Total narration: ${scenes.reduce((s, x) => s + countWords(x.narratorText), 0)} ` +
+			`words across ${scenes.length} scene(s)`,
 	);
 
 	// ── Step 3: Contextual Visual Resolution ──────────────────────────────
@@ -869,5 +966,8 @@ module.exports = {
 	requestLlmScript,
 	fetchContextualImage,
 	normalizeFocusArea,
+	enforceWordBudget,
+	countWords,
+	MAX_TOTAL_WORDS,
 	SCRIPT_SYSTEM_PROMPT,
 };

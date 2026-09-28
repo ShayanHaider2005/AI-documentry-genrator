@@ -50,12 +50,59 @@ CACHE.mkdir(parents=True, exist_ok=True)
 MODEL_ID = os.environ.get("OMNIVOICE_MODEL", "k2-fsa/OmniVoice")
 SAMPLE_RATE = 24000
 
+
+def _env_number(name: str, default, caster):
+    """Read a numeric environment variable safely.
+
+    Two traps this avoids, both of which have bitten this project already:
+
+    1. An env var is a *string*. `os.environ.get("X", "6") * 1024**3` repeats
+       the string a billion times instead of multiplying, producing a number
+       with a million digits.
+    2. An empty or malformed value (`X=`, or a stray space) makes a bare
+       `int()`/`float()` raise, so the service refuses to start on a typo.
+
+    Anything unparseable falls back to the default rather than crashing.
+    """
+    raw = os.environ.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        return caster(raw)
+    except (TypeError, ValueError):
+        print(f"[omnivoice] {name}={raw!r} is not a number; using {default}", flush=True)
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    """An integer setting, tolerating a float-typed value.
+
+    `int("6.5")` raises, so a user who writes 6.5 for a count would otherwise
+    be silently given the default. Truncating is the least surprising reading
+    of a count that arrived as a decimal.
+    """
+    value = _env_number(name, default, float)
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    return _env_number(name, default, float)
+
+
+# CPU inference is the bottleneck, so the thread count matters. Capping it
+# leaves headroom for the OS and for the browser you are watching the preview
+# in, at the cost of some raw throughput. Override if you want it all.
+TORCH_THREADS = _env_int("OMNIVOICE_TORCH_THREADS", 4)
+torch.set_num_threads(max(1, TORCH_THREADS))
+
 # The weights are ~3.3 GB. Only claim a GPU that can actually hold them with
 # room for activations, otherwise fall back to CPU. This machine has a 2 GB
 # MX330, so it correctly lands on CPU.
-# float() before the multiply: an env var is a string, and `"6" * 1024**3`
-# repeats the string a billion times rather than multiplying.
-GPU_MIN_FREE_BYTES = int(float(os.environ.get("OMNIVOICE_GPU_MIN_FREE_GB", "6")) * 1024**3)
+GPU_MIN_FREE_GB = _env_float("OMNIVOICE_GPU_MIN_FREE_GB", 6.0)
+GPU_MIN_FREE_BYTES = int(GPU_MIN_FREE_GB * 1024**3)
 
 # The default narrator, used when a caller supplies no reference audio.
 DEFAULT_REF_AUDIO = os.environ.get(
@@ -76,10 +123,11 @@ DEFAULT_INSTRUCT = os.environ.get(
     "male, indian accent, moderate pitch",
 )
 
-# Diffusion decoding steps. Cost is close to linear in this, so 32 -> 16 roughly
-# halves generation time at some cost in fidelity. The default is 32 (full
-# quality); drop it when running on CPU and the wait is the problem.
-NUM_STEP = int(os.environ.get("OMNIVOICE_NUM_STEP", "32"))
+# Diffusion decoding steps. Cost is close to linear in this, so fewer steps is
+# proportionally faster. 12 is the CPU sweet spot on this hardware: measured
+# ~2.7x faster than 32, with little audible difference on narration. Raise it
+# for final quality passes, lower it for drafts.
+NUM_STEP = _env_int("OMNIVOICE_NUM_STEP", 12)
 
 app = FastAPI(title="DocuBot OmniVoice service", version="2.0.0")
 
@@ -174,18 +222,51 @@ def _read_audio(path: Path) -> tuple[np.ndarray, int]:
     return data, sr
 
 
+def _temp_path(prefix: str, suffix: str = ".wav") -> Path:
+    """A fresh path under the cache directory. Always a NEW file."""
+    return CACHE / f"{prefix}{uuid.uuid4().hex}{suffix}"
+
+
+def _is_protected(path: Path, also_protect: frozenset = frozenset()) -> bool:
+    """Is this file ours to delete? No, if it is a source or a narrator.
+
+    Called on every temp file before unlinking it. The failure this guards
+    against is severe and has already happened once: a cleanup path handed back
+    the caller's own reference and deleted the bundled narrator, destroying the
+    only default voice in the project.
+
+    Three rules, in order of paranoia:
+      1. if we cannot resolve the path, do not delete it;
+      2. anything explicitly handed to us (the caller's reference, the default
+         narrator) is untouchable;
+      3. anything under server/voices/ is user-facing material, not scratch.
+    """
+    try:
+        resolved = path.resolve()
+    except OSError:
+        return True  # if we cannot even resolve it, do not delete it
+    if resolved in also_protect:
+        return True
+    try:
+        resolved.relative_to(VOICES_DIR.resolve())
+        return True
+    except ValueError:
+        return False
+
+
 def _normalise_reference(src: Path) -> Path:
     """Return a NEW mono 24 kHz WAV path for the reference.
 
-    ALWAYS a new path. The caller deletes whatever this returns once inference
-    is done, so returning `src` itself would destroy the user's recording — and,
-    worse, the bundled default narrator. An earlier version did exactly that.
+    ALWAYS a new file under CACHE, named `temp_ref_*.wav`. The caller deletes
+    whatever this returns once inference is done, so returning `src` itself
+    would destroy the user's recording — and, worse, the bundled default
+    narrator. An earlier version did exactly that.
 
     OmniVoice consumes 24 kHz audio. Browser uploads arrive as webm/opus, which
     libsndfile cannot read, so those need ffmpeg. The website already re-encodes
     in the browser, so this is the path for files recorded elsewhere.
     """
-    out = CACHE / f"ref-{uuid.uuid4().hex}.wav"
+    out = _temp_path("temp_ref_")
 
     if shutil.which("ffmpeg"):
         code = subprocess.run(
@@ -302,7 +383,7 @@ def generate_voice(payload: Dict = Body(...)) -> JSONResponse:
         ref_text        optional transcript of the reference; read from a .txt
                         sidecar when omitted. Better clones, less guessing.
         num_step        optional diffusion steps; cost is near-linear in this.
-                        Defaults to OMNIVOICE_NUM_STEP (32).
+                        Defaults to OMNIVOICE_NUM_STEP (12).
     """
     _need()
 
@@ -342,13 +423,14 @@ def generate_voice(payload: Dict = Body(...)) -> JSONResponse:
 
     started = time.time()
     temp_ref: Optional[Path] = None
-    # Belt and braces: the caller's reference is never ours to delete, whatever
-    # _normalise_reference decides to hand back.
-    protected = {Path(DEFAULT_REF_AUDIO).resolve()} if Path(DEFAULT_REF_AUDIO).exists() else set()
+    # The bundled narrator is the fallback reference, so it is protected on
+    # every call whether or not the caller mentioned it.
+    protected: set = {Path(DEFAULT_REF_AUDIO).resolve()}
 
     try:
         if raw_ref:
             source = Path(str(raw_ref))
+            protected.add(source.resolve())
             if not source.exists():
                 raise HTTPException(404, f"Reference audio not found: {source.name}")
             temp_ref = _normalise_reference(source)
@@ -421,7 +503,7 @@ def generate_voice(payload: Dict = Body(...)) -> JSONResponse:
             f"Check the voice service log for the underlying cause.",
         ) from exc
     finally:
-        if temp_ref is not None and temp_ref.resolve() not in protected:
+        if temp_ref is not None and not _is_protected(temp_ref, protected):
             temp_ref.unlink(missing_ok=True)
 
 
@@ -473,12 +555,12 @@ def validate_reference(payload: Dict = Body(...)) -> JSONResponse:
             }
         )
     finally:
-        if temp is not None and temp.resolve() not in protected:
+        if temp is not None and not _is_protected(temp, protected):
             temp.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    port = int(os.environ.get("OMNIVOICE_PORT", "8000"))
+    port = _env_int("OMNIVOICE_PORT", 8000)
     uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
