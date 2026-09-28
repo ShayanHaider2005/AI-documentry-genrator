@@ -242,6 +242,10 @@ async function generateVoice({
 		rtf: result.rtf ?? null,
 		numStep: result.num_step ?? null,
 		device: result.device ?? null,
+		// false here means the service had no transcript and fell back to
+		// loading Whisper, which is a ~1.5 GB download on a cold cache.
+		refTextKnown: result.refTextKnown ?? null,
+		whisperUsed: result.whisperUsed ?? null,
 	};
 }
 

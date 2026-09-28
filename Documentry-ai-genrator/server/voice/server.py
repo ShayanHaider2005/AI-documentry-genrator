@@ -296,7 +296,12 @@ def _normalise_reference(src: Path) -> Path:
 
 
 def _sidecar_text(audio: Path) -> str:
-    """Read <audio>.txt next to a reference: its transcript, if one exists."""
+    """Read <audio>.txt next to a reference: its transcript, if one exists.
+
+    The filename is derived from the audio, so any narrator works without code
+    changes: `south_asian_narrator.wav` reads `south_asian_narrator.txt`, and a
+    user upload `raj.wav` reads `raj.txt`.
+    """
     sidecar = audio.with_suffix(".txt")
     if sidecar.exists():
         try:
@@ -304,6 +309,24 @@ def _sidecar_text(audio: Path) -> str:
         except OSError:
             return ""
     return ""
+
+
+def _resolve_ref_text(source: Path, explicit: str) -> Optional[str]:
+    """The reference transcript, preferring what the caller supplied.
+
+    Order: an explicit `ref_text`, then a .txt sidecar, then None.
+
+    Returning None here is not a failure, it is the expensive path: OmniVoice
+    then loads `openai/whisper-large-v3-turbo` (~1.5 GB) and transcribes the
+    reference itself. That happens on a cold cache, and on every scene once the
+    model is resident, so any caller that can supply the transcript should.
+    """
+    if explicit and explicit.strip():
+        return explicit.strip()
+    sidecar = _sidecar_text(source)
+    if sidecar:
+        return sidecar
+    return None
 
 
 def _write_audio(audio: List[np.ndarray], output_path: Path) -> Path:
@@ -435,12 +458,19 @@ def generate_voice(payload: Dict = Body(...)) -> JSONResponse:
                 raise HTTPException(404, f"Reference audio not found: {source.name}")
             temp_ref = _normalise_reference(source)
             ref_audio = str(temp_ref)
-            ref_text = str(payload.get("ref_text") or "").strip() or _sidecar_text(source)
-            if not ref_text:
-                # OmniVoice will auto-transcribe with Whisper. Slower, but it
-                # means a caller who recorded their own clip still gets a clone.
-                _log("no ref_text; OmniVoice will transcribe the reference itself")
-                ref_text = None
+            ref_text = _resolve_ref_text(source, str(payload.get("ref_text") or ""))
+            if ref_text:
+                # The cheap path. Passing the transcript means OmniVoice never
+                # loads openai/whisper-large-v3-turbo (~1.5 GB) to transcribe a
+                # reference we already know the words of.
+                _log(f"ref_text supplied ({len(ref_text)} chars); skipping Whisper")
+            else:
+                # OmniVoice auto-transcribes here. Works, but it is the slow
+                # path, so say so plainly in the log rather than hiding it.
+                _log(
+                    "no ref_text and no sidecar; OmniVoice will load Whisper "
+                    "(openai/whisper-large-v3-turbo) and transcribe the reference"
+                )
             mode = "clone"
         else:
             ref_audio = None
@@ -481,6 +511,10 @@ def generate_voice(payload: Dict = Body(...)) -> JSONResponse:
                 "num_step": num_step,
                 "device": S["device"],
                 "usedDefaultReference": bool(raw_ref) and raw_ref == DEFAULT_REF_AUDIO,
+                # Whether this call gave OmniVoice the transcript, and so avoided
+                # loading Whisper. False means the ~1.5 GB ASR path was taken.
+                "refTextKnown": bool(ref_text),
+                "whisperUsed": not bool(ref_text),
                 "engine": "OmniVoice",
             }
         )
@@ -550,7 +584,7 @@ def validate_reference(payload: Dict = Body(...)) -> JSONResponse:
                 "ok": True,
                 "seconds": round(seconds, 2),
                 "sampleRate": SAMPLE_RATE,
-                "ref_text_known": bool(str(payload.get("ref_text") or "").strip() or _sidecar_text(source)),
+                "ref_text_known": _resolve_ref_text(source, str(payload.get("ref_text") or "")) is not None,
                 "engine": "OmniVoice",
             }
         )
@@ -560,7 +594,36 @@ def validate_reference(payload: Dict = Body(...)) -> JSONResponse:
 
 
 if __name__ == "__main__":
+    import time as _time
+
     import uvicorn
 
     port = _env_int("OMNIVOICE_PORT", 8000)
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
+
+    # Restart the server rather than dying on a transient accept failure.
+    #
+    # On Windows, asyncio's proactor loop raises WinError 64 ("the network name
+    # is no longer available") from finish_accept when a client disconnects
+    # mid-handshake. That exception is raised on the accept loop itself, so it
+    # takes the listener down: the process stays alive holding 3.3 GB of model
+    # and stops answering, with no error in the log to explain why. Observed
+    # here during normal health polling.
+    #
+    # The model is loaded in S already and never reloaded by the restart, so
+    # coming back costs a second or two rather than a 3.3 GB reload.
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
+            break
+        except KeyboardInterrupt:
+            break
+        except OSError as exc:
+            wait = min(30, 2 ** min(attempt, 4))
+            _log(f"server stopped ({exc}); restarting in {wait}s (attempt {attempt})")
+            _time.sleep(wait)
+        except Exception as exc:  # noqa: BLE001
+            wait = min(30, 2 ** min(attempt, 4))
+            _log(f"server crashed ({type(exc).__name__}: {exc}); restarting in {wait}s")
+            _time.sleep(wait)

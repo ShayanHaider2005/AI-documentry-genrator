@@ -9,6 +9,7 @@ const {
 	enforceWordBudget,
 	countWords,
 	MAX_TOTAL_WORDS,
+	MAX_SCENES,
 } = require('../server/pipeline');
 
 let failures = 0;
@@ -29,7 +30,7 @@ const makeScene = (n, words, extra = {}) => ({
 	...extra,
 });
 
-console.log(`\nbudget: ${MAX_TOTAL_WORDS} words\n`);
+console.log(`\nbudget: ${MAX_TOTAL_WORDS} words, ${MAX_SCENES} scenes\n`);
 
 /* ---- 1. a script already inside the budget is untouched ------------------ */
 console.log('1. a script inside the budget');
@@ -98,8 +99,69 @@ check('the early sentences were kept', /first sentence/.test(lastB));
 check('it ends on punctuation', /[.!?]$/.test(lastB));
 check('no sentence was cut mid-way', !/\b(idea clearly The|gives the The)\b/.test(lastB));
 
-/* ---- 4. it never throws on edge cases ------------------------------------ */
-console.log('\n4. edge cases');
+/* ---- 4. the scene-count cap, which is a separate budget ------------------ */
+console.log(`\n4. the scene cap (${MAX_SCENES} scenes)`);
+{
+	// 10 short scenes: well under the word cap, so only the scene cap can act.
+	const many = Array.from({ length: 10 }, (_, i) =>
+		makeScene(i + 1, 20, i === 9 ? { isConclusion: true } : {}),
+	);
+	const capped = enforceWordBudget(many, MAX_TOTAL_WORDS, () => {}, MAX_SCENES);
+	check('it is capped', capped.length === MAX_SCENES, `${capped.length} of 10 kept`);
+	check('the opening survives', /Scene 1$/.test(capped[0].title), `"${capped[0].title}"`);
+	check(
+		'the conclusion survives',
+		capped[capped.length - 1].isConclusion === true,
+	);
+	check(
+		'scene numbers are renumbered 1..n',
+		capped.every((s, i) => s.sceneNumber === i + 1),
+		capped.map((s) => s.sceneNumber).join(','),
+	);
+	// Keeps the head, the conclusion, and the first (maxScenes - 2) middles.
+	check(
+		'it drops middle scenes, not the first and last',
+		capped[0].title === 'Scene 1' &&
+			capped[1].title === 'Scene 2' &&
+			capped[capped.length - 2].title === 'Scene 4' &&
+			capped[capped.length - 1].title === 'Scene 10',
+		capped.map((s) => s.title).join(' '),
+	);
+}
+
+/* ---- 4b. scene cap and word cap compose --------------------------------- */
+console.log('\n4b. both caps together');
+{
+	const big = Array.from({ length: 8 }, (_, i) =>
+		makeScene(i + 1, 120, i === 7 ? { isConclusion: true } : {}),
+	);
+	const both = enforceWordBudget(big, MAX_TOTAL_WORDS, () => {}, MAX_SCENES);
+	const total = both.reduce((s, x) => s + countWords(x.narratorText), 0);
+	check('the scene cap holds', both.length <= MAX_SCENES, `${both.length} scene(s)`);
+	check('the word cap holds', total <= MAX_TOTAL_WORDS, `${total} words`);
+	check('at least one content scene survives', both.length >= 2, `${both.length - 1} content`);
+	check(
+		'the conclusion survives',
+		both[both.length - 1].isConclusion === true,
+	);
+}
+
+/* ---- 4c. a script already inside both caps is untouched ----------------- */
+console.log('\n4c. a script inside both caps');
+{
+	const fits = [
+		makeScene(1, 70),
+		makeScene(2, 70),
+		makeScene(3, 70),
+		makeScene(4, 60, { isConclusion: true }),
+	];
+	const kept = enforceWordBudget(fits, MAX_TOTAL_WORDS, () => {}, MAX_SCENES);
+	check('nothing is dropped', kept.length === 4, `${kept.length} scene(s)`);
+	check('narration is untouched', kept[0].narratorText === fits[0].narratorText);
+}
+
+/* ---- 5. it never throws on edge cases ------------------------------------ */
+console.log('\n5. edge cases');
 check('an empty script survives', enforceWordBudget([], 600, () => {}).length === 0);
 check(
 	'a one-scene script survives',
@@ -114,8 +176,8 @@ check(
 	enforceWordBudget(long, 600, () => {}).every((s, i, arr) => s.sceneNumber === i + 1 || arr.length > 1),
 );
 
-/* ---- 5. real narration is what actually gets measured -------------------- */
-console.log('\n5. measuring real narration');
+/* ---- 6. real narration is what actually gets measured -------------------- */
+console.log('\n6. measuring real narration');
 const real = 'Software quality begins with correctness, the foundation of any reliable system. We measure how accurately a program fulfills its intended purpose.';
 check('word count is sane', countWords(real) >= 20 && countWords(real) <= 30, `${countWords(real)} words`);
 

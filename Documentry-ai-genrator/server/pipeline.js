@@ -58,39 +58,81 @@ const FRAMES_PER_SECOND = 30;
 /**
  * Total narration budget for one documentary, in words.
  *
- * Narration is synthesised locally and the cost is near-linear in audio length,
- * so script length is the single biggest lever on how long a video takes to
- * produce. 600 words is roughly 4-5 minutes of speech, which is a full-length
- * short documentary.
+ * Narration is synthesised locally and cost is near-linear in total audio
+ * length, so script length is the single biggest lever on how long a video
+ * takes to produce. Measured on CPU at 12 steps: about 2.75 s per
+ * (audio-second x step), so 350 words (~2.5 minutes of speech) is roughly 40
+ * minutes of synthesis against ~3 hours for the 600-word budget this replaced.
  *
- * This is enforced in code as well as asked for in the prompt, because a prompt
+ * Enforced in code as well as asked for in the prompt, because a prompt
  * instruction is advisory: a model can and does overshoot.
  */
-const MAX_TOTAL_WORDS = Number(process.env.MAX_TOTAL_WORDS || 600);
+const MAX_TOTAL_WORDS = Number(process.env.MAX_TOTAL_WORDS || 400);
+
+/**
+ * Scene count ceiling.
+ *
+ * Separate from the word budget on purpose: 400 words spread over 8 scenes
+ * gives 50-word scenes that cut between every thought, and each scene carries
+ * its own fixed cost — reference encoding plus warmup, measured at roughly
+ * 52 s per request. Fewer, longer scenes is both better television and
+ * measurably faster.
+ */
+const MAX_SCENES = Number(process.env.MAX_SCENES || 5);
 
 const countWords = (text) => String(text || '').trim().split(/\s+/).filter(Boolean).length;
 
 /**
- * Drop trailing content scenes until the script fits the budget.
+ * Fit a script to both budgets: at most `maxScenes` scenes, at most
+ * `limit` words.
+ *
+ * Order matters. Scene count goes first, because dropping a scene removes its
+ * words AND its fixed per-request synthesis cost, which is the scarcer of the
+ * two. Trimming prose is the last resort since it can cut mid-thought.
  *
  * The conclusion is never dropped: a documentary that ends mid-topic is worse
- * than a short one that lands. If trimming content is not enough, the
- * conclusion itself is shortened, at a sentence boundary where there is one.
+ * than a short one that lands. If trimming is not enough, the conclusion itself
+ * is shortened, at a sentence boundary where there is one.
  */
-function enforceWordBudget(scenes, limit = MAX_TOTAL_WORDS, log = console.log) {
+function enforceWordBudget(
+	scenes,
+	limit = MAX_TOTAL_WORDS,
+	log = console.log,
+	maxScenes = MAX_SCENES,
+) {
 	if (scenes.length === 0) return scenes;
 
 	const sumWords = (list) => list.reduce((sum, s) => sum + countWords(s.narratorText), 0);
-	if (sumWords(scenes) <= limit) return scenes;
 
-	log(`[SCRIPT] Script is ${sumWords(scenes)} words, over the ${limit}-word budget; trimming`);
+	// --- 1. scene count ---------------------------------------------------
+	let capped = scenes;
+	if (capped.length > maxScenes) {
+		log(
+			`[SCRIPT] ${capped.length} scenes exceeds the ${maxScenes}-scene limit; ` +
+				'dropping the least essential ones',
+		);
+		// Keep the opening (it sets up the video) and the conclusion (it lands
+		// it); take as many from the middle as will fit.
+		const head = capped[0];
+		const conclusion = capped[capped.length - 1];
+		const middle = capped.slice(1, -1);
+		const keep = Math.max(0, maxScenes - 2);
+		capped = [head, ...middle.slice(0, keep), conclusion].filter(Boolean);
+		// Renumber so scene numbers stay 1..n; the UI and captions index on these.
+		capped = capped.map((s, i) => ({ ...s, sceneNumber: i + 1 }));
+	}
+
+	// --- 2. word budget ---------------------------------------------------
+	if (sumWords(capped) <= limit) return capped;
+
+	log(`[SCRIPT] Script is ${sumWords(capped)} words, over the ${limit}-word budget; trimming`);
 
 	// The last scene is the conclusion. Everything before it is droppable, but
 	// never all of it: a "documentary" that is only a conclusion is worse than a
 	// slightly over-budget one. Keep at least one content scene and let the
 	// conclusion shrink to fit beside it.
-	const body = scenes.slice(0, -1);
-	let conclusion = scenes[scenes.length - 1];
+	const body = capped.slice(0, -1);
+	let conclusion = capped[capped.length - 1];
 
 	while (body.length > 1 && sumWords(body) + countWords(conclusion.narratorText) > limit) {
 		body.pop();
@@ -103,8 +145,7 @@ function enforceWordBudget(scenes, limit = MAX_TOTAL_WORDS, log = console.log) {
 	}
 
 	const result = [...body, conclusion];
-	const final = sumWords(result);
-	log(`[SCRIPT] Trimmed to ${result.length} scene(s), ${final} words`);
+	log(`[SCRIPT] Trimmed to ${result.length} scene(s), ${sumWords(result)} words`);
 	return result;
 }
 
@@ -160,9 +201,9 @@ STRICT RULES — VIOLATE NONE:
 1. NEVER read slide layouts, headers, footers, bullet headers, or administrative notes.
 2. NEVER output course codes, instructor names, email addresses, room numbers, or grading policies.
 3. DO NOT produce meta-commentary, conversational remarks, or markdown fences outside the JSON payload. Keep the JSON compact: no extra fields, no repetition.
-4. Produce between 6 and 8 sequential documentary scenes covering the educational journey in progressive depth.
-5. Each scene's "narratorText" MUST be 100% natural, spoken conversational prose (25–45 words per scene) tailored for human ears.
-5b. HARD LIMIT: the whole script MUST total 600 words or fewer across all scenes (about 4-5 minutes of narration). This is a cost limit as much as a style one: narration is synthesised locally, and a longer script takes proportionally longer. Aim for 150-400 words. Exceeding the cap means the pipeline truncates your script.
+4. Produce at most 5 sequential documentary scenes covering the educational journey in progressive depth. Fewer is better than padded: 4 strong scenes beat 5 thin ones. Never exceed 5.
+5. Each scene's "narratorText" MUST be 100% natural, spoken conversational prose (45–70 words per scene) tailored for human ears.
+5b. HARD LIMIT: the whole script MUST total 350 words or fewer across all scenes, which is roughly 2.5 minutes of narration. This is a cost limit as much as a style one: narration is synthesised locally and synthesis cost is close to linear in total audio length, so a longer script takes proportionally longer. Aim for 250-350 words. Going over means the pipeline trims your script, which can cut a scene mid-thought — stay under it yourself.
 6. Each "narratorText" MUST end with a sentence-terminating punctuation mark (. ! ?).
 7. Each scene MUST include an "imageKeyword" of 2–5 words that names the SPECIFIC concept being narrated, taken from the source text. Vague queries such as "technology", "business team", "modern office" or "abstract background" are FORBIDDEN. Every visual must be traceable to the document's subject matter.
 8. Each scene MUST include a "visualPrompt" describing what is literally on screen, including the document structure, pattern, diagram or artefact the narrator is explaining.
@@ -967,7 +1008,9 @@ module.exports = {
 	fetchContextualImage,
 	normalizeFocusArea,
 	enforceWordBudget,
+	shortenNarration,
 	countWords,
 	MAX_TOTAL_WORDS,
+	MAX_SCENES,
 	SCRIPT_SYSTEM_PROMPT,
 };

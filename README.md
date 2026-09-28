@@ -157,11 +157,42 @@ Two related settings, both of which exist because of a specific failure:
   `AbortSignal` cannot override, so any generation past five minutes used to die with
   `UND_ERR_HEADERS_TIMEOUT` no matter what this was set to.
 
-> **Still slow on CPU.** Even at 12 steps a 4-minute documentary is roughly 2¼ hours of
-> synthesis on this hardware, because cost scales with total audio length. The script is
-> capped at 600 words in both the prompt and in code (`enforceWordBudget` in
-> `server/pipeline.js`) partly for this reason. Realistically, this wants a GPU with at
-> least 6 GB of VRAM.
+> **Still slow on CPU.** Even at 12 steps, synthesis cost is dominated by total audio
+> length, so the script is capped twice over — in code as well as in the prompt, because
+> a prompt instruction is advisory and models overshoot:
+>
+> | Budget | Default | Override |
+> |---|---|---|
+> | Total narration words | 400 (`MAX_TOTAL_WORDS`) | `MAX_TOTAL_WORDS` |
+> | Scene count | 5 (`MAX_SCENES`) | `MAX_SCENES` |
+>
+> `enforceWordBudget` in `server/pipeline.js` applies the scene cap first, since dropping a
+> scene removes both its words and its fixed per-request synthesis overhead (~52 s measured),
+> then the word cap. It keeps the opening and the conclusion and drops from the middle, and
+> shortens the conclusion at a sentence boundary only as a last resort.
+>
+> A 400-word script is about 2½ minutes of speech, roughly 45-60 minutes of synthesis at 12
+> steps. To go longer, raise both caps together and expect the time to grow with the audio.
+> Realistically, this wants a GPU with at least 6 GB of VRAM.
+
+### The reference transcript, and why it is not optional
+
+OmniVoice clones per synthesis and needs both the reference audio **and** its transcript.
+If `ref_text` is missing, `OmniVoice.generate` loads `openai/whisper-large-v3-turbo`
+(≈1.5 GB) and transcribes the reference itself — on a cold cache, and again on every scene
+once the model is resident.
+
+So every caller supplies it, in one of two ways:
+
+- the pipeline passes the client's known transcript, because the recording is made by
+  reading three fixed sentences, so the words are already known;
+- the bundled narrator's transcript lives beside it at
+  `server/voices/south_asian_narrator.txt`, and the service reads a `.txt` sidecar
+  automatically for any reference (`raj.wav` → `raj.txt`).
+
+`GET /api/validate-reference` and the response of `POST /api/generate-voice` both report
+`ref_text_known` and `whisperUsed`, so a caller can confirm it took the cheap path.
+`npm run dry:reftext` exercises this end to end.
 
 ### How cloning works here
 

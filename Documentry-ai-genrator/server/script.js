@@ -15,6 +15,15 @@
 
 const { isSpecificKeyword } = require('./visuals');
 
+/**
+ * Mirrors MAX_SCENES in pipeline.js.
+ *
+ * Duplicated rather than imported because pipeline.js requires this module, so
+ * importing back would be circular. Keep the two in step: pipeline.js enforces
+ * the cap, and this just aims below it.
+ */
+const MAX_SCENES = Number(process.env.MAX_SCENES || 5);
+
 /** Words too common to describe a subject. */
 const STOPWORDS = new Set(
 	`a about above after again against all am an and any are as at be because been before being below
@@ -247,11 +256,14 @@ function streamSentences(cleanText) {
  * @param {string} cleanText Sanitized PDF text.
  * @param {string[]} outline  Section headings detected in that text.
  * @param {object} [options]
- * @param {number} [options.targetScenes=10] Roughly how many scenes to produce.
+ * @param {number} [options.targetScenes=5] Roughly how many scenes to produce.
+ *   Defaults to the pipeline's MAX_SCENES: each scene costs a fixed ~52 s of
+ *   synthesis overhead, so producing 10 and trimming to 5 afterwards wastes
+ *   both the rendering and the trim.
  * @returns {Array} scene objects, or [] when the document has no usable text.
  */
 function generateDocumentScenes(cleanText, outline = [], options = {}) {
-	const { targetScenes = 10 } = options;
+	const { targetScenes = MAX_SCENES } = options;
 
 	const sentences = streamSentences(cleanText);
 
