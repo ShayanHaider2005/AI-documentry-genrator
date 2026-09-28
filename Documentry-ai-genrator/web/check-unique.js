@@ -16,7 +16,13 @@ const os = require('os');
 const path = require('path');
 
 const BASE = process.env.BASE || 'http://localhost:3100';
-const VOICE = process.env.VOICE_URL || 'http://127.0.0.1:5055';
+const VOICE = process.env.VOICE_URL || 'http://127.0.0.1:8000';
+
+/** The same three fixed sentences the app asks a client to read. */
+const REFERENCE_TEXT =
+	'The quality of a system is never an accident, it is engineered one careful decision at a time. ' +
+	'Our team measured reliability across every release, and the numbers told a very clear story. ' +
+	'Thank you for listening, and welcome to the next chapter of the story.';
 
 const post = async (route, payload) => {
 	const res = await fetch(`${BASE}${route}`, {
@@ -97,6 +103,11 @@ function wavFrom(samples, sampleRate) {
 }
 
 async function cloneAndSpeak(sessionId, fileName, wavBuffer) {
+	// The reference has to exist on disk for OmniVoice, which reads a path
+	// rather than an uploaded blob.
+	const refPath = path.join(os.tmpdir(), `docubot-ref-${fileName}`);
+	fs.writeFileSync(refPath, wavBuffer);
+
 	const up = await post('/api/upload/voice', {
 		sessionId,
 		fileName,
@@ -105,19 +116,30 @@ async function cloneAndSpeak(sessionId, fileName, wavBuffer) {
 	if (up.status >= 400) {
 		throw new Error(`upload ${fileName} -> ${up.status} ${JSON.stringify(up.body)}`);
 	}
-	const { voiceId, voiceName, status } = up.body;
-	if (status !== 'cloned' || !voiceId) {
-		throw new Error(`upload ${fileName} did not clone: ${JSON.stringify(up.body)}`);
+	const { voiceName, status } = up.body;
+	if (status !== 'cloned') {
+		throw new Error(`upload ${fileName} was not accepted: ${JSON.stringify(up.body)}`);
 	}
 
-	// Speak the identical sentence through the local service.
-	const form = new FormData();
-	form.append('text', SENTENCE);
-	form.append('voice_id', voiceId);
-	const res = await fetch(`${VOICE}/synthesize`, { method: 'POST', body: form });
-	if (!res.ok) throw new Error(`synthesize ${voiceId} -> ${res.status} ${await res.text()}`);
-	const audio = Buffer.from(await res.arrayBuffer());
-	return { fileName, voiceId, voiceName, audio, path: path.join(os.tmpdir(), `spk-${voiceId}.wav`) };
+	// Speak the identical sentence in that voice. OmniVoice clones per
+	// synthesis, so the reference is passed again here rather than an id.
+	const outPath = path.join(os.tmpdir(), `docubot-spk-${fileName}.wav`);
+	const res = await fetch(`${VOICE}/api/generate-voice`, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({
+			text: SENTENCE,
+			ref_audio_path: refPath,
+			ref_text: REFERENCE_TEXT,
+			output_path: outPath,
+		}),
+	});
+	if (!res.ok) {
+		throw new Error(`generate-voice -> ${res.status} ${(await res.text()).slice(0, 200)}`);
+	}
+	const result = await res.json();
+	const audio = fs.readFileSync(result.output_path);
+	return { fileName, voiceName, audio, refPath, path: result.output_path, seconds: result.seconds };
 }
 
 /**
@@ -296,7 +318,13 @@ const check = (label, ok, detail = '') => {
 
 async function main() {
 	const health = await fetch(`${VOICE}/health`).then((r) => r.json());
-	console.log(`\nvoice service: ready=${health.ready} cloning=${health.cloningAvailable} speech=${health.synthesisAvailable}\n`);
+	console.log(
+		`\nvoice service: ready=${health.ready} engine=${health.engine} ` +
+			`device=${health.device} dtype=${health.dtype}\n`,
+	);
+	if (!health.ready) {
+		throw new Error(`voice service is not ready: ${health.error}`);
+	}
 
 	/* ============ 1. every voice clones to its own voice ============ */
 	console.log('1. Upload four different voices, speak the same sentence in each');
@@ -307,11 +335,10 @@ async function main() {
 		const wav = wavFrom(synthesizeVoiceSample(spec), 22050);
 		fs.writeFileSync(path.join(os.tmpdir(), `sample-${spec.name}.wav`), wav);
 		const r = await cloneAndSpeak(session, `${spec.name}.wav`, wav);
-		fs.writeFileSync(r.path, r.audio);
 		const fp = fingerprint(r.audio);
 		results.push({ ...spec, ...r, fingerprint: fp });
 		console.log(
-			`   ${spec.name.padEnd(20)} -> ${r.voiceId}  ` +
+			`   ${spec.name.padEnd(20)} -> ${r.voiceName}  ` +
 				`${Math.round(r.audio.length / 1024)} KB  ` +
 				`pitch=${fp ? fp.pitch.toFixed(1) : '?'}Hz  ` +
 				`centroid=${fp ? fp.centroid.toFixed(2) : '?'}  ` +
@@ -319,8 +346,14 @@ async function main() {
 		);
 	}
 
-	const ids = new Set(results.map((r) => r.voiceId));
-	check('every voice got a distinct clone id', ids.size === VOICE_SPECS.length, `${ids.size}/${VOICE_SPECS.length} unique`);
+	// OmniVoice clones per synthesis, so there is no id to compare. What must
+	// differ is the audio each reference produces.
+	const uniqueAudio = new Set(results.map((r) => r.audio.toString('base64').slice(0, 4000)));
+	check(
+		'every voice produced a distinct rendition',
+		uniqueAudio.size === VOICE_SPECS.length,
+		`${uniqueAudio.size}/${VOICE_SPECS.length} unique`,
+	);
 
 	let minDistance = Infinity;
 	let closest = '';
@@ -339,10 +372,17 @@ async function main() {
 		`closest pair (${closest}) distance ${minDistance.toFixed(3)}`,
 	);
 
-	// OpenVoice clones TONE COLOUR — timbre, accent and delivery — not the
-	// fundamental pitch. The base synthesiser supplies the pitch, so four
-	// renditions of the same sentence legitimately sit at a similar f0. What
-	// must differ is the spectral shape, which is the timbre.
+	// OmniVoice is trained for zero-shot cloning with accent and prosody, so
+	// unlike a tone-colour converter it should track the reference's pitch as
+	// well as its timbre. Pitch is therefore a meaningful check here.
+	const pitches = results.map((r) => r.fingerprint?.pitch ?? 0);
+	const pitchSpread = Math.max(...pitches) - Math.min(...pitches);
+	check(
+		'the rendered voices track their reference pitch',
+		pitchSpread > 20,
+		`pitch spread ${pitchSpread.toFixed(1)} Hz`,
+	);
+
 	const centroids = results.map((r) => r.fingerprint?.centroid ?? 0);
 	const centroidSpread = Math.max(...centroids) - Math.min(...centroids);
 	check(
@@ -430,9 +470,17 @@ async function main() {
 			audioB.every((p) => String(p).includes(runB.sessionId)),
 	);
 
-	// Each run used the voice uploaded with it.
-	check('doc-quality used the voice uploaded with it', String(runA.voiceName).includes(results[0].voiceId));
-	check('doc-leadership used the voice uploaded with it', String(runB.voiceName).includes(results[1].voiceId));
+	// Each run must have accepted its own uploaded voice, not the other's.
+	check(
+		'doc-quality accepted the voice uploaded with it',
+		`${runA.voiceName}`.includes(results[0].fileName.replace(/\.wav$/, '')),
+		runA.voiceName,
+	);
+	check(
+		'doc-leadership accepted the voice uploaded with it',
+		`${runB.voiceName}`.includes(results[1].fileName.replace(/\.wav$/, '')),
+		runB.voiceName,
+	);
 
 	const lastA = a[a.length - 1];
 	const lastB = b[b.length - 1];

@@ -320,7 +320,11 @@ export const App: React.FC = () => {
 					{config?.chatEnabled ? `AI: ${config.llmProvider}` : 'AI chat off'}
 				</span>
 				<span className={`pill ${config?.voiceCloningAvailable ? 'on' : 'off'}`}>
-					{config?.voiceCloningAvailable ? 'Voice cloning on' : 'Default voice'}
+					{config?.voiceCloningAvailable
+						? 'Voice cloning on'
+						: config?.voiceLoading
+							? 'Voice loading...'
+							: 'Default voice'}
 				</span>
 			</header>
 
@@ -329,16 +333,26 @@ export const App: React.FC = () => {
 				    loudly here rather than letting the failure surface much later as
 				    an unexplained "your voice was not used" message. */}
 				{config && !config.voiceCloningAvailable ? (
-					<div className="banner banner-err">
-						<strong>Voice cloning is not running, so your voice will not be used.</strong>{' '}
-						Narration will use {config.fallbackVoice}. Start the local voice
-						service, then reload this page:
-						<code>npm run voice:start</code>
-						<span className="hint">
-							First time on a new machine? Run <code>npm run voice:setup</code> once,
-							then <code>npm run voice:start</code>. <code>npm run web</code> starts
-							both for you.
-						</span>
+					<div className={config.voiceLoading ? 'banner' : 'banner banner-err'}>
+						{config.voiceLoading ? (
+							<>
+								<strong>Voice cloning is still starting up.</strong> OmniVoice loads
+								about 3.3 GB of weights, which takes a few minutes. Wait for the
+								startup window to say <code>voice ready</code>, then reload this
+								page.
+							</>
+						) : (
+							<>
+								<strong>Voice cloning is not running, so your voice will not be used.</strong>{' '}
+								Narration will use {config.fallbackVoice}.
+								{config.voiceError ? <> {config.voiceError}</> : null}
+								<span className="hint">
+									Start the voice service with <code>npm run voice:start</code>. First
+									time on a new machine? Run <code>npm run voice:setup</code> once
+									first. <code>npm run web</code> starts both for you.
+								</span>
+							</>
+						)}
 					</div>
 				) : null}
 
@@ -470,11 +484,9 @@ export const App: React.FC = () => {
 									<span className="hint">
 										Narration will use the default neural voice
 										{config?.fallbackVoice ? ` (${config.fallbackVoice})` : ''}.
-										Cloning runs locally on this machine with OpenVoice v2,
-										so there is no account or API key. If the reason mentions
-										an undecodable or webm file, your browser is sending a
-										recording in a format the server needs ffmpeg to read
-										&mdash; installing ffmpeg, or uploading an MP3, fixes it.
+										Cloning runs locally on this machine with OmniVoice, so there
+										is no account or API key. If the reason mentions an
+										undecodable or webm file, install ffmpeg or upload an MP3.
 									</span>
 								</Notice>
 							) : null}

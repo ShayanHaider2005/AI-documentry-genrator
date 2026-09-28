@@ -30,19 +30,29 @@ out/
 /Documentry-ai-genrator/web/dist/
 
 # Local voice-cloning stack (large binaries, never commit)
-#   .venv/                 ~1 GB of Python packages
-#   OpenVoice/             upstream git clone
-#   MeloTTS/              upstream git clone
-#   checkpoints_v2/        ~125 MB model weights
-#   nltk_data/             downloaded corpora
-#   .cache/                extracted tone colours and temp audio
+#   .venv/                 ~2 GB of Python packages
+#   .cache/                normalised reference audio and temp clips
+#   *.log                  service and setup output
+#   __pycache__/           compiled Python
+#
+# The OmniVoice weights (~3.3 GB) live in the Hugging Face cache outside the
+# repo, so nothing model-sized is tracked here.
+#
+# Retired OpenVoice v2 assets, kept out of history going forward:
+#   OpenVoice/  MeloTTS/  checkpoints_v2/  nltk_data/
 /Documentry-ai-genrator/server/voice/.venv/
+/Documentry-ai-genrator/server/voice/.cache/
+/Documentry-ai-genrator/server/voice/__pycache__/
+/Documentry-ai-genrator/server/voice/*.log
 /Documentry-ai-genrator/server/voice/OpenVoice/
 /Documentry-ai-genrator/server/voice/MeloTTS/
 /Documentry-ai-genrator/server/voice/checkpoints_v2/
 /Documentry-ai-genrator/server/voice/nltk_data/
-/Documentry-ai-genrator/server/voice/.cache/
-#   __pycache__/           compiled Python
-/Documentry-ai-genrator/server/voice/__pycache__/
-#   *.log                   service and setup output
-/Documentry-ai-genrator/server/voice/*.log 
+
+# The generated default narrator. The generator script and its transcript are
+# tracked; the audio it produces is reproducible with `npm run voice:default`
+# and is ~750 KB, so it is not.
+/Documentry-ai-genrator/server/voices/south_asian_narrator.wav
+/Documentry-ai-genrator/server/voices/south_asian_narrator.mp3
+/Documentry-ai-genrator/server/voices/probe_*.wav
+/Documentry-ai-genrator/server/voices/probe_results.json

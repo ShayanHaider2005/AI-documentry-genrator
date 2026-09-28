@@ -46,9 +46,9 @@ const {
 } = require('./visuals');
 const {
 	generateSceneAudio,
-	cloneClientVoice,
+	prepareClientVoice,
 	computeProportionalWordTimings,
-	DEFAULT_EDGE_VOICE,
+	VOICE_SAMPLE_SCRIPT,
 } = require('./tts');
 
 // Project directory paths
@@ -572,6 +572,7 @@ async function runPipeline(optionsOrPdfPath = {}) {
 			: optionsOrPdfPath || {};
 	const {
 		voiceSamplePath,
+		voiceSampleRefText = VOICE_SAMPLE_SCRIPT,
 		datasetPath = DATASET_PATH,
 		audioSubdir = '',
 		log = console.log,
@@ -594,19 +595,15 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	log(`${'═'.repeat(60)}\n`);
 
 	// ── Step 0: Optional client voice cloning ─────────────────────────────
+	// OmniVoice clones per synthesis, so what we resolve here is the reference
+	// path and transcript that every scene will be spoken with.
 	const step0Start = performance.now();
-	let voiceId = null;
-	let voiceLabel = DEFAULT_EDGE_VOICE;
+	const voice = await prepareClientVoice(voiceSamplePath, voiceSampleRefText);
+	const voiceLabel = voice.voiceLabel;
 
-	if (voiceSamplePath) {
-		log('[0/5] Cloning client voice from the provided sample...');
-		const clone = await cloneClientVoice(voiceSamplePath);
-		voiceId = clone.voiceId;
-		voiceLabel = clone.voiceName;
-		logStep('0/5', `Voice ready: ${voiceLabel}`, step0Start);
-	} else {
-		log(`[0/5] No voice sample supplied — using ${DEFAULT_EDGE_VOICE}`);
-	}
+	log(`[0/5] Voice plan: ${voiceLabel} (${voice.status})`);
+	if (voice.reason) log(`[0/5] ${voice.reason}`);
+	logStep('0/5', `Voice ready: ${voiceLabel}`, step0Start);
 
 	// ── Step 1: Pre-Filter PDF Text Junk ──────────────────────────────────
 	const step1Start = performance.now();
@@ -761,12 +758,12 @@ async function runPipeline(optionsOrPdfPath = {}) {
 
 		log(`  Synthesizing scene ${sceneNum}: "${scene.narratorText.slice(0, 45)}..."`);
 		const ttsResult = await generateSceneAudio(scene.narratorText, requestedPath, {
-			voiceId,
+			voice,
 		});
 
-		// The backend picks the container: MP3 from the neural voice, and from
-		// OpenVoice too when ffmpeg is available, otherwise WAV. Trust the file
-		// that was actually written rather than the extension we asked for.
+		// The backend picks the container: OmniVoice writes the extension it is
+		// given, and the neural voice emits MP3. Trust the file that was
+		// actually written rather than the extension we asked for.
 		const writtenPath = (ttsResult && ttsResult.filePath) || requestedPath;
 		const writtenName = path.basename(writtenPath);
 		if (writtenName !== path.basename(requestedPath)) {

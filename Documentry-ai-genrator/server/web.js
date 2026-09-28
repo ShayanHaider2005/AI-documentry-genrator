@@ -31,14 +31,16 @@ const { runPipeline } = require('./pipeline');
 const { parseAndCleanPdf } = require('./parsePdf');
 const { createDb } = require('./db');
 const {
-	cloneClientVoice,
+	prepareClientVoice,
+	defaultVoicePath,
 	VOICE_SAMPLE_SENTENCES,
 	VOICE_SAMPLE_SCRIPT,
 	DEFAULT_EDGE_VOICE,
+	DEFAULT_VOICE_LABEL,
 } = require('./tts');
 const { chatCompletion, getAiProvider } = require('./llm');
 const { renderVideo } = require('./render');
-const { isOpenVoiceReachable } = require('./openvoice');
+const omnivoice = require('./omnivoice');
 
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -316,13 +318,17 @@ async function handleApi(req, res, url) {
 	if (route === '/api/config' && req.method === 'GET') {
 		const provider = getAiProvider();
 		// Voice cloning is local, so ask the service instead of checking a key.
-		const cloningReady = await isOpenVoiceReachable();
+		const health = await omnivoice.serviceHealth();
 		return sendJson(res, 200, {
 			voiceSampleSentences: VOICE_SAMPLE_SENTENCES,
 			voiceSampleScript: VOICE_SAMPLE_SCRIPT,
 			fallbackVoice: DEFAULT_EDGE_VOICE,
-			voiceCloningAvailable: cloningReady,
-			voiceEngine: 'OpenVoice v2 (local)',
+			voiceCloningAvailable: Boolean(health.reachable && health.body?.ready),
+			voiceEngine: 'OmniVoice (local)',
+			voiceLoading: Boolean(health.body?.loading),
+			voiceError: health.reachable ? health.body?.error || null : omnivoice.serviceDownReason(health.body),
+			defaultVoiceAvailable: Boolean(defaultVoicePath()),
+			defaultVoiceLabel: DEFAULT_VOICE_LABEL,
 			chatEnabled: Boolean(provider),
 			llmProvider: provider ? provider.name : null,
 		});
@@ -402,12 +408,13 @@ async function handleApi(req, res, url) {
 		fs.writeFileSync(samplePath, buffer);
 		session.voiceSamplePath = samplePath;
 
-		let clone;
+		// OmniVoice clones per synthesis, so there is no embedding to capture
+		// here. What we do is verify the sample is usable and remember its
+		// transcript, which is passed with it on every later synthesis.
+		let plan;
 		try {
-			clone = await cloneClientVoice(samplePath);
+			plan = await prepareClientVoice(samplePath, VOICE_SAMPLE_SCRIPT);
 		} catch (err) {
-			// A failed clone must be an explicit, typed failure. Reporting it as a
-			// generic 500 (or worse, a 200 OK) is what made this look broken.
 			session.voice = {
 				status: 'error',
 				voiceName: DEFAULT_EDGE_VOICE,
@@ -425,22 +432,25 @@ async function handleApi(req, res, url) {
 			});
 		}
 
+		// The client read the three fixed sentences, so its transcript is known.
+		// If the service is down, fall back to letting Whisper transcribe.
+		session.voiceSampleRefText = VOICE_SAMPLE_SCRIPT;
 		session.voice = {
-			status: clone.status,
-			voiceName: clone.voiceName,
-			voiceId: clone.voiceId,
+			status: plan.status,
+			voiceName: plan.voiceLabel,
+			voiceId: null,
 			fileName,
 			bytes: buffer.length,
-			reason: clone.reason || null,
+			reason: plan.reason || null,
 		};
 
-		if (!clone.voiceId) {
+		if (plan.status !== 'cloned') {
 			return sendJson(res, 501, {
 				error: `Your voice sample was saved, but it is NOT being used. ${
-					clone.reason || 'Voice cloning is unavailable.'
+					plan.reason || 'Voice cloning is unavailable.'
 				}`,
-				detail: clone.reason || null,
-				voiceName: clone.voiceName,
+				detail: plan.reason || null,
+				voiceName: plan.voiceLabel,
 			});
 		}
 
@@ -493,6 +503,7 @@ async function handleApi(req, res, url) {
 			const { dataset, title } = await runPipeline({
 				pdfPath,
 				voiceSamplePath: session.voiceSamplePath,
+				voiceSampleRefText: session.voiceSampleRefText || VOICE_SAMPLE_SCRIPT,
 				datasetPath,
 				audioSubdir: session.id,
 				log: (message) => jobLog(job, message),
@@ -721,18 +732,25 @@ function startWebServer() {
 
 	const banner = async () => {
 		const provider = getAiProvider();
-		const cloning = await isOpenVoiceReachable();
+		const health = await omnivoice.serviceHealth();
+		const cloning = Boolean(health.reachable && health.body?.ready);
 		console.log('');
 		console.log('  DocuBot - AI Documentary Generator');
 		console.log(`  ready on   http://localhost:${PORT}`);
 		console.log(
 			`  chat       ${provider ? provider.name : 'disabled (no LLM key configured)'}`,
 		);
-		console.log(
-			`  voice clone ${
-				cloning ? 'OpenVoice v2 (local)' : `service not running - fallback ${DEFAULT_EDGE_VOICE}`
-			}`,
-		);
+		if (cloning) {
+			console.log(
+				`  voice      OmniVoice on ${health.body.device} (${health.body.dtype})`,
+			);
+		} else if (health.body?.loading) {
+			console.log('  voice      OmniVoice loading its model...');
+		} else {
+			console.log(
+				`  voice      service not available - fallback ${DEFAULT_EDGE_VOICE}`,
+			);
+		}
 		console.log(
 			`  visuals    ${process.env.PEXELS_API_KEY ? 'Pexels photos + document diagrams' : 'document diagrams (no Pexels key)'}`,
 		);

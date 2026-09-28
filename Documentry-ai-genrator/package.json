@@ -16,8 +16,10 @@
 		"check:unique": "node web/check-unique.js",
 		"check:conclusion": "node web/check-conclusion.js",
 		"voice:setup": "py -3 server/voice/setup.py",
-		"voice:start": "server\\voice\\.venv\\Scripts\\python.exe server/voice/service.py",
-		"voice:check": "node web/check-openvoice.js"
+		"voice:start": "server\\voice\\.venv\\Scripts\\python.exe server/voice/server.py",
+		"voice:check": "node web/check-voice.js",
+		"voice:probe": "server\\voice\\.venv\\Scripts\\python.exe server/voices/probe_omnivoice.py",
+		"voice:default": "server\\voice\\.venv\\Scripts\\python.exe server/voices/make_default_voice.py"
 	},
 	"dependencies": {
 		"@remotion/cli": "^4.0.529",

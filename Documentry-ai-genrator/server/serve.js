@@ -8,7 +8,7 @@
  * default voice, which looks exactly like "voice cloning does not work".
  *
  * So this is the single entry point:
- *   - starts the voice service if it is not already running
+ *   - starts the OmniVoice service if it is not already running
  *   - starts the web server
  *   - shuts the voice service down again on exit
  *
@@ -20,15 +20,19 @@ const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+const omnivoice = require('./omnivoice');
+
 const ROOT = path.join(__dirname, '..');
 const VOICE_DIR = path.join(ROOT, 'server', 'voice');
 const VENV_PYTHON = path.join(VOICE_DIR, '.venv', 'Scripts', 'python.exe');
-const SERVICE = path.join(VOICE_DIR, 'service.py');
+const SERVICE = path.join(VOICE_DIR, 'server.py');
 const SETUP = path.join(VOICE_DIR, 'setup.py');
-const SETUP_LOG = path.join(VOICE_DIR, 'setup.log');
 
-const SERVICE_URL = (process.env.OPENVOICE_URL || 'http://127.0.0.1:5055').replace(/\/+$/, '');
-const BOOT_TIMEOUT_MS = 240000;
+/**
+ * The model is ~3.3 GB and loads on CPU, so a cold start is minutes rather
+ * than seconds. Wait generously, and say what is happening while waiting.
+ */
+const BOOT_TIMEOUT_MS = Number(process.env.OMNIVOICE_BOOT_TIMEOUT_MS || 30 * 60 * 1000);
 
 const colour = (code, text) => (process.stdout.isTTY ? `\u001b[${code}m${text}\u001b[0m` : text);
 const green = (t) => colour(32, t);
@@ -41,13 +45,13 @@ const isWindows = process.platform === 'win32';
 
 /** Ask the voice service whether it is up and has its model loaded. */
 async function voiceHealth(timeoutMs = 3000) {
-	try {
-		const res = await fetch(`${SERVICE_URL}/health`, { signal: AbortSignal.timeout(timeoutMs) });
-		const body = await res.json().catch(() => ({}));
-		return { reachable: res.ok, ready: Boolean(body?.ready), body };
-	} catch {
-		return { reachable: false, ready: false, body: null };
-	}
+	const result = await omnivoice.serviceHealth(timeoutMs);
+	return {
+		reachable: result.reachable,
+		ready: Boolean(result.body?.ready),
+		loading: Boolean(result.body?.loading),
+		body: result.body,
+	};
 }
 
 function sleep(ms) {
@@ -55,27 +59,42 @@ function sleep(ms) {
 }
 
 /**
- * Wait for the service to report ready. Model loading on CPU takes a while, so
- * this polls patiently and says so, rather than appearing to hang.
+ * Wait for the service to report ready.
+ *
+ * A cold start loads ~3.3 GB of weights, so this polls patiently and reports
+ * progress rather than appearing to hang. "loading" is a normal state, not a
+ * failure, so it is not treated as one.
  */
 async function waitUntilReady(proc) {
 	const deadline = Date.now() + BOOT_TIMEOUT_MS;
 	let announced = false;
+	let ticks = 0;
 
 	while (Date.now() < deadline) {
 		if (proc.exitCode !== null) {
 			throw new Error(`the voice service exited with code ${proc.exitCode}`);
 		}
-		const { reachable, body } = await voiceHealth();
-		if (reachable && body?.ready) return body;
+		const { reachable, ready, body } = await voiceHealth();
+		if (reachable && ready) return body;
 
-		if (!announced) {
-			process.stdout.write(dim('  loading the voice model (CPU, first run can take a minute)...\n'));
+		ticks += 1;
+		if (!announced && reachable && body?.loading) {
+			process.stdout.write(
+				dim('  loading the OmniVoice model (~3.3 GB; minutes on CPU)...\n'),
+			);
+			announced = true;
+		}
+		// Before the port even opens, the model download is the likely hold-up.
+		if (!announced && ticks > 3) {
+			process.stdout.write(dim('  starting the voice service...\n'));
 			announced = true;
 		}
 		await sleep(2000);
 	}
-	throw new Error('the voice service did not become ready in time');
+	throw new Error(
+		`the voice service was still loading after ${Math.round(BOOT_TIMEOUT_MS / 60000)} minutes. ` +
+			'Check server/voice/service.log — the first run downloads ~3.3 GB.',
+	);
 }
 
 /** Report what is missing and how to fix it, then run setup if asked to. */
@@ -83,7 +102,7 @@ function runSetup() {
 	console.log('');
 	console.log(red(bold('  Voice cloning has never been set up on this machine.')));
 	console.log('');
-	console.log('  It needs a one-time install (about 1 GB, a few minutes):');
+	console.log('  It needs a one-time install (~4 GB, several minutes):');
 	console.log(yellow('    npm run voice:setup'));
 	console.log('');
 
@@ -114,7 +133,7 @@ function stopVoice() {
 async function startVoiceService() {
 	const existing = await voiceHealth();
 	if (existing.ready) {
-		console.log(`  voice clone  ${green('already running')} ${dim(SERVICE_URL)}`);
+		console.log(`  voice      ${green('already running')} ${dim(omnivoice.SERVICE_URL)}`);
 		return true;
 	}
 
@@ -130,17 +149,11 @@ async function startVoiceService() {
 		return false;
 	}
 
-	// NLTK refuses to fetch through a proxy without this opt-in, and the
-	// English grapheme-to-phoneme step needs the corpora.
-	const env = {
-		...process.env,
-		NLTK_ALLOW_PROXIED_URLOPEN: process.env.NLTK_ALLOW_PROXIED_URLOPEN || '1',
-		NLTK_DATA: process.env.NLTK_DATA || path.join(VOICE_DIR, 'nltk_data'),
-	};
+	const env = { ...process.env };
 
 	const logFile = path.join(VOICE_DIR, 'service.log');
 	const out = fs.openSync(logFile, 'a');
-	console.log('  voice clone  starting...');
+	console.log('  voice      starting OmniVoice...');
 
 	voiceProcess = spawn(VENV_PYTHON, [SERVICE], {
 		cwd: ROOT,
@@ -158,7 +171,7 @@ async function startVoiceService() {
 	try {
 		const body = await waitUntilReady(voiceProcess);
 		console.log(
-			`  voice clone  ${green('ready')} ${dim(`cloning+speech on ${body.device}`)}`,
+			`  voice      ${green('ready')} ${dim(`cloning+speech on ${body.device} (${body.dtype})`)}`,
 		);
 		return true;
 	} catch (err) {
@@ -177,7 +190,10 @@ async function main() {
 	const voiceReady = await startVoiceService();
 	if (!voiceReady) {
 		console.log('');
-		console.log(red('  The site will still run, but narration will use the default voice.'));
+		console.log(
+			red('  The site will still run, but narration will use the built-in neural voice.'),
+		);
+		console.log(dim('  Start the voice service with: npm run voice:start'));
 		console.log('');
 	}
 

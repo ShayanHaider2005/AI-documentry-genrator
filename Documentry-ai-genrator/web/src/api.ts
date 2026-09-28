@@ -11,6 +11,14 @@ export interface VoiceSampleConfig {
 	voiceSampleScript: string;
 	fallbackVoice: string;
 	voiceCloningAvailable: boolean;
+	voiceEngine: string;
+	/** True while OmniVoice is still loading its ~3.3 GB of weights. */
+	voiceLoading: boolean;
+	/** Why cloning is unavailable, when it is. Null when it is available. */
+	voiceError: string | null;
+	/** Whether the bundled default narrator has been generated. */
+	defaultVoiceAvailable: boolean;
+	defaultVoiceLabel: string;
 	chatEnabled: boolean;
 	llmProvider: string | null;
 }
@@ -21,6 +29,11 @@ export interface SessionSnapshot {
 	voice: {
 		status: string;
 		voiceName: string;
+		/**
+		 * Always null. OmniVoice clones per synthesis and needs the reference
+		 * path each time, so there is no reusable voice id. The field is kept so
+		 * older stored sessions still deserialise.
+		 */
 		voiceId: string | null;
 		fileName: string;
 		bytes: number;
