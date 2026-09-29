@@ -1,9 +1,41 @@
 import React from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { api, UnauthorisedError } from './api';
-import { CREATOR, DocuBotMark, SplashScreen } from './Mascot';
+import { CREATOR, DocuBotMark } from './Mascot';
+import { SplashScreen } from './SplashScreen';
+import { HeroAnimationCard } from './HeroAnimationCard';
 
 type View = 'landing' | 'auth' | 'studio' | 'about';
 type AuthMode = 'login' | 'signup';
+
+/**
+ * Page transition wrapper.
+ *
+ * Enter is a fade with a 20px rise, per the brief. Exit adds a blur so the
+ * outgoing page dissolves rather than being swapped out, which is what makes it
+ * read as a transition instead of a cut.
+ *
+ * The key belongs on the *call site* (`<Page key={view} …>`), not in here.
+ * AnimatePresence diffs its own direct children, and a key on the element
+ * returned from inside this component is invisible to it: the child it sees is
+ * always the same unkeyed `<Page>`, so it never registers a change, never plays
+ * exit, and mounts the arriving page straight onto its `initial` state. That bug
+ * left every page after the first at `opacity: 0`, i.e. invisible.
+ */
+const Page: React.FC<{
+	reduce: boolean;
+	children: React.ReactNode;
+}> = ({ reduce, children }) => (
+	<motion.main
+		className="page"
+		initial={reduce ? { opacity: 0 } : { opacity: 0, y: 20, filter: 'blur(4px)' }}
+		animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+		exit={reduce ? { opacity: 0 } : { opacity: 0, y: -12, filter: 'blur(4px)' }}
+		transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+	>
+		{children}
+	</motion.main>
+);
 
 /**
  * Gate, landing, and splash.
@@ -18,6 +50,14 @@ export const Shell: React.FC = () => {
 	const [user, setUser] = React.useState<{ id: string; username: string } | null>(null);
 	const [view, setView] = React.useState<View>('landing');
 	const [bootError, setBootError] = React.useState<string | null>(null);
+	const reduce = useReducedMotion();
+
+	// Page transitions are scroll-aware: arriving on a new page at the previous
+	// scroll offset is the classic "layout shift" artefact, and the brief asks for
+	// none. Reset on every view change, after the new page has mounted.
+	React.useEffect(() => {
+		window.scrollTo({ top: 0, behavior: 'auto' });
+	}, [view]);
 
 	React.useEffect(() => {
 		// Config is fetched by App once signed in; here we only need to know who
@@ -51,30 +91,89 @@ export const Shell: React.FC = () => {
 	};
 
 	return (
-		<>
+		<div className="shell-root">
+			{/* Over the whole app, and behind everything. */}
+			<AmbientBlobs reduce={Boolean(reduce)} />
+
 			<SplashScreen ready={booted} error={bootError} />
 
-			{!booted ? null : view === 'studio' && user ? (
-				<AppHost onSignOut={() => { setUser(null); setView('landing'); }} username={user.username} />
-			) : view === 'about' ? (
-				<AboutPage onBack={() => setView(user ? 'studio' : 'landing')} signedIn={Boolean(user)} />
-			) : view === 'auth' ? (
-				<AuthPage
-					onAuthenticated={signedIn}
-					onBack={() => setView('landing')}
-					initialMode={user ? 'login' : 'signup'}
-				/>
-			) : (
-				<LandingPage
-					signedInAs={user?.username ?? null}
-					onTry={() => setView(user ? 'studio' : 'auth')}
-					onSignIn={() => setView('auth')}
-					onAbout={() => setView('about')}
-				/>
-			)}
-		</>
+			{/* popLayout, not wait.
+
+			    `mode="wait"` is the obvious choice for full pages, and it is what
+			    this started as — but it holds the incoming page until the outgoing
+			    page's exit animation has finished, which makes navigation depend on
+			    requestAnimationFrame running. In a throttled or backgrounded tab rAF
+			    does not run, so navigation silently stalls on the old page.
+			    Verified by driving the page: with `wait`, clicking About left the
+			    landing page mounted indefinitely; with a non-gating mode the view
+			    changed immediately.
+
+			    popLayout keeps what `wait` was actually buying. The outgoing page is
+			    popped out of the flow while it fades, so two full pages never stack
+			    and the document height does not jump — the layout shift the brief
+			    rules out. Exactly one .page stays mounted at a time, measured.
+
+			    No `initial={false}` either: it is meant to skip the first mount's
+			    enter animation, but it left that page pinned to its initial inline
+			    style (opacity 0, blur 4px) with nothing scheduled to move it off —
+			    an invisible page. Letting the first page animate in is also simply
+			    right, since the splash has just handed over. */}
+			<AnimatePresence mode="popLayout">
+				{!booted ? null : (
+					<Page key={view} reduce={Boolean(reduce)}>
+						{view === 'studio' && user ? (
+							<AppHost
+								onSignOut={() => {
+									setUser(null);
+									setView('landing');
+								}}
+								username={user.username}
+							/>
+						) : view === 'about' ? (
+							<AboutPage
+								onBack={() => setView(user ? 'studio' : 'landing')}
+								signedIn={Boolean(user)}
+							/>
+						) : view === 'auth' ? (
+							<AuthPage
+								onAuthenticated={signedIn}
+								onBack={() => setView('landing')}
+								initialMode={user ? 'login' : 'signup'}
+							/>
+						) : (
+							<LandingPage
+								signedInAs={user?.username ?? null}
+								onTry={() => setView(user ? 'studio' : 'auth')}
+								onSignIn={() => setView('auth')}
+								onAbout={() => setView('about')}
+							/>
+						)}
+					</Page>
+				)}
+			</AnimatePresence>
+		</div>
 	);
 };
+
+/**
+ * Drifting colour fields behind the whole app.
+ *
+ * Cyan, amber and purple, per the brief. `position: fixed` and `pointer-events:
+ * none` so they never intercept a click or contribute to document height, which
+ * would otherwise show up as a scrollbar that appears and disappears between
+ * pages.
+ */
+const AmbientBlobs: React.FC<{ reduce: boolean }> = ({ reduce }) => (
+	<div className="ambient" aria-hidden>
+		{reduce ? null : (
+			<>
+				<span className="ambient-blob blob-cyan" />
+				<span className="ambient-blob blob-amber" />
+				<span className="ambient-blob blob-violet" />
+			</>
+		)}
+	</div>
+);
 
 /** Loads the dashboard lazily so the landing page does not pull the player in. */
 const AppHost: React.FC<{ onSignOut: () => void; username: string }> = ({
@@ -120,13 +219,68 @@ const FEATURES = [
 	},
 ];
 
+/**
+ * The primary call to action.
+ *
+ * The border pulse is a separate absolutely-positioned layer behind the button
+ * rather than an animated border, because animating `border-color` or a box
+ * shadow on a primary CTA repaints on every frame and reads as a flicker. A
+ * blurred pseudo-element scaling outwards costs one composited layer instead.
+ */
+const PrimaryButton: React.FC<{
+	onClick: () => void;
+	reduce: boolean;
+	children: React.ReactNode;
+}> = ({ onClick, reduce, children }) => (
+	<motion.button
+		type="button"
+		className="btn btn-primary btn-lg pulse"
+		onClick={onClick}
+		initial={reduce ? undefined : { opacity: 0, y: 22 }}
+		animate={reduce ? undefined : { opacity: 1, y: 0 }}
+		transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+		whileHover={reduce ? undefined : { scale: 1.04 }}
+		whileTap={reduce ? undefined : { scale: 0.98 }}
+	>
+		{children}
+	</motion.button>
+);
+
 const LandingPage: React.FC<{
 	signedInAs: string | null;
 	onTry: () => void;
 	onSignIn: () => void;
 	onAbout: () => void;
-}> = ({ signedInAs, onTry, onSignIn, onAbout }) => (
-	<div className="landing">
+}> = ({ signedInAs, onTry, onSignIn, onAbout }) => {
+	const reduce = useReducedMotion();
+	// Drives the staggered entrances. One flag rather than per-element state, so
+	// every section animates in step and there is a single thing to disable.
+	const [entered, setEntered] = React.useState(false);
+	React.useEffect(() => {
+		if (reduce) {
+			setEntered(true);
+			return undefined;
+		}
+		const frame = window.requestAnimationFrame(() => setEntered(true));
+		return () => window.cancelAnimationFrame(frame);
+	}, [reduce]);
+
+	/** One helper so the stagger lives in one place. */
+	const rise = (index: number) =>
+		reduce
+			? {}
+			: {
+					initial: { opacity: 0, y: 22 },
+					animate: entered ? { opacity: 1, y: 0 } : { opacity: 0, y: 22 },
+					transition: {
+						duration: 0.5,
+						delay: 0.06 * index,
+						ease: [0.22, 1, 0.36, 1] as const,
+					},
+				};
+
+	return (
+		<div className="landing">
 		<header className="landing-nav">
 			<div className="brand">
 				<DocuBotMark size={38} float={false} />
@@ -140,24 +294,36 @@ const LandingPage: React.FC<{
 					About
 				</button>
 				{signedInAs ? (
-					<button type="button" className="btn btn-primary" onClick={onTry}>
+					<motion.button
+						type="button"
+						className="btn btn-primary pulse-sm"
+						onClick={onTry}
+						whileHover={reduce ? undefined : { scale: 1.04 }}
+						whileTap={reduce ? undefined : { scale: 0.98 }}
+					>
 						Open studio
-					</button>
+					</motion.button>
 				) : (
 					<>
 						<button type="button" className="link" onClick={onSignIn}>
 							Sign in
 						</button>
-						<button type="button" className="btn btn-primary" onClick={onTry}>
+						<motion.button
+							type="button"
+							className="btn btn-primary pulse-sm"
+							onClick={onTry}
+							whileHover={reduce ? undefined : { scale: 1.04 }}
+							whileTap={reduce ? undefined : { scale: 0.98 }}
+						>
 							Try DocuBot
-						</button>
+						</motion.button>
 					</>
 				)}
 			</nav>
 		</header>
 
 		<section className="hero">
-			<div className="hero-copy">
+			<motion.div className="hero-copy" {...rise(0)}>
 				<h1>
 					Turn a lecture PDF into a
 					<br />
@@ -168,12 +334,20 @@ const LandingPage: React.FC<{
 					narrator, and renders one finished MP4 with the audio already inside it.
 				</p>
 				<div className="hero-cta">
-					<button type="button" className="btn btn-primary btn-lg" onClick={onTry}>
+					<PrimaryButton onClick={onTry} reduce={Boolean(reduce)}>
 						{signedInAs ? 'Open studio' : 'Try DocuBot'}
-					</button>
-					<button type="button" className="btn btn-ghost btn-lg" onClick={onAbout}>
+					</PrimaryButton>
+					<motion.button
+						type="button"
+						className="btn btn-ghost btn-lg"
+						onClick={onAbout}
+						initial={reduce ? undefined : { opacity: 0, y: 22 }}
+						animate={entered ? { opacity: 1, y: 0 } : undefined}
+						transition={{ duration: 0.5, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+						whileTap={reduce ? undefined : { scale: 0.98 }}
+					>
 						How it works
-					</button>
+					</motion.button>
 				</div>
 				<ul className="hero-facts">
 					<li>
@@ -186,18 +360,26 @@ const LandingPage: React.FC<{
 						<strong>100%</strong> local voice
 					</li>
 				</ul>
-			</div>
-			<div className="hero-art" aria-hidden>
-				<DocuBotMark size={230} />
-			</div>
+			</motion.div>
+			{/* The animated box, replacing the static mascot that stood here. */}
+			<motion.div className="hero-art" {...rise(2)}>
+				<HeroAnimationCard />
+			</motion.div>
 		</section>
 
 		<section className="features">
-			{FEATURES.map((feature) => (
-				<article className="card" key={feature.title}>
+			{FEATURES.map((feature, index) => (
+				<motion.article
+					className="card feature-card"
+					key={feature.title}
+					// 0.1 s stagger, as specified.
+					{...rise(3 + index)}
+					whileHover={reduce ? undefined : { y: -5 }}
+					transition={{ duration: 0.22 }}
+				>
 					<h3>{feature.title}</h3>
 					<p>{feature.body}</p>
-				</article>
+				</motion.article>
 			))}
 		</section>
 
@@ -212,8 +394,9 @@ const LandingPage: React.FC<{
 				GitHub
 			</a>
 		</nav>
-	</div>
-);
+		</div>
+	);
+};
 
 /* ========================================================================= */
 /* Auth                                                                       */

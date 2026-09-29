@@ -135,7 +135,16 @@ check('the landing lists features', /FEATURES/.test(shell));
 check('there is an auth page', /AuthPage/.test(shell));
 check('there is a dashboard', /AppHost/.test(shell));
 check('there is a contact/about page', /AboutPage/.test(shell));
-check('the splash names the creator', /Made by Shayan Haider/.test(mascot));
+// The splash moved out of Mascot.tsx into its own component when the forced
+// 3-second minimum and the animated exit were added. Assert against where it
+// lives now, and that the old copy is not still hanging around as a second
+// implementation someone could import by mistake.
+const splash = fs.existsSync(path.join(ROOT, 'web/src/SplashScreen.tsx'))
+	? fs.readFileSync(path.join(ROOT, 'web/src/SplashScreen.tsx'), 'utf8')
+	: '';
+check('there is one splash, in its own module', splash.length > 0);
+check('the old splash is gone from Mascot.tsx', !/export const SplashScreen/.test(mascot));
+check('the splash names the creator', /Crafted by Shayan Haider/.test(splash || mascot));
 
 /* ---- 7. the mascot ------------------------------------------------------- */
 console.log('\n7. the mascot');
@@ -146,7 +155,11 @@ check('it has a metallic body gradient', /dbBody/.test(mascot));
 check('it floats', /docubot-float/.test(mascot) && /docubot-bob/.test(styles));
 check('the eyes move', /docubot-look/.test(styles));
 check('reduced motion is respected', /prefers-reduced-motion/.test(styles));
-check('the splash fades out', /splash-out/.test(styles) && /opacity 620ms/.test(styles));
+check('the splash animates out via framer-motion',
+	/exit=\{/.test(splash) && /opacity: 0/.test(splash),
+	'not a CSS class toggle, so it cannot be left half-faded');
+check('the dead splash CSS is gone',
+	!/\.splash-out/.test(styles) && !/\.splash-inner/.test(styles));
 
 /* ---- 8. branding --------------------------------------------------------- */
 console.log('\n8. branding');

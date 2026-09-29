@@ -1,5 +1,8 @@
 /* ==========================================================================
-   DocuBot — landing, splash, auth, and the narrator picker.
+   DocuBot — landing, auth, about, and the narrator picker.
+
+   The splash, the hero animation card, the page transitions and the ambient
+   background live in motion.css.
    Appended to the studio styles; every colour comes from the :root tokens so
    the two halves stay one theme.
    ========================================================================== */
@@ -69,101 +72,6 @@
 	}
 }
 
-/* ---------------------------------------------------------------- the splash */
-.splash {
-	position: fixed;
-	inset: 0;
-	z-index: 100;
-	display: grid;
-	place-items: center;
-	background:
-		radial-gradient(900px 500px at 50% 20%, rgba(56, 189, 248, 0.16), transparent 65%),
-		var(--bg);
-	transition:
-		opacity 620ms ease,
-		visibility 620ms ease;
-}
-
-.splash-out {
-	opacity: 0;
-	visibility: hidden;
-	pointer-events: none;
-}
-
-.splash-inner {
-	display: grid;
-	justify-items: center;
-	gap: 6px;
-	animation: splash-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes splash-rise {
-	from {
-		opacity: 0;
-		transform: translateY(14px);
-	}
-	to {
-		opacity: 1;
-		transform: none;
-	}
-}
-
-.splash-title {
-	margin: 14px 0 0;
-	font-size: 40px;
-	letter-spacing: -0.02em;
-	background: linear-gradient(180deg, #f8fafc, #94a3b8);
-	-webkit-background-clip: text;
-	background-clip: text;
-	color: transparent;
-}
-
-.splash-sub {
-	margin: 0;
-	color: var(--muted);
-	font-size: 14px;
-	min-height: 20px;
-}
-
-.splash-by {
-	margin: 26px 0 0;
-	color: var(--faint);
-	font-size: 13px;
-	letter-spacing: 0.04em;
-}
-
-.splash-error {
-	margin: 10px 0 0;
-	color: var(--err);
-	font-size: 13px;
-}
-
-.splash-bar {
-	margin-top: 18px;
-	width: 190px;
-	height: 3px;
-	border-radius: 99px;
-	background: var(--line);
-	overflow: hidden;
-}
-
-.splash-bar span {
-	display: block;
-	width: 40%;
-	height: 100%;
-	border-radius: 99px;
-	background: linear-gradient(90deg, transparent, var(--accent), transparent);
-	animation: splash-sweep 1.25s ease-in-out infinite;
-}
-
-@keyframes splash-sweep {
-	from {
-		transform: translateX(-100%);
-	}
-	to {
-		transform: translateX(350%);
-	}
-}
 
 /* ------------------------------------------------------------------ buttons */
 .btn {
@@ -360,6 +268,12 @@
 	display: grid;
 	place-items: center;
 	filter: drop-shadow(0 22px 46px rgba(56, 189, 248, 0.2));
+}
+
+/* The hero card supplies its own glow, so the drop-shadow on the wrapper is
+   doubled up and washes it out. */
+.hero-art:has(.hero-card) {
+	filter: none;
 }
 
 .features {

@@ -129,24 +129,11 @@ export const DocuBotMark: React.FC<{
 	);
 };
 
-/** Full-screen startup animation, fading out once `ready` flips. */
-export const SplashScreen: React.FC<{ ready: boolean; error?: string | null }> = ({
-	ready,
-	error,
-}) => (
-	<div className={`splash${ready ? ' splash-out' : ''}`} aria-hidden={ready}>
-		<div className="splash-inner">
-			<DocuBotMark size={168} mood={ready ? 'happy' : 'idle'} />
-			<h1 className="splash-title">DocuBot</h1>
-			<p className="splash-sub">
-				{error ? 'Could not reach the server' : ready ? 'Ready' : 'Waking up…'}
-			</p>
-			{!ready && !error ? <div className="splash-bar"><span /></div> : null}
-			{error ? <p className="splash-error">{error}</p> : null}
-			<p className="splash-by">Made by Shayan Haider</p>
-		</div>
-	</div>
-);
+// The splash used to live here. It moved to SplashScreen.tsx, which enforces a
+// 3-second minimum and animates its own exit; this version faded out as soon as
+// the server answered, which meant it could appear and vanish inside a single
+// frame. Deleted rather than left exported, so there is only one splash and no
+// chance of importing the wrong one.
 
 export const CREATOR = {
 	name: 'Shayan Haider',
