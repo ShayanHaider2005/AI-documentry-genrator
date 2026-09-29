@@ -43,6 +43,9 @@ out/
 /Documentry-ai-genrator/server/voice/.venv/
 /Documentry-ai-genrator/server/voice/.cache/
 /Documentry-ai-genrator/server/voice/__pycache__/
+# The check and measurement scripts in web/ import numpy, so they leave bytecode
+# behind too.
+/Documentry-ai-genrator/web/__pycache__/
 /Documentry-ai-genrator/server/voice/*.log
 /Documentry-ai-genrator/server/voice/OpenVoice/
 /Documentry-ai-genrator/server/voice/MeloTTS/
@@ -56,3 +59,15 @@ out/
 /Documentry-ai-genrator/server/voices/south_asian_narrator.mp3
 /Documentry-ai-genrator/server/voices/probe_*.wav
 /Documentry-ai-genrator/server/voices/probe_results.json
+
+# The generated narrator library: ten reference WAVs at ~750 KB each, plus their
+# transcripts. The manifest and the generator are tracked, because the manifest
+# is the record of which instruct produced which voice; the audio is reproducible
+# with `npm run voice:library` (about 30 minutes on CPU) and is not.
+/Documentry-ai-genrator/server/voices/defaults/*.wav
+/Documentry-ai-genrator/server/voices/defaults/*.txt
+
+# Accounts and their password hashes. Never commit this: it is the one file
+# where a leak is directly useful to an attacker.
+/Documentry-ai-genrator/server/users.json
+/Documentry-ai-genrator/server/users.json.*.tmp

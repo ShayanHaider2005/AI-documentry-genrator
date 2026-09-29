@@ -45,13 +45,62 @@ const omnivoice = require('./omnivoice');
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const WEB_DIST = path.join(ROOT, 'web', 'dist');
-const DATA_DIR = path.join(ROOT, '.data', 'sessions');
+// Overridable so a test can run a throwaway instance without touching the real
+// session store, the user store, or the rendered videos.
+const DATA_DIR = process.env.DOCUBOT_DATA_DIR
+	? path.resolve(process.env.DOCUBOT_DATA_DIR)
+	: path.join(ROOT, '.data', 'sessions');
 const PORT = Number(process.env.PORT) || 3100;
 const HOST = process.env.HOST || '0.0.0.0';
 const MAX_BODY_BYTES = 64 * 1024 * 1024; // 64 MB (base64 inflates by ~33%)
 
 /** Persistent history of generated videos (single JSON file). */
 const db = createDb();
+const { createAuth, parseCookies, COOKIE_NAME, SESSION_TTL_MS: AUTH_TTL_MS } = require('./auth');
+const { readVoiceLibrary, defaultLibraryVoice, voiceById } = require('./voices');
+
+const auth = createAuth();
+
+/**
+ * Routes reachable without a session.
+ *
+ * `/api/config` and `/api/auth/me` are here on purpose: the sign-in screen
+ * reads config to report whether voice cloning is up, and `me` is how the client
+ * decides whether to show the login page at all.
+ */
+const PUBLIC_ROUTES = new Set([
+	'/api/config',
+	'/api/auth/register',
+	'/api/auth/login',
+	'/api/auth/logout',
+	'/api/auth/me',
+]);
+
+const sessionToken = (req) => parseCookies(req.headers?.cookie)[COOKIE_NAME] || null;
+
+/**
+ * The library voice to narrate with, or null to keep the previous default.
+ *
+ * An unknown id is a client error, not a silent fallback: the user picked a
+ * narrator and would otherwise get a different voice with no explanation.
+ */
+const resolveLibraryVoice = (voiceId) => {
+	const wanted = String(voiceId || '').trim();
+	if (!wanted) return voiceById(defaultLibraryVoice());
+	const found = voiceById(wanted);
+	if (!found) {
+		throw Object.assign(new Error(`Unknown narrator "${wanted}".`), { status: 400 });
+	}
+	return found;
+};
+
+/** httpOnly so page scripts cannot read the token, and SameSite=Lax for CSRF. */
+const sessionCookie = (token) =>
+	`${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(
+		AUTH_TTL_MS / 1000,
+	)}`;
+
+const clearSessionCookie = () => `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 
 const MIME = {
 	'.html': 'text/html; charset=utf-8',
@@ -151,12 +200,13 @@ function createSession() {
 // ---------------------------------------------------------------------------
 // HTTP helpers
 // ---------------------------------------------------------------------------
-function sendJson(res, status, payload) {
+function sendJson(res, status, payload, extraHeaders = {}) {
 	const body = JSON.stringify(payload);
 	res.writeHead(status, {
 		'Content-Type': 'application/json; charset=utf-8',
 		'Content-Length': Buffer.byteLength(body),
 		'Cache-Control': 'no-store',
+		...extraHeaders,
 	});
 	res.end(body);
 }
@@ -216,6 +266,40 @@ function readBody(req) {
 				resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
 			} catch (err) {
 				reject(new Error(`Invalid JSON body: ${err.message}`));
+			}
+		});
+		req.on('error', reject);
+	});
+}
+
+/**
+ * Parse a small JSON body, for the auth routes.
+ *
+ * readBody allows 64 MB, which is right for a PDF upload and absurd for a login.
+ * A missing body is an empty object rather than an error, so a blank form posts
+ * cleanly and fails validation with a useful message instead of a parse error.
+ */
+function readJsonBody(req, limitBytes = 8 * 1024) {
+	return new Promise((resolve, reject) => {
+		let size = 0;
+		const chunks = [];
+		req.on('data', (chunk) => {
+			size += chunk.length;
+			if (size > limitBytes) {
+				reject(Object.assign(new Error('Request body too large'), { status: 413 }));
+				req.destroy();
+				return;
+			}
+			chunks.push(chunk);
+		});
+		req.on('end', () => {
+			const raw = Buffer.concat(chunks).toString('utf8').trim();
+			if (!raw) return resolve({});
+			try {
+				const parsed = JSON.parse(raw);
+				resolve(parsed && typeof parsed === 'object' ? parsed : {});
+			} catch {
+				reject(Object.assign(new Error('Invalid JSON body'), { status: 400 }));
 			}
 		});
 		req.on('error', reject);
@@ -314,6 +398,21 @@ async function handleApi(req, res, url) {
 		}
 	}
 
+	// ── Auth gateway ───────────────────────────────────────────────────────
+	// Everything above the login page is gated. /api/config is deliberately
+	// reachable without a session: the sign-in screen needs to know whether
+	// voice cloning is up in order to explain itself honestly.
+	if (!PUBLIC_ROUTES.has(route) && !PUBLIC_ROUTES.has(`${req.method} ${route}`)) {
+		const user = auth.verify(sessionToken(req));
+		if (!user) {
+			return sendJson(res, 401, {
+				error: 'Sign in to continue.',
+				code: 'unauthenticated',
+			});
+		}
+		req.user = user;
+	}
+
 	// ── GET /api/config ────────────────────────────────────────────────────
 	if (route === '/api/config' && req.method === 'GET') {
 		const provider = getAiProvider();
@@ -329,9 +428,49 @@ async function handleApi(req, res, url) {
 			voiceError: health.reachable ? health.body?.error || null : omnivoice.serviceDownReason(health.body),
 			defaultVoiceAvailable: Boolean(defaultVoicePath()),
 			defaultVoiceLabel: DEFAULT_VOICE_LABEL,
+			// The generated library, so a user with no sample of their own can
+			// still pick a narrator instead of getting one fixed default.
+			voiceLibrary: readVoiceLibrary(),
 			chatEnabled: Boolean(provider),
 			llmProvider: provider ? provider.name : null,
 		});
+	}
+
+	// ── Auth routes ────────────────────────────────────────────────────────
+	if (route === '/api/auth/register' && req.method === 'POST') {
+		try {
+			const body = await readJsonBody(req);
+			const { token, user } = await auth.register(body || {});
+			return sendJson(res, 201, { user }, { 'Set-Cookie': sessionCookie(token) });
+		} catch (err) {
+			return sendJson(res, err.status || 500, { error: err.message });
+		}
+	}
+
+	if (route === '/api/auth/login' && req.method === 'POST') {
+		try {
+			const body = await readJsonBody(req);
+			const { token, user } = await auth.login(body || {});
+			return sendJson(res, 200, { user }, { 'Set-Cookie': sessionCookie(token) });
+		} catch (err) {
+			// A malformed body is the client's mistake, not a server fault: report
+			// it as the 400 it already carries rather than letting it fall through
+			// to the catch-all and become a 500.
+			return sendJson(res, err.status || 500, { error: err.message });
+		}
+	}
+
+	if (route === '/api/auth/logout' && req.method === 'POST') {
+		const token = sessionToken(req);
+		if (token) await auth.logout(token);
+		return sendJson(res, 200, { ok: true }, { 'Set-Cookie': clearSessionCookie() });
+	}
+
+	if (route === '/api/auth/me' && req.method === 'GET') {
+		// Unguarded on purpose: the client calls it on boot to decide whether to
+		// show the login page, and a 401 here is a normal answer, not an error.
+		const user = auth.verify(sessionToken(req));
+		return sendJson(res, 200, { user });
 	}
 
 	// ── POST /api/session ──────────────────────────────────────────────────
@@ -498,12 +637,17 @@ async function handleApi(req, res, url) {
 		const job = createJob('generate', session.id);
 		const pdfPath = path.join(sessionDir(session.id), session.pdf.fileName);
 		const datasetPath = path.join(sessionDir(session.id), 'dataset.json');
+		const voice = resolveLibraryVoice(body.voiceId);
 
 		runJob(job, async () => {
 			const { dataset, title } = await runPipeline({
 				pdfPath,
 				voiceSamplePath: session.voiceSamplePath,
 				voiceSampleRefText: session.voiceSampleRefText || VOICE_SAMPLE_SCRIPT,
+				// No uploaded sample: fall back to the chosen library narrator.
+				// The reference and its transcript travel together, so this never
+				// triggers the Whisper path.
+				libraryVoicePath: voice?.audioPath || null,
 				datasetPath,
 				audioSubdir: session.id,
 				log: (message) => jobLog(job, message),
@@ -511,6 +655,7 @@ async function handleApi(req, res, url) {
 
 			session.dataset = dataset;
 			session.renderPath = null;
+			session.voiceId = voice?.voiceId || null;
 
 			// Persist to the single-file store so the sidebar can list it and a
 			// returning visitor can load it instantly.
@@ -526,6 +671,7 @@ async function handleApi(req, res, url) {
 				title,
 				sceneCount: dataset.length,
 				totalFrames: dataset.reduce((sum, s) => sum + s.durationInFrames, 0),
+				narrator: session.voiceSamplePath ? null : voice?.name || null,
 				scenes: dataset.map((s) => ({
 					sceneNumber: s.sceneNumber,
 					title: s.title || '',
@@ -582,6 +728,126 @@ async function handleApi(req, res, url) {
 		return removed
 			? sendJson(res, 200, { ok: true })
 			: sendJson(res, 404, { error: 'Session not found' });
+	}
+
+	// ── POST /api/produce ──────────────────────────────────────────────────
+	// The one-button path: generate the script and visuals, synthesise every
+	// scene, then render the merged MP4 in a single job.
+	//
+	// Previously the browser had to call /api/generate, wait, then call
+	// /api/render, and the second call was where audio went missing: the
+	// composition was handed a bare array of scenes and silently fell back to the
+	// bundled dataset, so the video came out without the narration that had just
+	// been synthesised. One job that owns the whole sequence cannot drift out of
+	// step, and it gives the client a single progress stream.
+	if (route === '/api/produce' && req.method === 'POST') {
+		const body = await readBody(req);
+		const session = getSession(body.sessionId);
+		if (!session) return sendJson(res, 404, { error: 'Session not found' });
+
+		// Resolve the narrator first. It is a cheap check, and doing it before the
+		// PDF means a bad voice id is reported as a bad voice id rather than being
+		// masked by a missing document.
+		let voice;
+		try {
+			voice = resolveLibraryVoice(body.voiceId);
+		} catch (err) {
+			return sendJson(res, err.status || 400, { error: err.message });
+		}
+
+		// The button must work from a cold start, so a PDF may arrive in this same
+		// request instead of having been uploaded beforehand. Reuses the upload
+		// path so validation and text extraction stay in one place.
+		if (body.dataBase64) {
+			try {
+				const fileName = safeFileName(body.fileName, 'source.pdf');
+				if (!/\.pdf$/i.test(fileName)) {
+					return sendJson(res, 400, { error: 'Please upload a PDF file.' });
+				}
+				const buffer = decodeUpload(body.dataBase64);
+				const pdfPath = path.join(sessionDir(session.id), fileName);
+				fs.writeFileSync(pdfPath, buffer);
+				const cleanText = await parseAndCleanPdf(pdfPath);
+				if (!cleanText.trim()) {
+					return sendJson(res, 422, {
+						error:
+							'No usable text found in that PDF. It may be a scan — try a PDF with selectable text.',
+					});
+				}
+				session.pdf = { fileName, bytes: buffer.length, characters: cleanText.length };
+				session.cleanText = cleanText;
+			} catch (err) {
+				return sendJson(res, err.status || 400, { error: err.message });
+			}
+		}
+		if (!session.pdf) {
+			return sendJson(res, 400, { error: 'Upload a PDF before generating.' });
+		}
+
+		const activeRenders = [...jobs.values()].filter(
+			(job) => job.type === 'produce' && job.status === 'running',
+		).length;
+		if (activeRenders >= MAX_CONCURRENT_RENDERS) {
+			return sendJson(res, 429, {
+				error: 'A video is already being produced. Please wait for it to finish.',
+			});
+		}
+
+		const job = createJob('produce', session.id);
+		const datasetPath = path.join(sessionDir(session.id), 'dataset.json');
+		const outFile = path.join(ROOT, 'out', 'web', `${session.id}.mp4`);
+		const pdfPath = path.join(sessionDir(session.id), session.pdf.fileName);
+
+		runJob(job, async () => {
+			jobLog(job, 'Step 1/2 — writing the script and resolving visuals...');
+			const { dataset, title } = await runPipeline({
+				pdfPath,
+				voiceSamplePath: session.voiceSamplePath,
+				voiceSampleRefText: session.voiceSampleRefText || VOICE_SAMPLE_SCRIPT,
+				libraryVoicePath: voice?.audioPath || null,
+				datasetPath,
+				audioSubdir: session.id,
+				log: (message) => jobLog(job, message),
+			});
+
+			session.dataset = dataset;
+			session.renderPath = null;
+			session.voiceId = voice?.voiceId || null;
+
+			await db.add({
+				id: session.id,
+				title,
+				createdAt: new Date().toISOString(),
+				scenes: dataset,
+			});
+
+			jobLog(job, 'Step 2/2 — rendering the merged video with audio...');
+			const result = await renderVideo({
+				datasetPath,
+				outFile,
+				onLog: (text, progress) => jobLog(job, text, progress),
+			});
+			session.renderPath = result;
+
+			const totalFrames = dataset.reduce((sum, s) => sum + s.durationInFrames, 0);
+			jobLog(job, `Done: ${dataset.length} scenes, ${(totalFrames / 30).toFixed(1)}s of video.`);
+			job.progress = 100;
+
+			return {
+				sessionId: session.id,
+				title,
+				sceneCount: dataset.length,
+				totalFrames,
+				narrator: session.voiceSamplePath ? 'your uploaded voice' : voice?.name || null,
+				// The client turns this straight into a download, which is the whole
+				// point of the one-button flow.
+				videoUrl: `/video/${session.id}`,
+				downloadUrl: `/video/${session.id}?download=1`,
+				fileName: `DocuBot_${session.id}.mp4`,
+			};
+		});
+
+		return sendJson(res, 202, { jobId: job.id });
 	}
 
 	// ── POST /api/render ───────────────────────────────────────────────────
@@ -687,11 +953,18 @@ const server = http.createServer(async (req, res) => {
 			if (!fs.existsSync(candidate)) {
 				return sendText(res, 404, 'No rendered video for this video yet.');
 			}
+			// ?download=1 forces a save dialog. The single-CTA flow hands the
+			// browser a download URL it can fetch directly, and naming the file
+			// after the session is what makes the downloaded artefact traceable
+			// back to the run that produced it.
+			const wantsDownload =
+				url.searchParams.get('download') === '1' ||
+				req.headers.accept?.includes('application/octet-stream');
 			return serveFile(
 				res,
 				path.resolve(candidate, '..'),
 				`/${path.basename(candidate)}`,
-				{ download: `documentary-${id}.mp4` },
+				{ download: wantsDownload ? `DocuBot_${id}.mp4` : null },
 			);
 		}
 

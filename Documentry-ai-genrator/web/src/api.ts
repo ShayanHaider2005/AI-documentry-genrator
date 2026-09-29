@@ -6,6 +6,32 @@ import type { Scene, WordTiming } from '../../src/types';
 import { normalizeVoiceSample } from './audio';
 export type { Scene, WordTiming };
 
+/** One generated narrator, offered when the user uploads no sample of their own. */
+export interface LibraryVoice {
+	voiceId: string;
+	name: string;
+	gender: 'male' | 'female';
+	accent: string;
+	/**
+	 * Shown in the picker. Read this from the server rather than composing a
+	 * label here: the model's accent vocabulary is closed, so the label has to
+	 * match the audio the user is actually choosing.
+	 */
+	accentLabel: string;
+	audioPath: string;
+	refText: string;
+	instruct: string;
+	seconds: number;
+}
+
+export interface VoiceLibrary {
+	available: boolean;
+	voices: LibraryVoice[];
+	accents: Record<string, string>;
+	/** Why the library may be missing, or a caveat about the accent mapping. */
+	note: string;
+}
+
 export interface VoiceSampleConfig {
 	voiceSampleSentences: string[];
 	voiceSampleScript: string;
@@ -19,6 +45,7 @@ export interface VoiceSampleConfig {
 	/** Whether the bundled default narrator has been generated. */
 	defaultVoiceAvailable: boolean;
 	defaultVoiceLabel: string;
+	voiceLibrary: VoiceLibrary;
 	chatEnabled: boolean;
 	llmProvider: string | null;
 }
@@ -60,7 +87,7 @@ export interface StoredSession {
 
 export interface JobStatus {
 	id: string;
-	type: 'generate' | 'render';
+	type: 'generate' | 'render' | 'produce';
 	status: 'running' | 'done' | 'error';
 	progress: number;
 	logs: string[];
@@ -70,6 +97,10 @@ export interface JobStatus {
 		sceneCount?: number;
 		totalFrames?: number;
 		videoUrl?: string;
+		/** Set by the one-button flow; fetches the MP4 as a download. */
+		downloadUrl?: string;
+		fileName?: string;
+		narrator?: string | null;
 	} | null;
 	error: string | null;
 }
@@ -88,6 +119,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 		body = { error: text };
 	}
 
+	if (response.status === 401) {
+		// Distinct type so the app can send the user to the login screen instead
+		// of showing a failed action they cannot act on.
+		throw new UnauthorisedError(
+			(body as { error?: string })?.error || 'Sign in to continue.',
+		);
+	}
 	if (!response.ok) {
 		const message =
 			(body as { error?: string })?.error || `Request failed (${response.status})`;
@@ -111,8 +149,37 @@ export const fileToBase64 = (file: File): Promise<string> =>
 const postJson = <T>(path: string, payload: unknown) =>
 	request<T>(path, { method: 'POST', body: JSON.stringify(payload) });
 
+/** Thrown when the server refuses because there is no session. */
+export class UnauthorisedError extends Error {
+	constructor(message = 'Sign in to continue.') {
+		super(message);
+		this.name = 'UnauthorisedError';
+	}
+}
+
 export const api = {
 	config: () => request<VoiceSampleConfig>('/api/config'),
+
+	// ── Auth ───────────────────────────────────────────────────────────────
+	// The cookie is set by the server as httpOnly, so nothing here holds the
+	// token: a reload either has a session or does not.
+	register: (username: string, password: string) =>
+		postJson<{ user: { id: string; username: string } }>('/api/auth/register', {
+			username,
+			password,
+		}),
+
+	login: (username: string, password: string) =>
+		postJson<{ user: { id: string; username: string } }>('/api/auth/login', {
+			username,
+			password,
+		}),
+
+	logout: () => postJson<{ ok: boolean }>('/api/auth/logout', {}),
+
+	/** The signed-in user, or null. A 401 here is a normal answer, not an error. */
+	me: () =>
+		request<{ user: { id: string; username: string } | null }>('/api/auth/me'),
 
 	createSession: () => postJson<{ sessionId: string }>('/api/session', {}),
 
@@ -159,11 +226,34 @@ export const api = {
 	deleteSession: (id: string) =>
 		request<{ ok: boolean }>(`/api/sessions/${id}`, { method: 'DELETE' }),
 
-	generate: (sessionId: string) =>
-		postJson<{ jobId: string }>('/api/generate', { sessionId }),
+	generate: (sessionId: string, voiceId?: string | null) =>
+		postJson<{ jobId: string }>('/api/generate', { sessionId, voiceId }),
 
 	render: (sessionId: string) =>
 		postJson<{ jobId: string }>('/api/render', { sessionId }),
+
+	/**
+	 * The one button: script, visuals, narration, and the merged MP4 in a
+	 * single job, so the audio cannot be lost between two separate calls.
+	 *
+	 * Accepts a File for a cold start, in which case it is uploaded in the same
+	 * request rather than requiring a separate upload step first.
+	 */
+	produce: async (params: {
+		sessionId: string;
+		file?: File | null;
+		voiceId?: string | null;
+	}) => {
+		const payload: Record<string, unknown> = {
+			sessionId: params.sessionId,
+			voiceId: params.voiceId ?? null,
+		};
+		if (params.file) {
+			payload.fileName = params.file.name;
+			payload.dataBase64 = await fileToBase64(params.file);
+		}
+		return postJson<{ jobId: string }>('/api/produce', payload);
+	},
 
 	job: (jobId: string) => request<JobStatus>(`/api/job/${jobId}`),
 };

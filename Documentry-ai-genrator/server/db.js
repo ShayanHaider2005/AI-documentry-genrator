@@ -13,7 +13,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const DEFAULT_FILE = path.join(__dirname, 'sessions.json');
+// Overridable so a test can run a throwaway instance without reading or writing
+// the real session store.
+const DEFAULT_FILE =
+	process.env.DOCUBOT_SESSIONS_FILE || path.join(__dirname, 'sessions.json');
 const DEFAULT_MAX_SESSIONS = 60;
 
 const emptyStore = () => ({ version: 1, sessions: [] });

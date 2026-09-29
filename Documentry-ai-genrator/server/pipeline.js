@@ -83,6 +83,23 @@ const MAX_SCENES = Number(process.env.MAX_SCENES || 5);
 const countWords = (text) => String(text || '').trim().split(/\s+/).filter(Boolean).length;
 
 /**
+ * The transcript beside a reference recording, if there is one.
+ *
+ * Reading it is what keeps synthesis off the Whisper path: OmniVoice downloads
+ * and runs openai/whisper-large-v3-turbo when given audio with no transcript.
+ */
+const readSidecarText = (audioPath) => {
+	if (!audioPath) return '';
+	const sidecar = String(audioPath).replace(/\.[^./\\]+$/, '.txt');
+	if (!fs.existsSync(sidecar)) return '';
+	try {
+		return fs.readFileSync(sidecar, 'utf8').trim();
+	} catch {
+		return '';
+	}
+};
+
+/**
  * Fit a script to both budgets: at most `maxScenes` scenes, at most
  * `limit` words.
  *
@@ -704,6 +721,10 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	const {
 		voiceSamplePath,
 		voiceSampleRefText = VOICE_SAMPLE_SCRIPT,
+		// A voice from the generated library, used when there is no upload. It
+		// carries its own transcript, so narration never falls into the Whisper
+		// path unless the user supplies audio we have no transcript for.
+		libraryVoicePath = null,
 		datasetPath = DATASET_PATH,
 		audioSubdir = '',
 		log = console.log,
@@ -729,10 +750,24 @@ async function runPipeline(optionsOrPdfPath = {}) {
 	// OmniVoice clones per synthesis, so what we resolve here is the reference
 	// path and transcript that every scene will be spoken with.
 	const step0Start = performance.now();
-	const voice = await prepareClientVoice(voiceSamplePath, voiceSampleRefText);
+	// A library narrator is described by a single path here; its transcript comes
+	// from the .txt sidecar beside it, so the same code path serves uploads and
+	// generated voices without either forcing a transcription.
+	const libraryVoice = libraryVoicePath
+		? {
+				audioPath: libraryVoicePath,
+				refText: readSidecarText(libraryVoicePath),
+				name: path.basename(libraryVoicePath, path.extname(libraryVoicePath)),
+			}
+		: null;
+
+	const voice = await prepareClientVoice(voiceSamplePath, voiceSampleRefText, libraryVoice);
 	const voiceLabel = voice.voiceLabel;
 
 	log(`[0/5] Voice plan: ${voiceLabel} (${voice.status})`);
+	if (voice.refText) {
+		log('[0/5] Reference transcript is known; OmniVoice will not run Whisper.');
+	}
 	if (voice.reason) log(`[0/5] ${voice.reason}`);
 	logStep('0/5', `Voice ready: ${voiceLabel}`, step0Start);
 

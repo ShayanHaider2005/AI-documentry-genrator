@@ -1,11 +1,13 @@
 import React from 'react';
 import { DocumentaryVideo } from '../../src/DocumentaryVideo';
-import { api } from './api';
+import { api, UnauthorisedError } from './api';
 import type {
 	JobStatus,
+	LibraryVoice,
 	Scene,
 	SessionSummary,
 	StoredSession,
+	VoiceLibrary,
 	VoiceSampleConfig,
 } from './api';
 import {
@@ -15,6 +17,7 @@ import {
 	Player,
 	VoiceRecorder,
 } from './components';
+import { CreatorFooter, DocuBotMark } from './Mascot';
 import './styles.css';
 
 const POLL_INTERVAL_MS = 1200;
@@ -55,7 +58,90 @@ const StepHeader: React.FC<{ step: number; title: string; done: boolean }> = ({
 	</div>
 );
 
-export const App: React.FC = () => {
+/**
+ * Narrator picker: gender, then accent.
+ *
+ * Gender first because it is the coarser choice, and it keeps the accent list
+ * short. The labels come from the server rather than being composed here, since
+ * the model's accent vocabulary is closed and a label written in the browser
+ * could claim an accent the audio does not have.
+ */
+const VoicePicker: React.FC<{
+	library: VoiceLibrary | null;
+	value: string | null;
+	onChange: (voiceId: string | null) => void;
+	disabled: boolean;
+	fallbackLabel: string;
+}> = ({ library, value, onChange, disabled, fallbackLabel }) => {
+	const [gender, setGender] = React.useState<'male' | 'female'>('male');
+
+	if (!library?.available) {
+		return (
+			<Notice kind="info">
+				{/* Honest about the cause rather than implying a choice exists. */}
+				{library?.note || 'No narrator library has been generated yet.'}
+				{library && !library.note ? null : ' Run "npm run voice:library" to build it.'}
+				{fallbackLabel ? ` Until then, narration uses ${fallbackLabel}.` : ''}
+			</Notice>
+		);
+	}
+
+	const forGender = library.voices.filter((voice) => voice.gender === gender);
+	const selected = library.voices.find((voice) => voice.voiceId === value) || null;
+
+	// A voice chosen under the other gender must not silently stay selected while
+	// the accent list shows something else.
+	const effective = selected && selected.gender === gender ? selected : null;
+
+	return (
+		<div className="voice-picker">
+			<div className="seg" role="group" aria-label="Narrator gender">
+				{(['male', 'female'] as const).map((option) => (
+					<button
+						type="button"
+						key={option}
+						className={`seg-btn${gender === option ? ' on' : ''}`}
+						aria-pressed={gender === option}
+						disabled={disabled}
+						onClick={() => setGender(option)}
+					>
+						{option === 'male' ? 'Male' : 'Female'}
+					</button>
+				))}
+			</div>
+
+			<label className="field">
+				<span>Accent</span>
+				<select
+					value={effective?.voiceId ?? ''}
+					disabled={disabled}
+					onChange={(event) => onChange(event.target.value || null)}
+				>
+					<option value="">Select an accent…</option>
+					{forGender.map((voice) => (
+						<option key={voice.voiceId} value={voice.voiceId}>
+							{voice.accentLabel} — {voice.name}
+						</option>
+					))}
+				</select>
+			</label>
+
+			{effective ? (
+				<Notice kind="ok">
+					Narrating with {effective.name} ({effective.accentLabel}). Synthesised locally
+					with OmniVoice.
+				</Notice>
+			) : null}
+
+			{library.note ? <p className="hint">{library.note}</p> : null}
+		</div>
+	);
+};
+
+export const App: React.FC<{ onSignOut?: () => void; username?: string }> = ({
+	onSignOut,
+	username,
+}) => {
 	const [config, setConfig] = React.useState<VoiceSampleConfig | null>(null);
 	const [sessionId, setSessionId] = React.useState<string | null>(null);
 
@@ -70,12 +156,31 @@ export const App: React.FC = () => {
 	const [voiceInfo, setVoiceInfo] = React.useState<string | null>(null);
 	const [voiceError, setVoiceError] = React.useState<string | null>(null);
 
+	/* which generated narrator to use when nothing was uploaded */
+	const [voiceId, setVoiceId] = React.useState<string | null>(null);
+	/* The recorder is behind a toggle: most people will pick a narrator, and
+	    three sample sentences plus a record button is a lot of surface to show
+	    by default. */
+	const [showRecorder, setShowRecorder] = React.useState(false);
+
+	/** Hidden input used by the one-button flow when no PDF is chosen yet. */
+	const coldStartInput = React.useRef<HTMLInputElement | null>(null);
+
 	const [videoUrl, setVideoUrl] = React.useState<string | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [busy, setBusy] = React.useState<string | null>(null);
 
-	const [generateJob, setGenerateJob] = React.useState<JobStatus | null>(null);
-	const [renderJob, setRenderJob] = React.useState<JobStatus | null>(null);
+	/* the single produce job: script, audio, visuals, then the merged MP4 */
+	const [produceJob, setProduceJob] = React.useState<JobStatus | null>(null);
+	const [narratorUsed, setNarratorUsed] = React.useState<string | null>(null);
+	const [downloaded, setDownloaded] = React.useState(false);
+
+	/** Send a 401 to the shell so the user lands on the sign-in screen. */
+	const handleAuthLoss = React.useCallback((err: unknown) => {
+		if (err instanceof UnauthorisedError) {
+			window.dispatchEvent(new CustomEvent('docubot:unauthorised'));
+		}
+	}, []);
 
 	const refreshHistory = React.useCallback(async () => {
 		try {
@@ -148,8 +253,9 @@ export const App: React.FC = () => {
 		setVoiceName(null);
 		setVoiceInfo(null);
 		setVoiceError(null);
-		setGenerateJob(null);
-		setRenderJob(null);
+		setProduceJob(null);
+		setNarratorUsed(null);
+		setDownloaded(false);
 		setError(null);
 
 		api
@@ -213,7 +319,9 @@ export const App: React.FC = () => {
 			setPdfChars(result.characters);
 			setActive(null);
 			setVideoUrl(null);
+			setDownloaded(false);
 		} catch (err) {
+			handleAuthLoss(err);
 			setError((err as Error).message);
 		} finally {
 			setBusy(null);
@@ -237,20 +345,41 @@ export const App: React.FC = () => {
 			setVoiceName(file.name);
 			setVoiceInfo(null);
 			setVoiceError(apiErr.detail || apiErr.message);
+			handleAuthLoss(err);
 		} finally {
 			setBusy(null);
 		}
 	};
 
-	const handleGenerate = async () => {
+	/**
+	 * The single button: produce the whole thing and download it.
+	 *
+	 * One request, one job, one file. This replaced a two-step flow (Generate,
+	 * then Download MP4) where the audio was lost between the steps — the render
+	 * was handed a bare array of scenes, the composition fell back to the
+	 * bundled dataset, and the video came out with no narration. A single job
+	 * cannot drift out of step like that, and the finished MP4 is handed straight
+	 * to the browser.
+	 */
+	const handleProduce = async (file?: File) => {
 		if (!sessionId) return;
 		setError(null);
 		setVideoUrl(null);
+		setDownloaded(false);
+		setNarratorUsed(null);
+		// A file passed straight to the button is uploaded in the same request,
+		// so remember its name for the panel heading afterwards.
+		const bodyFileName = file?.name ?? null;
+		if (bodyFileName) setPdfName(bodyFileName);
 		try {
-			const { jobId } = await api.generate(sessionId);
-			setGenerateJob({
+			const { jobId } = await api.produce({
+				sessionId,
+				file: file ?? null,
+				voiceId: voiceName ? null : voiceId,
+			});
+			setProduceJob({
 				id: jobId,
-				type: 'generate',
+				type: 'produce',
 				status: 'running',
 				progress: 0,
 				logs: [],
@@ -258,45 +387,49 @@ export const App: React.FC = () => {
 				error: null,
 			});
 
-			const finished = await pollJob(jobId, setGenerateJob);
+			const finished = await pollJob(jobId, setProduceJob);
 			if (finished.status === 'error') {
-				setError(finished.error ?? 'Generation failed');
+				setError(finished.error ?? 'Production failed');
 				return;
 			}
 
-			// Load the finished record so the player and the sidebar agree.
+			setNarratorUsed(finished.result?.narrator ?? null);
+			setVideoUrl(finished.result?.videoUrl ?? null);
+
+			// The finished record, so the player and the sidebar agree.
 			const record = await api.storedSession(finished.result?.sessionId ?? sessionId);
 			setActive(record);
+			// The uploaded file may have arrived in the produce request itself, so
+			// the name can be new here even when no earlier upload step ran.
+			if (!pdfName && bodyFileName) setPdfName(bodyFileName);
 			refreshHistory();
+
+			// Hand the file to the browser as soon as it is ready. A programmatic
+			// click on a real anchor is what triggers a save; setting location
+			// or window.open would only open a player.
+			const downloadUrl = finished.result?.downloadUrl;
+			if (downloadUrl) {
+				const anchor = document.createElement('a');
+				anchor.href = downloadUrl;
+				anchor.download = finished.result?.fileName ?? 'DocuBot.mp4';
+				document.body.appendChild(anchor);
+				anchor.click();
+				anchor.remove();
+				setDownloaded(true);
+			}
 		} catch (err) {
+			handleAuthLoss(err);
 			setError((err as Error).message);
 		}
 	};
 
-	const handleRender = async () => {
-		if (!sessionId) return;
-		setError(null);
+	const handleSignOut = async () => {
 		try {
-			const { jobId } = await api.render(sessionId);
-			setRenderJob({
-				id: jobId,
-				type: 'render',
-				status: 'running',
-				progress: 0,
-				logs: [],
-				result: null,
-				error: null,
-			});
-
-			const finished = await pollJob(jobId, setRenderJob);
-			if (finished.status === 'error') {
-				setError(finished.error ?? 'Render failed');
-				return;
-			}
-			setVideoUrl(finished.result?.videoUrl ?? null);
-		} catch (err) {
-			setError((err as Error).message);
+			await api.logout();
+		} catch {
+			/* signing out locally is what matters */
 		}
+		onSignOut?.();
 	};
 
 	/* --------------------------------------------------------------- view */
@@ -309,10 +442,10 @@ export const App: React.FC = () => {
 		<div className="app">
 			<header className="topbar">
 				<div className="brand">
-					<div className="brand-mark">D</div>
+					<DocuBotMark size={34} float={false} />
 					<div>
 						<div>DocuBot</div>
-						<div className="brand-sub">AI Documentary &amp; Lecture Generator</div>
+						<div className="brand-sub">AI Documentary Generator</div>
 					</div>
 				</div>
 				<span className="spacer" />
@@ -324,8 +457,14 @@ export const App: React.FC = () => {
 						? 'Voice cloning on'
 						: config?.voiceLoading
 							? 'Voice loading...'
-							: 'Default voice'}
+							: 'Library voices'}
 				</span>
+				{username ? <span className="pill user">{username}</span> : null}
+				{onSignOut ? (
+					<button type="button" className="link" onClick={handleSignOut}>
+						Sign out
+					</button>
+				) : null}
 			</header>
 
 			<div className="shell">
@@ -445,48 +584,96 @@ export const App: React.FC = () => {
 									{pdfChars.toLocaleString()} characters read from your PDF.
 								</Notice>
 							) : null}
+							{/* Cold start: nothing has been uploaded, so the button accepts
+							    the PDF directly. Cheaper to explain here than to make
+							    the user wonder why the button is disabled. */}
+							{!pdfName ? (
+								<p className="hint">
+									You can also skip this step — the button below will take your PDF
+									and start from scratch.
+								</p>
+							) : null}
 
 							<StepHeader
 								step={2}
-								title="Add your voice (optional)"
-								done={Boolean(voiceName)}
+								title="Choose a narrator"
+								done={Boolean(voiceName) || Boolean(voiceId)}
 							/>
-							<p className="hint">
-								Read these three lines out loud in English, then record them. Your
-								voice and accent become the narration.
-							</p>
-							<ol className="sentences">
-								{(config?.voiceSampleSentences ?? []).map((sentence) => (
-									<li key={sentence}>{sentence}</li>
-								))}
-							</ol>
-							<VoiceRecorder
-								disabled={!sessionId || Boolean(busy)}
-								onUse={handleVoice}
-								onError={setError}
-							/>
-							<FilePicker
-								id="voice-input"
-								label="or upload a file"
-								hint="MP3 preferred · about 30 seconds or less"
-								accept="audio/mpeg,audio/wav,.mp3,.wav,.m4a,.webm,.ogg"
-								fileName={voiceName}
-								disabled={!sessionId || Boolean(busy)}
-								onFile={handleVoice}
-							/>
+
+							{/* An uploaded sample always wins. The picker is replaced rather than
+							    shown beside it, so the two are never treated as equal options. */}
+							{voiceName ? (
+								<Notice kind="ok">
+								Using your uploaded voice ({voiceName}).
+								<button
+									type="button"
+									className="link"
+									onClick={() => {
+										setVoiceName(null);
+										setVoiceInfo(null);
+										setVoiceError(null);
+									}}
+									>
+										Use a narrator instead
+									</button>
+								</Notice>
+							) : (
+								<VoicePicker
+									library={config?.voiceLibrary ?? null}
+									value={voiceId}
+									onChange={setVoiceId}
+									disabled={produceJob?.status === 'running'}
+									fallbackLabel={config?.defaultVoiceLabel ?? 'Default narrator'}
+								/>
+							)}
+
+							<button
+								type="button"
+								className="link voice-advanced"
+								onClick={() => setShowRecorder((was) => !was)}
+							>
+								{showRecorder ? 'Hide voice recording' : 'Record my own voice instead'}
+							</button>
+
+							{showRecorder ? (
+								<>
+									<p className="hint">
+										Read these three lines out loud in English, then record them. Your
+										voice and accent become the narration.
+									</p>
+									<ol className="sentences">
+										{(config?.voiceSampleSentences ?? []).map((sentence) => (
+											<li key={sentence}>{sentence}</li>
+										))}
+									</ol>
+									<VoiceRecorder
+										disabled={!sessionId || Boolean(busy)}
+										onUse={handleVoice}
+										onError={setError}
+									/>
+									<FilePicker
+										id="voice-input"
+										label="or upload a file"
+										hint="MP3 preferred, about 30 seconds or less"
+										accept="audio/mpeg,audio/wav,.mp3,.wav,.m4a,.webm,.ogg"
+										fileName={voiceName}
+										disabled={!sessionId || Boolean(busy)}
+										onFile={handleVoice}
+									/>
+								</>
+							) : null}
+
 							{voiceInfo ? <Notice kind="ok">{voiceInfo}</Notice> : null}
 							{voiceError ? (
 								<Notice kind="err">
-									<strong>Voice cloning failed — your recording is NOT being used.</strong>
+									<strong>Voice cloning failed, your recording is NOT being used.</strong>
 									<br />
 									{voiceError}
 									<br />
 									<span className="hint">
-										Narration will use the default neural voice
-										{config?.fallbackVoice ? ` (${config.fallbackVoice})` : ''}.
-										Cloning runs locally on this machine with OmniVoice, so there
-										is no account or API key. If the reason mentions an
-										undecodable or webm file, install ffmpeg or upload an MP3.
+										Pick one of the narrators above instead. Cloning runs locally with
+										OmniVoice, so there is no account or API key. If the reason mentions
+										an undecodable or webm file, install ffmpeg or upload an MP3.
 									</span>
 								</Notice>
 							) : null}
@@ -496,51 +683,74 @@ export const App: React.FC = () => {
 							<div className="btn-row">
 								<Button
 									variant="primary"
-									onClick={handleGenerate}
-									disabled={!pdfName || generateJob?.status === 'running'}
+									onClick={() => {
+										// Cold start: no PDF chosen yet, so ask for one and hand it
+										// straight to the produce call rather than making the user
+										// come back and press the button again.
+										if (!pdfName) {
+											coldStartInput.current?.click();
+											return;
+										}
+										void handleProduce();
+									}}
+									disabled={produceJob?.status === 'running'}
 								>
-									{generateJob?.status === 'running' ? 'Making…' : 'Generate video'}
-								</Button>
-								<Button
-									onClick={handleRender}
-									disabled={scenes.length === 0 || renderJob?.status === 'running'}
-								>
-									{renderJob?.status === 'running' ? 'Rendering…' : 'Download MP4'}
+									{produceJob?.status === 'running'
+										? 'Producing...'
+										: 'Generate & Download Documentary'}
 								</Button>
 							</div>
+							<p className="hint">
+								One step: script, visuals, narration, and a single MP4 with the audio
+								already merged in. On a CPU-only machine this takes a few minutes.
+							</p>
 
-							{generateJob?.status === 'running' || generateJob?.logs.length ? (
+							{/* Used when the button is pressed with no PDF chosen: the file goes
+							    straight into the produce request, so the one-button flow works
+							    from a cold start. Reset after reading so picking the same file
+							    twice still fires a change event. */}
+							<input
+								ref={coldStartInput}
+								type="file"
+								accept="application/pdf,.pdf"
+								hidden
+								onChange={(event) => {
+									const file = event.target.files?.[0];
+									event.target.value = '';
+									if (file) void handleProduce(file);
+								}}
+							/>
+
+							{produceJob?.status === 'running' || produceJob?.logs.length ? (
 								<>
-									{generateJob?.status === 'running' ? (
+									{produceJob?.status === 'running' ? (
 										<div className="progress">
-											<div style={{ width: `${Math.round(generateJob.progress)}%` }} />
+											<div style={{ width: `${Math.round(produceJob.progress)}%` }} />
 										</div>
 									) : null}
-									{generateJob?.logs.length ? (
-										<div className="logbox">{generateJob.logs.join('\n')}</div>
+									{produceJob?.logs.length ? (
+										<div className="logbox">{produceJob.logs.join('\n')}</div>
 									) : null}
-								</>
-							) : null}
-
-							{renderJob?.status === 'running' ? (
-								<>
-									<div className="progress">
-										<div style={{ width: `${Math.round(renderJob.progress)}%` }} />
-									</div>
-									<div className="logbox">{renderJob.logs.join('\n')}</div>
 								</>
 							) : null}
 
 							{videoUrl ? (
 								<>
 									<video src={videoUrl} controls />
-									<a className="btn full" href={videoUrl} download>
-										Download MP4
+									<a className="btn full" href={`${videoUrl}?download=1`} download>
+										Download again
 									</a>
+									{downloaded ? (
+										<Notice kind="ok">
+											Saved to your downloads.
+											{narratorUsed ? ` Narrated by ${narratorUsed}.` : ''}
+										</Notice>
+									) : null}
 								</>
 							) : null}
 						</div>
 
+					<CreatorFooter compact />
 					</div>
 				</main>
 			</div>
