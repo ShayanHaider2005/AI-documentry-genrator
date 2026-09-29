@@ -117,6 +117,18 @@ check('a trailing slash is the same page', /replace\(\/\\\/+\$\/, ''\)/.test(she
 check('signing in does not hijack a chosen page',
 	/if \(!wanted \|\| wanted === 'landing' \|\| wanted === 'auth'\)/.test(shell),
 	'otherwise opening /contact bounces to the dashboard');
+check('the landing page offers a route to the chat page',
+	/\tonChat: \(\) => void;/.test(shell) && /onClick=\{onChat\}/.test(shell),
+	'otherwise /chat is reachable only from the TopBar, and only when signed in');
+check('and the handler is wired to the chat view',
+	/onChat=\{\(\) => setView\('chat'\)\}/.test(shell));
+check('it is labelled so it cannot be confused with Play With Me',
+	/\n\t+PDF Chat\n/.test(shell) && !/Chat With Me/.test(shell),
+	'"Play With Me" is a different page; two adjacent buttons one word apart is a trap');
+// The auth gate has to cover the landing entry point too, not just the nav link.
+check('a signed-out visitor is sent to sign-in, not a blank /chat',
+	/if \(booted && view === 'chat' && !user\) setView\('auth'\)/.test(shell));
+
 check('the server falls back to index.html for deep routes',
 	/serveFile\(res, WEB_DIST, '\/index\.html'/.test(web));
 

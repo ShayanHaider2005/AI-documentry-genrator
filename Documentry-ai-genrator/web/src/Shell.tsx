@@ -278,6 +278,7 @@ export const Shell: React.FC = () => {
 								onSignIn={() => setView('auth')}
 								onAbout={() => setView('about')}
 								onPlay={() => setView('play')}
+								onChat={() => setView('chat')}
 							/>
 						)}
 					</Page>
@@ -406,7 +407,8 @@ const LandingPage: React.FC<{
 	onSignIn: () => void;
 	onAbout: () => void;
 	onPlay: () => void;
-}> = ({ signedInAs, onTry, onSignIn, onAbout, onPlay }) => {
+	onChat: () => void;
+}> = ({ signedInAs, onTry, onSignIn, onAbout, onPlay, onChat }) => {
 	const reduce = useReducedMotion();
 	// Drives the staggered entrances. One flag rather than per-element state, so
 	// every section animates in step and there is a single thing to disable.
@@ -465,6 +467,25 @@ const LandingPage: React.FC<{
 						whileTap={reduce ? undefined : { scale: 0.98 }}
 					>
 						Play With Me
+					</motion.button>
+
+					{/* The OKF chatbot at /chat. It needs an account, so a signed-out
+				    visitor lands on the sign-in page, exactly as the "Try DocuBot"
+				    button beside it does. Labelled "PDF Chat" rather than "Chat
+				    With Me" so it cannot be confused with the "Play With Me" button
+				    immediately above it, and so the label matches the TopBar link and
+				    the page own heading. */}
+					<motion.button
+						type="button"
+						className="btn btn-ghost btn-lg"
+						onClick={onChat}
+						initial={reduce ? undefined : { opacity: 0, y: 22 }}
+						animate={entered ? { opacity: 1, y: 0 } : undefined}
+						transition={{ duration: 0.5, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
+						whileHover={reduce ? undefined : { scale: 1.04 }}
+						whileTap={reduce ? undefined : { scale: 0.98 }}
+					>
+						PDF Chat
 					</motion.button>
 					<motion.button
 						type="button"
