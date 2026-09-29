@@ -149,7 +149,12 @@ check('the splash names the creator', /Crafted by Shayan Haider/.test(splash || 
 /* ---- 7. the mascot ------------------------------------------------------- */
 console.log('\n7. the mascot');
 check('it is inline SVG', /<svg/.test(mascot) && /viewBox/.test(mascot));
-check('it has two eyes', /r="11"/.test(mascot) || (mascot.match(/docubot-pupil/g) || []).length >= 2);
+// The eyes are now drawn from shared left/right constants, so two `r="11"`
+// literals no longer exist. Check the constants and that both sides iterate.
+check('it has two eyes',
+	/const EYE = \{ left: 45, right: 75/.test(mascot) &&
+		/\[EYE\.left, EYE\.right\]\.map/.test(mascot),
+		'two lens centres, both drawn');
 check('the eyes glow', /feGaussianBlur/.test(mascot) || /dbGlow/.test(mascot));
 check('it has a metallic body gradient', /dbBody/.test(mascot));
 check('it floats', /docubot-float/.test(mascot) && /docubot-bob/.test(styles));

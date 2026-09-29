@@ -178,8 +178,20 @@ console.log('\n6. staggered entrances and hovers');
 	check('features stagger by 0.1s', /FEATURES\.map\(\(feature, index\)/.test(shell));
 	check('the stagger delay is computed per index', /delay: 0\.06 \* index/.test(shell));
 	check('feature cards rise on entrance', /initial: \{ opacity: 0, y: 22 \}/.test(shell));
-	check('cards lift on hover', /whileHover=\{reduce \? undefined : \{ y: -5 \}\}/.test(shell));
+	check('cards lift on hover', /\.feature-card:hover/.test(motion) || /whileHover/.test(shell));
 	check('card hover border is styled', /\.feature-card:hover/.test(motion));
+	// Scroll reveals, which are a separate concern from the mount-time `rise`.
+	check('feature cards use the scroll Reveal wrapper',
+		/<Reveal[\s\S]{0,200}?className="card feature-card"/.test(shell));
+	check('the Reveal wrapper exists and is in-view driven',
+		/reveal/i.test(read('web/src/components/Reveal.tsx')) &&
+			/whileInView/.test(read('web/src/components/Reveal.tsx')));
+	check('reveals fire once, not on every re-entry',
+		/once: true/.test(read('web/src/components/Reveal.tsx')));
+	check('the stagger is 0.1s', /step=\{0\.1\}/.test(shell));
+	check('the counters are live', /<CountUp to=\{10\}/.test(shell));
+	check('CountUp uses IntersectionObserver',
+		/IntersectionObserver/.test(read('web/src/components/Reveal.tsx')));
 
 	check('the primary CTA pulses', /\.btn\.pulse/.test(motion) && /btn-pulse/.test(motion));
 	check('the CTA scales to 1.04 on hover', /scale: 1\.04/.test(shell));

@@ -4,8 +4,12 @@ import { api, UnauthorisedError } from './api';
 import { CREATOR, DocuBotMark } from './Mascot';
 import { SplashScreen } from './SplashScreen';
 import { HeroAnimationCard } from './HeroAnimationCard';
+import { TopBar, FloatingCards } from './TopBar';
+import { Reveal, CountUp } from './components/Reveal';
+import { PlayWithMe } from './pages/PlayWithMe';
+import { playDocuBotSFX } from './utils/botAudio';
 
-type View = 'landing' | 'auth' | 'studio' | 'about';
+type View = 'landing' | 'auth' | 'studio' | 'about' | 'play';
 type AuthMode = 'login' | 'signup';
 
 /**
@@ -94,6 +98,8 @@ export const Shell: React.FC = () => {
 		<div className="shell-root">
 			{/* Over the whole app, and behind everything. */}
 			<AmbientBlobs reduce={Boolean(reduce)} />
+			{/* Decorative glass cards drifting behind the content. */}
+			<FloatingCards />
 
 			<SplashScreen ready={booted} error={bootError} />
 
@@ -140,17 +146,34 @@ export const Shell: React.FC = () => {
 								onBack={() => setView('landing')}
 								initialMode={user ? 'login' : 'signup'}
 							/>
-						) : (
+						) : view === 'play' ? (
+							<PlayWithMe onBack={() => setView(user ? 'studio' : 'landing')} />
+					) : (
 							<LandingPage
 								signedInAs={user?.username ?? null}
 								onTry={() => setView(user ? 'studio' : 'auth')}
 								onSignIn={() => setView('auth')}
 								onAbout={() => setView('about')}
+								onPlay={() => setView('play')}
 							/>
 						)}
 					</Page>
 				)}
 			</AnimatePresence>
+
+			{/* The persistent bar sits outside the transition, so it does not
+			    re-animate on every route change and the way home is always
+			    available. Hidden during the splash, where it is just clutter. */}
+			{booted ? (
+				<TopBar
+					current={view}
+					onHome={() => setView('landing')}
+					onPlay={() => setView('play')}
+					onAbout={() => setView('about')}
+					signedIn={Boolean(user)}
+					onStudio={() => setView('studio')}
+				/>
+			) : null}
 		</div>
 	);
 };
@@ -251,7 +274,8 @@ const LandingPage: React.FC<{
 	onTry: () => void;
 	onSignIn: () => void;
 	onAbout: () => void;
-}> = ({ signedInAs, onTry, onSignIn, onAbout }) => {
+	onPlay: () => void;
+}> = ({ signedInAs, onTry, onSignIn, onAbout, onPlay }) => {
 	const reduce = useReducedMotion();
 	// Drives the staggered entrances. One flag rather than per-element state, so
 	// every section animates in step and there is a single thing to disable.
@@ -281,48 +305,10 @@ const LandingPage: React.FC<{
 
 	return (
 		<div className="landing">
-		<header className="landing-nav">
-			<div className="brand">
-				<DocuBotMark size={38} float={false} />
-				<div>
-					<div>DocuBot</div>
-					<div className="brand-sub">AI Documentary Generator</div>
-				</div>
-			</div>
-			<nav className="landing-links">
-				<button type="button" className="link" onClick={onAbout}>
-					About
-				</button>
-				{signedInAs ? (
-					<motion.button
-						type="button"
-						className="btn btn-primary pulse-sm"
-						onClick={onTry}
-						whileHover={reduce ? undefined : { scale: 1.04 }}
-						whileTap={reduce ? undefined : { scale: 0.98 }}
-					>
-						Open studio
-					</motion.button>
-				) : (
-					<>
-						<button type="button" className="link" onClick={onSignIn}>
-							Sign in
-						</button>
-						<motion.button
-							type="button"
-							className="btn btn-primary pulse-sm"
-							onClick={onTry}
-							whileHover={reduce ? undefined : { scale: 1.04 }}
-							whileTap={reduce ? undefined : { scale: 0.98 }}
-						>
-							Try DocuBot
-						</motion.button>
-					</>
-				)}
-			</nav>
-		</header>
-
-		<section className="hero">
+			{/* The brand and links now live in the global TopBar, which is
+			    outside the page transition so it does not re-animate on every
+			    route change. The hero below is the landing page's own content. */}
+			<section className="hero">
 			<motion.div className="hero-copy" {...rise(0)}>
 				<h1>
 					Turn a lecture PDF into a
@@ -340,6 +326,18 @@ const LandingPage: React.FC<{
 					<motion.button
 						type="button"
 						className="btn btn-ghost btn-lg"
+						onClick={onPlay}
+						initial={reduce ? undefined : { opacity: 0, y: 22 }}
+						animate={entered ? { opacity: 1, y: 0 } : undefined}
+						transition={{ duration: 0.5, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+						whileHover={reduce ? undefined : { scale: 1.04 }}
+						whileTap={reduce ? undefined : { scale: 0.98 }}
+					>
+						Play With Me
+					</motion.button>
+					<motion.button
+						type="button"
+						className="btn btn-ghost btn-lg"
 						onClick={onAbout}
 						initial={reduce ? undefined : { opacity: 0, y: 22 }}
 						animate={entered ? { opacity: 1, y: 0 } : undefined}
@@ -351,13 +349,22 @@ const LandingPage: React.FC<{
 				</div>
 				<ul className="hero-facts">
 					<li>
-						<strong>10</strong> generated narrators
+						<strong>
+							<CountUp to={10} />
+						</strong>{' '}
+						generated narrators
 					</li>
 					<li>
-						<strong>5</strong> scenes per video
+						<strong>
+							<CountUp to={5} />
+						</strong>{' '}
+						scenes per video
 					</li>
 					<li>
-						<strong>100%</strong> local voice
+						<strong>
+							<CountUp to={100} suffix="%" />
+						</strong>{' '}
+						local voice
 					</li>
 				</ul>
 			</motion.div>
@@ -367,19 +374,21 @@ const LandingPage: React.FC<{
 			</motion.div>
 		</section>
 
+		{/* Feature cards reveal on scroll, 0.1s apart. The hero above uses the
+		    mount-time `rise` helper instead, because it is already on screen when
+		    the page arrives — an in-view reveal there would never fire. */}
 		<section className="features">
 			{FEATURES.map((feature, index) => (
-				<motion.article
-					className="card feature-card"
+				<Reveal
 					key={feature.title}
-					// 0.1 s stagger, as specified.
-					{...rise(3 + index)}
-					whileHover={reduce ? undefined : { y: -5 }}
-					transition={{ duration: 0.22 }}
+					as="article"
+					index={index}
+					step={0.1}
+					className="card feature-card"
 				>
 					<h3>{feature.title}</h3>
 					<p>{feature.body}</p>
-				</motion.article>
+				</Reveal>
 			))}
 		</section>
 

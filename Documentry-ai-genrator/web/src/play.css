@@ -1,0 +1,402 @@
+/* ==========================================================================
+   Top bar, sound toggle, floating cards, and the Play With Me page.
+   ========================================================================== */
+
+/* ================================================================ top bar */
+.topbar-global {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 90;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 12px clamp(16px, 4vw, 40px);
+	background: linear-gradient(180deg, rgba(7, 11, 20, 0.92), rgba(7, 11, 20, 0.62));
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	border-bottom: 1px solid var(--line);
+}
+
+.brand-name {
+	display: block;
+	font-weight: 700;
+	font-size: 15px;
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+}
+
+.brand-static {
+	/* Not a control, so it must not look like one. */
+	cursor: default;
+}
+
+.brand-button {
+	/* reset the button chrome, keep the brand look */
+	background: none;
+	border: none;
+	padding: 0;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	text-align: left;
+	border-radius: var(--radius-sm);
+	transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.brand-button:hover {
+	transform: translateY(-1px);
+	opacity: 0.92;
+}
+
+.brand-button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 4px;
+}
+
+.topbar-links {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.btn-sm {
+	padding: 7px 14px;
+	font-size: 13px;
+}
+
+/* ========================================================== sound toggle */
+.sound-toggle {
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	border-radius: 99px;
+	border: 1px solid var(--line);
+	background: rgba(148, 163, 184, 0.08);
+	color: var(--muted);
+	cursor: pointer;
+	transition:
+		color 180ms ease,
+		border-color 180ms ease,
+		background 180ms ease;
+}
+
+.sound-toggle:hover {
+	color: var(--text);
+	border-color: var(--line-strong);
+	background: rgba(148, 163, 184, 0.16);
+}
+
+.sound-toggle:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* Unmuted gets a glow, so the state is obvious without relying on the icon
+   alone. The slash on the muted icon carries the same information for anyone
+   who cannot see the glow. */
+.sound-toggle:not(.muted) {
+	color: var(--accent);
+	border-color: rgba(250, 204, 21, 0.42);
+	box-shadow: 0 0 14px rgba(250, 204, 21, 0.22);
+}
+
+.sound-toggle.muted {
+	opacity: 0.66;
+}
+
+/* ======================================================= floating cards */
+.float-cards {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	overflow: hidden;
+}
+
+.float-card {
+	position: absolute;
+	left: var(--fc-left);
+	top: var(--fc-top);
+	width: 132px;
+	height: 88px;
+	padding: 13px;
+	border-radius: 14px;
+	background: linear-gradient(150deg, rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.32));
+	border: 1px solid rgba(148, 163, 184, 0.12);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	opacity: 0.5;
+}
+
+.float-card span {
+	display: block;
+	height: 5px;
+	border-radius: 99px;
+	background: rgba(148, 163, 184, 0.2);
+	margin-bottom: 8px;
+}
+
+.float-card span:first-child {
+	width: 58%;
+	background: rgba(125, 211, 252, 0.34);
+}
+
+.float-card span:last-child {
+	margin-bottom: 0;
+	width: 40%;
+}
+
+/* ============================================================== reveal */
+.reveal {
+	/* Nothing structural: the motion is inline from Framer. This only guards
+	   against a transform on a parent creating a containing block that would
+	   make position:fixed children scroll with it. */
+}
+
+/* ========================================================== play with me */
+.play {
+	min-height: 100vh;
+	padding: 96px clamp(16px, 5vw, 48px) 60px;
+	display: grid;
+	justify-items: center;
+	align-content: start;
+	gap: 8px;
+}
+
+.play-nav {
+	width: 100%;
+	max-width: 1080px;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-bottom: 8px;
+}
+
+.play-title {
+	margin: 0;
+	font-size: clamp(22px, 3.4vw, 32px);
+	letter-spacing: -0.02em;
+	background: linear-gradient(160deg, #f8fafc 20%, #7dd3fc 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+
+.play-stage {
+	position: relative;
+	display: grid;
+	justify-items: center;
+	gap: 18px;
+	min-height: 460px;
+	align-content: center;
+}
+
+/* The red flash for the slap. Behind the bot, so it reads as impact rather
+   than as an overlay. */
+.play-flash {
+	position: absolute;
+	inset: -40px;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgba(248, 113, 113, 0.5), transparent 66%);
+	pointer-events: none;
+	z-index: 0;
+}
+
+.play-bot {
+	position: relative;
+	display: grid;
+	place-items: center;
+	z-index: 1;
+}
+
+.play-bot-inner {
+	filter: drop-shadow(0 22px 46px rgba(56, 189, 248, 0.24));
+}
+
+.play-bubble {
+	position: relative;
+	z-index: 3;
+	max-width: min(420px, 84vw);
+	padding: 14px 20px;
+	border-radius: 18px;
+	background: rgba(15, 23, 42, 0.9);
+	border: 1px solid var(--line-strong);
+	box-shadow: 0 18px 40px rgba(2, 6, 23, 0.5);
+	color: var(--text);
+	font-size: 15px;
+	line-height: 1.5;
+	text-align: center;
+}
+
+/* The little tail, pointing down at the bot. */
+.play-bubble::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	bottom: -7px;
+	width: 14px;
+	height: 14px;
+	transform: translateX(-50%) rotate(45deg);
+	background: rgba(15, 23, 42, 0.9);
+	border-right: 1px solid var(--line-strong);
+	border-bottom: 1px solid var(--line-strong);
+}
+
+/* ============================================================ particles */
+.pw-particles {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	pointer-events: none;
+	z-index: 2;
+}
+
+.pw-particles span {
+	position: absolute;
+	font-size: 22px;
+	line-height: 1;
+	animation: pw-burst 1.15s cubic-bezier(0.22, 1, 0.36, 1) var(--pw-delay) forwards;
+	opacity: 0;
+}
+
+@keyframes pw-burst {
+	0% {
+		opacity: 0;
+		transform: translate(0, 0) scale(0.2) rotate(0deg);
+	}
+	18% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: rotate(var(--pw-angle)) translateX(var(--pw-distance)) scale(var(--pw-scale))
+			rotate(40deg);
+	}
+}
+
+.pw-hearts span {
+	filter: drop-shadow(0 0 8px rgba(251, 113, 133, 0.5));
+}
+
+.pw-stars span {
+	filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.5));
+}
+
+.pw-sparks span {
+	filter: drop-shadow(0 0 8px rgba(248, 113, 113, 0.5));
+}
+
+.pw-rings span {
+	color: rgba(125, 211, 252, 0.8);
+}
+
+/* ============================================================== actions */
+.play-actions {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 12px;
+	width: 100%;
+	max-width: 860px;
+	margin-top: 14px;
+}
+
+.play-action {
+	display: grid;
+	justify-items: center;
+	gap: 3px;
+	padding: 16px 12px;
+	border-radius: var(--radius);
+	border: 1px solid var(--line);
+	background: rgba(15, 23, 42, 0.6);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	color: var(--text);
+	font: inherit;
+	cursor: pointer;
+	transition:
+		border-color 200ms ease,
+		background 200ms ease,
+		box-shadow 200ms ease;
+}
+
+.play-action:hover:not(:disabled) {
+	border-color: rgba(56, 189, 248, 0.42);
+	box-shadow: 0 14px 34px rgba(2, 6, 23, 0.46);
+}
+
+.play-action:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.play-action:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+.play-action.on {
+	border-color: rgba(250, 204, 21, 0.5);
+	background: rgba(30, 41, 59, 0.8);
+}
+
+.play-action-emoji {
+	font-size: 26px;
+	line-height: 1;
+}
+
+.play-action-label {
+	font-size: 14px;
+	font-weight: 700;
+	letter-spacing: -0.01em;
+}
+
+.play-action-hint {
+	font-size: 11px;
+	color: var(--faint);
+	text-align: center;
+}
+
+.play-footnote {
+	margin-top: 18px;
+	text-align: center;
+	max-width: 46ch;
+}
+
+/* ===================================================== reduced motion */
+@media (prefers-reduced-motion: reduce) {
+	.float-card {
+		display: none;
+	}
+
+	.pw-particles span {
+		/* The burst is the reaction; without it there is no reaction, so it is
+		   removed rather than left frozen at opacity 0. */
+		display: none;
+	}
+
+	.play-bubble,
+	.play-flash {
+		transition: opacity 120ms linear;
+	}
+}
+
+@media (max-width: 640px) {
+	.topbar-links {
+		gap: 12px;
+	}
+
+	.brand-sub {
+		display: none;
+	}
+
+	.play-stage {
+		min-height: 400px;
+	}
+}

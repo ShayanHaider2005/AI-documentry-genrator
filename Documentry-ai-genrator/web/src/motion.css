@@ -505,6 +505,8 @@
 		background 200ms ease;
 }
 
+/* The hover lift is Framer's whileHover on a motion element, but the cards are
+   now rendered by <Reveal as="article">, so the border highlight stays here. */
 .feature-card:hover {
 	border-color: rgba(56, 189, 248, 0.42);
 	box-shadow: 0 20px 46px rgba(2, 6, 23, 0.5);
