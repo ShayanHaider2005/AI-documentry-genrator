@@ -16,7 +16,13 @@ import '../styles.css';
  * only honest signal that answers will be grounded.
  */
 
-type Phase = 'empty' | 'converting' | 'ready' | 'error';
+/**
+ * There is no error state: a problem is its own field, shown whenever it is
+ * set. Encoding it as a phase meant a client-side validation failure had to move
+ * the page out of 'ready' just to become visible, which lost the index status
+ * as a side effect and made a rejected re-upload look like nothing happened.
+ */
+type Phase = 'empty' | 'converting' | 'ready';
 
 interface Turn {
 	id: string;
@@ -117,11 +123,15 @@ export const PdfChat: React.FC<{ onBack: () => void; username?: string }> = ({
 				const result = await api.chatConvert({ fileName: file.name, dataBase64 });
 				setManifest(result.manifest);
 				setPhase('ready');
+				setProblem(null);
 				setBusyText('');
 				// The upload is a completed action, not a failure.
 				playDocuBotSFX('happy');
 			} catch (err) {
-				setPhase('error');
+				// Back to where we were, not to a new state. The busy pill and the
+				// disabled dropzone are both gated on 'converting', so leaving the
+				// phase there strands the page mid-upload with no way to try again.
+				setPhase(manifest ? 'ready' : 'empty');
 				setBusyText('');
 				setProblem(err instanceof Error ? err.message : 'Could not read that PDF.');
 				playDocuBotSFX('shocked');
@@ -267,7 +277,12 @@ export const PdfChat: React.FC<{ onBack: () => void; username?: string }> = ({
 								{manifest?.fileCount} concepts
 							</span>
 						) : null}
-						{phase === 'error' && problem ? <span className="pill pill-bad">{problem}</span> : null}
+						{/* Rendered whenever `problem` is set, not only when the phase
+					    happens to say so. The three client-side validation failures in
+					    upload() return before the phase is touched, so gating on the
+					    phase meant dropping a wrong file type did nothing at all once
+					    a document was already converted. */}
+						{problem ? <span className="pill pill-bad">{problem}</span> : null}
 					</div>
 
 					{ready && manifest ? (
