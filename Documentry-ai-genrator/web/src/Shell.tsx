@@ -15,6 +15,34 @@ type View = 'landing' | 'auth' | 'studio' | 'about' | 'play';
 type AuthMode = 'login' | 'signup';
 
 /**
+ * URL <-> view.
+ *
+ * These are the paths the app has always used as state names, exposed as real
+ * routes. The server already falls back to index.html for unknown paths, so no
+ * server change was needed.
+ *
+ * The internal names are kept for `auth` and `studio` because renaming the view
+ * union would churn every call site for no benefit; the URL is what users see.
+ */
+const VIEW_PATHS: Record<View, string> = {
+	landing: '/',
+	auth: '/sign-in',
+	studio: '/dashboard',
+	play: '/play-with-me',
+	about: '/contact',
+};
+
+const PATH_VIEWS: Record<string, View> = Object.fromEntries(
+	Object.entries(VIEW_PATHS).map(([view, path]) => [path, view as View]),
+) as Record<string, View>;
+
+/** A trailing slash is the same page, and a refresh should not lose it. */
+const viewFromPath = (pathname: string): View | null => {
+	const clean = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+	return PATH_VIEWS[clean] ?? PATH_VIEWS[clean.replace(/\/$/, '')] ?? null;
+};
+
+/**
  * Page transition wrapper.
  *
  * Enter is a fade with a 20px rise, per the brief. Exit adds a blur so the
@@ -54,9 +82,44 @@ const Page: React.FC<{
 export const Shell: React.FC = () => {
 	const [booted, setBooted] = React.useState(false);
 	const [user, setUser] = React.useState<{ id: string; username: string } | null>(null);
-	const [view, setView] = React.useState<View>('landing');
 	const [bootError, setBootError] = React.useState<string | null>(null);
 	const reduce = useReducedMotion();
+
+	// Start on the view the URL names, so a refresh or a shared link lands on the
+	// right page. An unknown path falls back to the landing page rather than
+	// showing nothing.
+	const [view, setViewState] = React.useState<View>(
+		() => viewFromPath(window.location.pathname) ?? 'landing',
+	);
+
+	/**
+	 * Navigate.
+	 *
+	 * Writes history so the browser's back button and a page refresh both work.
+	 * `pushState` rather than `replaceState`, so back returns to the previous
+	 * page instead of leaving the app — which is what "stuck on one page" feels
+	 * like from the inside.
+	 */
+	const setView = React.useCallback((next: View) => {
+		setViewState(next);
+		const path = VIEW_PATHS[next];
+		if (window.location.pathname !== path) {
+			window.history.pushState({ view: next }, '', path);
+		}
+	}, []);
+
+	// The back and forward buttons. This is what makes the history entries
+	// above meaningful rather than decorative.
+	React.useEffect(() => {
+		const onPop = () => {
+			const fromPath = viewFromPath(window.location.pathname);
+			// An unknown path on a back navigation should land somewhere sane,
+			// not leave the previous view on screen with a different URL.
+			setViewState(fromPath ?? 'landing');
+		};
+		window.addEventListener('popstate', onPop);
+		return () => window.removeEventListener('popstate', onPop);
+	}, []);
 
 	// Page transitions are scroll-aware: arriving on a new page at the previous
 	// scroll offset is the classic "layout shift" artefact, and the brief asks for
@@ -103,13 +166,21 @@ export const Shell: React.FC = () => {
 		api
 			.me()
 			.then(({ user: found }) => {
-				if (found) {
-					setUser(found);
+				if (!found) return;
+				setUser(found);
+				// Only redirect to the studio when the visitor did not ask for a
+				// specific page. Bouncing someone who opened /play-with-me or
+				// /contact straight into the dashboard is the "stuck on the wrong
+				// page after signing in" complaint, in a different costume.
+				const wanted = viewFromPath(window.location.pathname);
+				if (!wanted || wanted === 'landing' || wanted === 'auth') {
 					setView('studio');
 				}
 			})
 			.catch(() => setBootError('Could not reach the DocuBot server.'))
 			.finally(() => setBooted(true));
+		// Runs once. `setView` is a stable useCallback and `view` is not read.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	// A session expiring mid-use should not leave the user staring at a broken
@@ -121,6 +192,7 @@ export const Shell: React.FC = () => {
 		};
 		window.addEventListener('docubot:unauthorised', onUnauthorised);
 		return () => window.removeEventListener('docubot:unauthorised', onUnauthorised);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const signedIn = (found: { id: string; username: string }) => {

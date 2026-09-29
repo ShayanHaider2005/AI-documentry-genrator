@@ -75,6 +75,9 @@ function createDb({ file = DEFAULT_FILE, maxSessions = DEFAULT_MAX_SESSIONS } = 
 		const store = readStore();
 		const record = {
 			id: String(session.id),
+			// The owner. Every read path below is scoped by it, so a record
+			// without one is unreachable rather than everyone's.
+			userId: session.userId ? String(session.userId) : null,
 			title: String(session.title || 'Untitled Video'),
 			createdAt: session.createdAt || new Date().toISOString(),
 			scenes: Array.isArray(session.scenes) ? session.scenes : [],
@@ -107,7 +110,39 @@ function createDb({ file = DEFAULT_FILE, maxSessions = DEFAULT_MAX_SESSIONS } = 
 		return true;
 	};
 
-	return { list, get, add, update, remove, file };
+	/**
+	 * Scoped reads.
+	 *
+	 * These exist alongside the unscoped ones rather than replacing them, so a
+	 * missing ownership check is a visible call to `get` rather than an
+	 * accidental omission. Every route that serves user data uses these.
+	 *
+	 * A record with a null owner is never returned by any of them: it predates
+	 * isolation, and guessing which user "should" own it is not a safe default.
+	 */
+	const listFor = (userId) =>
+		readStore()
+			.sessions.filter((s) => s.userId === String(userId))
+			.slice()
+			.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+
+	const getFor = (userId, id) =>
+		readStore().sessions.find(
+			(s) => s.id === String(id) && s.userId === String(userId),
+		) || null;
+
+	const removeFor = async (userId, id) => {
+		const store = readStore();
+		const before = store.sessions.length;
+		store.sessions = store.sessions.filter(
+			(s) => !(s.id === String(id) && s.userId === String(userId)),
+		);
+		if (store.sessions.length === before) return false;
+		await writeStore();
+		return true;
+	};
+
+	return { list, get, add, update, remove, listFor, getFor, removeFor, file };
 }
 
 module.exports = { createDb, DEFAULT_FILE };

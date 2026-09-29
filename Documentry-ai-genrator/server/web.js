@@ -158,11 +158,12 @@ const sweepSessions = () => {
 	}
 
 	// Evict idle working sessions. Finished videos are persisted in db, and any
-	// on-disk artefacts are cleaned up with them.
+	// on-disk artefacts are cleaned up with them. The owner comes from the
+	// session record, not from anywhere the caller controls.
 	for (const [id, session] of sessions) {
 		if (session.lastUsed && now - session.lastUsed > SESSION_TTL_MS) {
 			sessions.delete(id);
-			fs.rm(sessionDir(id), { recursive: true, force: true }, () => {});
+			fs.rm(sessionDir(id, session.userId), { recursive: true, force: true }, () => {});
 			fs.rm(path.join(PUBLIC_DIR, 'audio', id), { recursive: true, force: true }, () => {});
 		}
 	}
@@ -171,19 +172,64 @@ const sweepSessions = () => {
 const newId = (prefix) => `${prefix}_${crypto.randomBytes(9).toString('hex')}`;
 const isValidId = (id) => typeof id === 'string' && /^[a-z]+_[a-f0-9]{18}$/.test(id);
 
-const getSession = (id) => {
+/**
+ * Whether this user owns the working session.
+ *
+ * Without this check any authenticated user could read another user's uploaded
+ * document, chat history and rendered video by guessing or stealing a session
+ * id. Session ids are 18 hex characters, so they are not guessable in
+ * practice, but obscurity is not access control: an id leaks through a shared
+ * link, a screenshot, or a log file, and the API is the only thing standing
+ * between that and someone else's document.
+ */
+const ownsSession = (session, user) =>
+	Boolean(session && user && session.userId === user.id);
+
+/**
+ * A working session, only if the caller owns it.
+ *
+ * Every route that touches session data goes through here, so the check cannot
+ * be forgotten in a new handler. A missing or unknown id and someone else's id
+ * both return null, and the callers turn that into a 404 — deliberately the
+ * same response, because a 403 would confirm the id exists.
+ */
+const getSession = (id, user) => {
 	const session = isValidId(id) ? sessions.get(id) : undefined;
-	if (session) session.lastUsed = Date.now();
+	if (!ownsSession(session, user)) return null;
+	session.lastUsed = Date.now();
 	return session;
 };
 
-const sessionDir = (id) => path.join(DATA_DIR, id);
+/**
+ * Where a session's files live.
+ *
+ * Scoped under the owning user, so a path traversal or a stray absolute path
+ * cannot reach another user's directory, and so a whole account can be removed
+ * in one `rm`. `userId` comes from the session record, never from the URL.
+ */
+const sessionDir = (id, userId) => path.join(DATA_DIR, userDirName(userId), id);
 
-function createSession() {
+/**
+ * The per-user directory name.
+ *
+ * Hashes the id rather than using it raw: a user id is a UUID, and putting one
+ * in a path is an invitation to encode the traversal characters. Six hex
+ * characters is ample for a local single-user-per-directory store, and the
+ * mapping is stable so a restart finds the same directory.
+ */
+const userDirName = (userId) => {
+	if (!userId) return '_orphan';
+	return `u_${crypto.createHash('sha256').update(String(userId)).digest('hex').slice(0, 12)}`;
+};
+
+function createSession(user) {
 	const id = newId('sess');
-	fs.mkdirSync(path.join(sessionDir(id), 'audio'), { recursive: true });
+	const dir = sessionDir(id, user.id);
+	fs.mkdirSync(path.join(dir, 'audio'), { recursive: true });
 	const session = {
 		id,
+		// The owner. Nothing may create a session without one.
+		userId: user.id,
 		createdAt: new Date().toISOString(),
 		lastUsed: Date.now(),
 		pdf: null,
@@ -475,14 +521,14 @@ async function handleApi(req, res, url) {
 
 	// ── POST /api/session ──────────────────────────────────────────────────
 	if (route === '/api/session' && req.method === 'POST') {
-		const session = createSession();
+		const session = createSession(req.user);
 		return sendJson(res, 201, { sessionId: session.id });
 	}
 
 	// ── GET /api/session/:id ───────────────────────────────────────────────
 	let match = /^\/api\/session\/([^/]+)$/.exec(route);
 	if (match && req.method === 'GET') {
-		const session = getSession(match[1]);
+		const session = getSession(match[1], req.user);
 		if (!session) return sendJson(res, 404, { error: 'Session not found' });
 		return sendJson(res, 200, {
 			sessionId: session.id,
@@ -497,7 +543,7 @@ async function handleApi(req, res, url) {
 	// ── POST /api/upload/pdf ───────────────────────────────────────────────
 	if (route === '/api/upload/pdf' && req.method === 'POST') {
 		const body = await readBody(req);
-		const session = getSession(body.sessionId);
+		const session = getSession(body.sessionId, req.user);
 		if (!session) return sendJson(res, 404, { error: 'Session not found' });
 
 		const fileName = safeFileName(body.fileName, 'source.pdf');
@@ -506,7 +552,7 @@ async function handleApi(req, res, url) {
 			return sendJson(res, 400, { error: 'Please upload a PDF file.' });
 		}
 
-		const pdfPath = path.join(sessionDir(session.id), fileName);
+		const pdfPath = path.join(sessionDir(session.id, session.userId), fileName);
 		fs.writeFileSync(pdfPath, buffer);
 
 		const cleanText = await parseAndCleanPdf(pdfPath);
@@ -530,7 +576,7 @@ async function handleApi(req, res, url) {
 	// ── POST /api/upload/voice ─────────────────────────────────────────────
 	if (route === '/api/upload/voice' && req.method === 'POST') {
 		const body = await readBody(req);
-		const session = getSession(body.sessionId);
+		const session = getSession(body.sessionId, req.user);
 		if (!session) return sendJson(res, 404, { error: 'Session not found' });
 
 		const fileName = safeFileName(body.fileName, 'voice-sample.mp3');
@@ -543,7 +589,7 @@ async function handleApi(req, res, url) {
 			});
 		}
 
-		const samplePath = path.join(sessionDir(session.id), fileName);
+		const samplePath = path.join(sessionDir(session.id, session.userId), fileName);
 		fs.writeFileSync(samplePath, buffer);
 		session.voiceSamplePath = samplePath;
 
@@ -599,7 +645,7 @@ async function handleApi(req, res, url) {
 	// ── POST /api/chat ─────────────────────────────────────────────────────
 	if (route === '/api/chat' && req.method === 'POST') {
 		const body = await readBody(req);
-		const session = getSession(body.sessionId);
+		const session = getSession(body.sessionId, req.user);
 		if (!session) return sendJson(res, 404, { error: 'Session not found' });
 
 		const message = String(body.message || '').trim();
@@ -628,15 +674,15 @@ async function handleApi(req, res, url) {
 	// ── POST /api/generate ─────────────────────────────────────────────────
 	if (route === '/api/generate' && req.method === 'POST') {
 		const body = await readBody(req);
-		const session = getSession(body.sessionId);
+		const session = getSession(body.sessionId, req.user);
 		if (!session) return sendJson(res, 404, { error: 'Session not found' });
 		if (!session.pdf) {
 			return sendJson(res, 400, { error: 'Upload a PDF before generating.' });
 		}
 
 		const job = createJob('generate', session.id);
-		const pdfPath = path.join(sessionDir(session.id), session.pdf.fileName);
-		const datasetPath = path.join(sessionDir(session.id), 'dataset.json');
+		const pdfPath = path.join(sessionDir(session.id, session.userId), session.pdf.fileName);
+		const datasetPath = path.join(sessionDir(session.id, session.userId), 'dataset.json');
 		const voice = resolveLibraryVoice(body.voiceId);
 
 		runJob(job, async () => {
@@ -661,6 +707,7 @@ async function handleApi(req, res, url) {
 			// returning visitor can load it instantly.
 			await db.add({
 				id: session.id,
+				userId: session.userId,
 				title,
 				createdAt: new Date().toISOString(),
 				scenes: dataset,
@@ -690,7 +737,7 @@ async function handleApi(req, res, url) {
 		// Summaries only: the scene payloads are large, so the list stays small
 		// and the sidebar switches without pulling every video's data.
 		return sendJson(res, 200, {
-			sessions: db.list().map((s) => ({
+			sessions: db.listFor(req.user.id).map((s) => ({
 				id: s.id,
 				title: s.title,
 				createdAt: s.createdAt,
@@ -706,18 +753,29 @@ async function handleApi(req, res, url) {
 	// ── GET /api/sessions/:id ─────────────────────────────────────────────
 	match = /^\/api\/sessions\/([^/]+)$/.exec(route);
 	if (match && req.method === 'GET') {
-		const record = db.get(match[1]);
+		// Scoped lookup: another user's id resolves to nothing, and the 404 is
+		// deliberately identical to a genuinely missing one so a valid foreign id
+		// cannot be confirmed by the response.
+		const record = db.getFor(req.user.id, match[1]);
 		if (!record) return sendJson(res, 404, { error: 'Session not found' });
 		return sendJson(res, 200, record);
 	}
 
 	// ── DELETE /api/sessions/:id ──────────────────────────────────────────
 	if (match && req.method === 'DELETE') {
-		const removed = await db.remove(match[1]);
-		if (removed) {
+		// Look the record up under the caller's scope first. Without it the
+		// owner is unknown and the on-disk path cannot be resolved, which is how
+		// a cleanup ends up writing to the wrong directory.
+		const owned = db.getFor(req.user.id, match[1]);
+		const removed = owned ? await db.removeFor(req.user.id, match[1]) : false;
+		if (removed && owned) {
 			// Reclaim the disk: the rendered video and the per-session assets.
-			fs.rm(path.join(ROOT, 'out', 'web', `${match[1]}.mp4`), { force: true }, () => {});
-			fs.rm(sessionDir(match[1]), { recursive: true, force: true }, () => {});
+			fs.rm(
+				path.join(ROOT, 'out', userDirName(owned.userId), `${match[1]}.mp4`),
+				{ force: true },
+				() => {},
+			);
+			fs.rm(sessionDir(match[1], owned.userId), { recursive: true, force: true }, () => {});
 			fs.rm(
 				path.join(PUBLIC_DIR, 'audio', match[1]),
 				{ recursive: true, force: true },
@@ -742,7 +800,7 @@ async function handleApi(req, res, url) {
 	// step, and it gives the client a single progress stream.
 	if (route === '/api/produce' && req.method === 'POST') {
 		const body = await readBody(req);
-		const session = getSession(body.sessionId);
+		const session = getSession(body.sessionId, req.user);
 		if (!session) return sendJson(res, 404, { error: 'Session not found' });
 
 		// Resolve the narrator first. It is a cheap check, and doing it before the
@@ -765,7 +823,7 @@ async function handleApi(req, res, url) {
 					return sendJson(res, 400, { error: 'Please upload a PDF file.' });
 				}
 				const buffer = decodeUpload(body.dataBase64);
-				const pdfPath = path.join(sessionDir(session.id), fileName);
+				const pdfPath = path.join(sessionDir(session.id, session.userId), fileName);
 				fs.writeFileSync(pdfPath, buffer);
 				const cleanText = await parseAndCleanPdf(pdfPath);
 				if (!cleanText.trim()) {
@@ -794,9 +852,9 @@ async function handleApi(req, res, url) {
 		}
 
 		const job = createJob('produce', session.id);
-		const datasetPath = path.join(sessionDir(session.id), 'dataset.json');
-		const outFile = path.join(ROOT, 'out', 'web', `${session.id}.mp4`);
-		const pdfPath = path.join(sessionDir(session.id), session.pdf.fileName);
+		const datasetPath = path.join(sessionDir(session.id, session.userId), 'dataset.json');
+		const outFile = path.join(ROOT, 'out', userDirName(session.userId), `${session.id}.mp4`);
+		const pdfPath = path.join(sessionDir(session.id, session.userId), session.pdf.fileName);
 
 		runJob(job, async () => {
 			jobLog(job, 'Step 1/2 — writing the script and resolving visuals...');
@@ -816,6 +874,7 @@ async function handleApi(req, res, url) {
 
 			await db.add({
 				id: session.id,
+				userId: session.userId,
 				title,
 				createdAt: new Date().toISOString(),
 				scenes: dataset,
@@ -853,9 +912,9 @@ async function handleApi(req, res, url) {
 	// ── POST /api/render ───────────────────────────────────────────────────
 	if (route === '/api/render' && req.method === 'POST') {
 		const body = await readBody(req);
-		const session = getSession(body.sessionId);
+		const session = getSession(body.sessionId, req.user);
 		if (!session) return sendJson(res, 404, { error: 'Session not found' });
-		if (!session.dataset && !db.get(session.id)) {
+		if (!session.dataset && !db.getFor(req.user.id, session.id)) {
 			return sendJson(res, 400, { error: 'Generate the video before rendering.' });
 		}
 
@@ -871,14 +930,14 @@ async function handleApi(req, res, url) {
 		}
 
 		const job = createJob('render', session.id);
-		const datasetPath = path.join(sessionDir(session.id), 'dataset.json');
-		const outFile = path.join(ROOT, 'out', 'web', `${session.id}.mp4`);
+		const datasetPath = path.join(sessionDir(session.id, session.userId), 'dataset.json');
+		const outFile = path.join(ROOT, 'out', userDirName(session.userId), `${session.id}.mp4`);
 
 		// A session restored from the store may not have its dataset on disk
 		// (e.g. after a server restart) — materialise it from the record.
 		const ensureDataset = async () => {
 			if (fs.existsSync(datasetPath)) return;
-			const record = db.get(session.id);
+			const record = db.getFor(req.user.id, session.id);
 			if (!record || record.scenes.length === 0) {
 				throw new Error('No dataset available to render for this session.');
 			}
@@ -926,6 +985,20 @@ async function handleApi(req, res, url) {
 // ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
+
+/**
+ * The session id embedded in a data path, if any.
+ *
+ * `/audio/<sessionId>/scene-1.mp3` and `/video/<sessionId>` both name a
+ * session, and both hand out that session's private data.
+ */
+const sessionIdFromPath = (pathname) => {
+	const audio = /^\/audio\/([a-z]+_[a-f0-9]{18})\//.exec(pathname);
+	if (audio) return audio[1];
+	const video = /^\/video\/([a-z]+_[a-f0-9]{18})$/.exec(pathname);
+	return video ? video[1] : null;
+};
+
 const server = http.createServer(async (req, res) => {
 	const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
@@ -933,6 +1006,30 @@ const server = http.createServer(async (req, res) => {
 		if (url.pathname.startsWith('/api/')) {
 			return await handleApi(req, res, url);
 		}
+
+		/*
+		 * Everything below is per-user data, and it used to be entirely
+		 * unauthenticated: the auth gate lived only inside handleApi, which is
+		 * reached solely for /api/ paths. That meant anyone who knew or guessed
+		 * a session id could download another user's rendered video and their
+		 * generated narration without logging in at all — a bigger hole than the
+		 * API scoping, because it needed no account whatsoever.
+		 */
+		const dataSessionId = sessionIdFromPath(url.pathname);
+		if (dataSessionId) {
+			const user = auth.verify(sessionToken(req));
+			if (!user) {
+				return sendText(res, 401, 'Sign in to view this.');
+			}
+			// And the session must be theirs, not merely authenticated.
+			const owned = getSession(dataSessionId, user);
+			if (!owned) {
+				// 404, not 403: a 403 would confirm the id exists.
+				return sendText(res, 404, 'Not found.');
+			}
+			req.user = user;
+		}
+
 		if (url.pathname.startsWith('/audio/')) {
 			// Note: serve from PUBLIC_DIR using the *full* path so that
 			// /audio/<sessionId>/scene-N.mp3 maps to public/audio/<sessionId>/...
@@ -942,13 +1039,12 @@ const server = http.createServer(async (req, res) => {
 		const videoMatch = /^\/video\/([^/]+)$/.exec(url.pathname);
 		if (videoMatch && req.method === 'GET') {
 			const id = videoMatch[1];
-			// Prefer the live session, but fall back to the deterministic output
-			// path so videos stay downloadable after a server restart.
-			const recorded = getSession(id)?.renderPath;
+			// Ownership was already established above for any /video/<id> path.
+			const recorded = getSession(id, req.user)?.renderPath;
 			const candidate =
 				recorded && fs.existsSync(recorded)
 					? recorded
-					: path.join(ROOT, 'out', 'web', `${id}.mp4`);
+					: path.join(ROOT, 'out', userDirName(req.user.id), `${id}.mp4`);
 
 			if (!fs.existsSync(candidate)) {
 				return sendText(res, 404, 'No rendered video for this video yet.');

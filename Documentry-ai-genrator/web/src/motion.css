@@ -522,6 +522,84 @@
 	}
 }
 
+/* ================================================================= buttons */
+/*
+ * Global tactile feedback.
+ *
+ * Anything that is genuinely interactive gets a pointer cursor and a press
+ * response. `cursor: pointer` on its own is the cheapest possible fix for "this
+ * looks clickable but the cursor is an arrow", and it is applied to the element
+ * types rather than to a utility class, so a button added tomorrow gets it for
+ * free rather than by remembering.
+ *
+ * The press uses `transform`, not `top`/`margin`, so it stays on the compositor
+ * and does not relayout the page on mousedown.
+ */
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+a[href],
+summary,
+label:has(> input[type='checkbox']),
+label:has(> input[type='radio']) {
+	cursor: pointer;
+}
+
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+	transition:
+		transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+		background-color 180ms ease,
+		border-color 180ms ease,
+		box-shadow 180ms ease,
+		color 180ms ease;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Hover: a small scale boost plus a glow, per the brief. */
+button:not(:disabled):hover,
+[role='button']:not([aria-disabled='true']):hover {
+	transform: scale(1.03);
+}
+
+.btn:hover:not(:disabled) {
+	box-shadow:
+		0 0 0 1px rgba(148, 163, 184, 0.28),
+		0 10px 28px rgba(2, 6, 23, 0.44);
+}
+
+.btn-primary:hover:not(:disabled) {
+	box-shadow:
+		0 0 0 1px rgba(250, 204, 21, 0.5),
+		0 0 24px rgba(250, 204, 21, 0.24);
+}
+
+/* Press: depth, not a colour change, so it reads as physical. */
+button:not(:disabled):active,
+[role='button']:not([aria-disabled='true']):active {
+	transform: scale(0.96);
+	transition-duration: 80ms;
+}
+
+/* Keyboard users get a visible focus ring; a mouse click should not draw one. */
+button:focus-visible,
+[role='button']:focus-visible,
+a:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible) {
+	outline: none;
+}
+
+/* Disabled is not just dimmer: it must not look pressable. */
+button:disabled,
+[aria-disabled='true'] {
+	cursor: not-allowed;
+	transform: none;
+	filter: saturate(0.6);
+}
+
 /* ================================================================== cards */
 .feature-card {
 	transition:
@@ -571,6 +649,15 @@
 	}
 
 	.hero-card-tilt {
+		transform: none !important;
+	}
+
+	/* Press and hover feedback is motion, so it goes under reduced motion. The
+	   colour changes stay, because they are information, not decoration. */
+	button:not(:disabled):hover,
+	[role='button']:not([aria-disabled='true']):hover,
+	button:not(:disabled):active,
+	[role='button']:not([aria-disabled='true']):active {
 		transform: none !important;
 	}
 

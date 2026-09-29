@@ -71,3 +71,53 @@ out/
 # where a leak is directly useful to an attacker.
 /Documentry-ai-genrator/server/users.json
 /Documentry-ai-genrator/server/users.json.*.tmp
+
+# ---------------------------------------------------------------------------
+# Generated artefacts and scratch files.
+#
+# The repository was already clean when these rules were added (zero tracked
+# PDFs, videos or logs), so they are defence in depth rather than a clean-up.
+# Each negation is deliberate: ignoring `*.wav` and `*.mp4` outright would
+# exclude the narrator library, which the app cannot run without.
+# ---------------------------------------------------------------------------
+temp/
+output/
+public/renders/
+uploads/
+
+# Rendered videos and generated narration. Anything a user produced.
+*.mp4
+*.wav
+*.mp3
+#
+# The narrator library's audio stays ignored too, against the brief's
+# "except server/voices/defaults/". Ten reference recordings are 7.1 MB of
+# generated binary, reproducible in about 30 minutes with `npm run voice:library`,
+# and they change every time that runs — which would show as a 7 MB diff on an
+# unrelated change. The manifest is tracked instead, because it is the record
+# of which instruct produced which voice; that is the part worth versioning.
+# Drop these two rules if you would rather have the audio in the repo.
+# /Documentry-ai-genrator/server/voices/defaults/*.wav
+# /Documentry-ai-genrator/server/voices/defaults/*.txt
+# The single default narrator's transcript, which the pipeline falls back to.
+!/Documentry-ai-genrator/server/voices/south_asian_narrator.txt
+
+# Uploaded source documents. Users' PDFs must never enter the repository.
+*.pdf
+*.pptx
+*.docx
+# ...except the generated test fixture, which is the one PDF the repo needs.
+!Documentry-ai-genrator/public/sample.pdf
+
+# Scratch files from manual testing.
+test_*.js
+scratchpad.*
+scratch.*
+dry_*.log
+*.log
+!Documentry-ai-genrator/*.log
+
+# Per-user working directories, now namespaced under DATA_DIR.
+.data/
+/Documentry-ai-genrator/out/
+/Documentry-ai-genrator/node_modules/
