@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { DocuBotMark } from './Mascot';
-import { isMuted, toggleMuted, onMuteChange, primeAudio } from './utils/botAudio';
+import { isMuted, toggleMuted, onMuteChange, primeAudio, syncAmbient } from './utils/botAudio';
 
 /**
  * The persistent top bar: logo, primary links, and a mute toggle.
@@ -39,16 +39,34 @@ export const TopBar: React.FC<{
 	onAbout: () => void;
 	signedIn: boolean;
 	onStudio: () => void;
-}> = ({ current, onHome, onPlay, onAbout, signedIn, onStudio }) => {
+	/** Fired once when the bar first appears, i.e. after the splash. */
+	onFirstPaint?: () => void;
+}> = ({ current, onHome, onPlay, onAbout, signedIn, onStudio, onFirstPaint }) => {
 	const reduce = useReducedMotion();
 	const [muted, setMuted] = React.useState(isMuted());
+	const announced = React.useRef(false);
 
 	React.useEffect(() => onMuteChange(setMuted), []);
+
+	React.useEffect(() => {
+		if (announced.current) return;
+		announced.current = true;
+		onFirstPaint?.();
+		// Intentionally runs once: the ref is the guard, so no dependency list is
+		// wanted here and adding one would re-fire on every callback identity change.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const onToggleSound = () => {
 		// Browsers only allow audio after a gesture, and this click is it.
 		const next = toggleMuted();
-		if (!next) primeAudio();
+		if (!next) {
+			primeAudio();
+		} else {
+			// Muting has to stop the ambient bed too, or the toggle would be a
+			// lie: the music would keep going with no way to silence it.
+			syncAmbient();
+		}
 	};
 
 	const logo = (

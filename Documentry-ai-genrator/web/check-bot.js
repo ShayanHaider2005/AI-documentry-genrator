@@ -64,11 +64,19 @@ check('it takes the six named emotions',
 check('the emotion union matches the brief',
 	/'default' \| 'happy' \| 'giggle' \| 'shocked' \| 'love' \| 'dizzy'/.test(audio));
 check('it uses the Web Audio API', /createOscillator/.test(audio) && /createGain/.test(audio));
-check('it never plays when muted', /if \(muted \|\| typeof window === 'undefined'\) return false/.test(audio));
-check('sound defaults to off', /return true; \/\/ default: off/.test(audio));
-check('the choice is remembered', /localStorage/.test(audio) && /docubot\.sound/.test(audio));
-check('the context is reused, not recreated', /CONTEXT_KEY/.test(audio));
-check('a suspended context is resumed', /existing\.state === 'suspended'/.test(audio));
+// The mute state, the context and the SFX bus moved to botAudioContext.ts when
+// the ambient bed was added, so the ambient loop and the one-shots can share one
+// context without a circular import. These assertions follow them.
+check('it never plays when muted',
+	/if \(isMuted\(\) \|\| typeof window === 'undefined'\) return false/.test(audio));
+check('it re-exports the shared mute state', /export \{ isMuted, onMuteChange/.test(audio));
+const audioCtx = read('web/src/utils/botAudioContext.ts');
+check('sound defaults to off', /return true;/.test(audioCtx) && /Default off/.test(audioCtx));
+check('the choice is remembered', /localStorage/.test(audioCtx) && /docubot\.sound/.test(audioCtx));
+check('the context is reused, not recreated', /__docubotAudioContext/.test(audioCtx));
+check('a suspended context is resumed', /existing\.state === 'suspended'/.test(audioCtx));
+check('muting is off by default even with a fresh store',
+	/readMuted\(\)[\s\S]{0,400}return true;/.test(audioCtx));
 check('rapid taps do not stack up', /interrupt/.test(audio) && /voice\.stop\(\)/.test(audio));
 
 // The classic Web Audio footgun: a zero-valued exponential ramp throws.

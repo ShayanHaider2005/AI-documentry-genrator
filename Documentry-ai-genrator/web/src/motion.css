@@ -18,6 +18,26 @@
 	min-height: 100vh;
 }
 
+/* ====================================================== cyber particle canvas */
+/*
+ * z-index 0, not -1.
+ *
+ * A negative z-index paints the element behind its stacking context's own
+ * background. The page background is painted on <body>, so a fixed element at
+ * -1 disappears behind it entirely. This sits at 0 with the ambient container
+ * above it and page content above that, which is visually the same and is
+ * actually visible.
+ */
+.cyber-canvas {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	/* Never in the accessibility tree: it is decoration. */
+	user-select: none;
+	contain: strict;
+}
+
 /* ============================================================== ambient bg */
 .ambient {
 	position: fixed;
@@ -101,7 +121,12 @@
 	isolation: isolate;
 }
 
-.shell-root > *:not(.ambient) {
+/*
+ * Everything that is not a background layer is lifted above the canvas, the
+ * blobs and the floating cards. The exclusions are the background layers
+ * themselves, which stack among themselves in source order.
+ */
+.shell-root > *:not(.ambient):not(.cyber-canvas):not(.float-cards) {
 	position: relative;
 	z-index: 1;
 }
@@ -531,6 +556,12 @@
 	.docubot-pupil,
 	.docubot-antenna {
 		animation: none !important;
+	}
+
+	/* The canvas is unmounted by the component under this setting, but the rule
+	   is here so the intent survives a change that only touches the CSS. */
+	.cyber-canvas {
+		display: none;
 	}
 
 	.splash2-spark,

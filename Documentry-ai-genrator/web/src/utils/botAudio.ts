@@ -22,82 +22,20 @@
  *
  * Sound is off by default and the choice is remembered. Unsolicited audio on
  * page navigation is hostile, and a user who muted once should stay muted.
+ *
+ * The context, the mute state and the SFX bus live in botAudioContext.ts,
+ * shared with the ambient bed in botAmbient.ts. Two contexts would be a real
+ * bug: browsers cap how many can be live, and a second one stays suspended
+ * until its own gesture, so the ambient loop could silently never start.
  */
+
+import { getContext, sfxBus, isMuted } from './botAudioContext';
+
+export { isMuted, onMuteChange, setMuted, toggleMuted, audioSupported } from './botAudioContext';
 
 export type Emotion = 'default' | 'happy' | 'giggle' | 'shocked' | 'love' | 'dizzy';
 
-const STORAGE_KEY = 'docubot.sound';
-const CONTEXT_KEY = '__docubotAudioContext';
-
-/** Read by the UI to show the right icon. */
-let muted = true;
-const listeners = new Set<(muted: boolean) => void>();
-
-const readStoredMuted = (): boolean => {
-	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored === 'muted') return true;
-		if (stored === 'on') return false;
-	} catch {
-		/* private mode, or storage disabled */
-	}
-	return true; // default: off
-};
-
-muted = readStoredMuted();
-
-export const isMuted = () => muted;
-
-/** Subscribe to mute changes. Returns an unsubscribe function. */
-export const onMuteChange = (fn: (muted: boolean) => void): (() => void) => {
-	listeners.add(fn);
-	return () => listeners.delete(fn);
-};
-
-export const setMuted = (next: boolean) => {
-	muted = next;
-	try {
-		localStorage.setItem(STORAGE_KEY, next ? 'muted' : 'on');
-	} catch {
-		/* nothing to do; the session still respects it */
-	}
-	for (const fn of listeners) fn(next);
-};
-
-export const toggleMuted = (): boolean => {
-	setMuted(!muted);
-	return muted;
-};
-
-/**
- * The shared AudioContext.
- *
- * Kept on the window object so a second call before the first is still
- * resolving reuses the same context. Creating two would leave one of them
- * suspended forever.
- */
-const context = (): AudioContext | null => {
-	if (typeof window === 'undefined') return null;
-
-	const existing = (window as unknown as Record<string, AudioContext>)[CONTEXT_KEY];
-	if (existing) {
-		if (existing.state === 'suspended') void existing.resume();
-		return existing;
-	}
-
-	const Ctor =
-		window.AudioContext ??
-		(window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-	if (!Ctor) return null;
-
-	try {
-		const created = new Ctor();
-		(window as unknown as Record<string, AudioContext>)[CONTEXT_KEY] = created;
-		return created;
-	} catch {
-		return null;
-	}
-};
+const context = getContext;
 
 /** One voice: an oscillator through a filter, with its own envelope. */
 interface Voice {
@@ -130,6 +68,9 @@ const note = (
 	const osc = ctx.createOscillator();
 	const filter = ctx.createBiquadFilter();
 	const amp = ctx.createGain();
+	// Route to the SFX bus, not straight to the destination, so these can be
+	// cut without touching the ambient bed.
+	const out = sfxBus() ?? ctx.destination;
 
 	osc.type = wave;
 	osc.frequency.setValueAtTime(Math.max(20, from), at);
@@ -145,7 +86,7 @@ const note = (
 	amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), at + 0.012);
 	amp.gain.exponentialRampToValueAtTime(0.0001, at + duration);
 
-	osc.connect(filter).connect(amp).connect(ctx.destination);
+	osc.connect(filter).connect(amp).connect(out);
 	osc.start(at);
 	osc.stop(at + duration + 0.05);
 
@@ -183,6 +124,7 @@ const wobble = (
 	const amp = ctx.createGain();
 	const lfo = ctx.createOscillator();
 	const lfoDepth = ctx.createGain();
+	const out = sfxBus() ?? ctx.destination;
 
 	osc.type = 'sine';
 	osc.frequency.setValueAtTime(frequency, at);
@@ -200,7 +142,7 @@ const wobble = (
 	amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), at + 0.02);
 	amp.gain.exponentialRampToValueAtTime(0.0001, at + duration);
 
-	osc.connect(filter).connect(amp).connect(ctx.destination);
+	osc.connect(filter).connect(amp).connect(out);
 	osc.start(at);
 	lfo.start(at);
 	osc.stop(at + duration + 0.05);
@@ -242,6 +184,7 @@ const noiseBurst = (
 	const source = ctx.createBufferSource();
 	const filter = ctx.createBiquadFilter();
 	const amp = ctx.createGain();
+	const out = sfxBus() ?? ctx.destination;
 
 	source.buffer = buffer;
 	filter.type = 'bandpass';
@@ -253,7 +196,7 @@ const noiseBurst = (
 	amp.gain.setValueAtTime(gain, at);
 	amp.gain.exponentialRampToValueAtTime(0.0001, at + duration);
 
-	source.connect(filter).connect(amp).connect(ctx.destination);
+	source.connect(filter).connect(amp).connect(out);
 	source.start(at);
 
 	return {
@@ -365,7 +308,7 @@ export const playDocuBotSFX = (
 	opts: { interrupt?: boolean } = {},
 ): boolean => {
 	// Muted, or the browser has not seen a gesture yet. Both are normal.
-	if (muted || typeof window === 'undefined') return false;
+	if (isMuted() || typeof window === 'undefined') return false;
 
 	const ctx = context();
 	if (!ctx) return false;
@@ -403,14 +346,34 @@ export const stopAllSFX = () => {
 };
 
 /**
- * Warm the context up on the first user gesture.
+ * Warm the context up on the first user gesture, and start the ambient bed.
  *
- * Safari in particular will not resume an AudioContext created outside a
- * gesture, so this is called from a click handler at app start.
+ * Browsers refuse to start an AudioContext before a gesture, and Safari will
+ * not even resume one. This is the single entry point for that: it creates the
+ * context, starts the loop, and announces the app. Called from a click handler.
+ *
+ * Idempotent, so the gesture listener can be attached without guarding.
  */
 export const primeAudio = (): void => {
-	if (muted) return;
-	context();
+	if (isMuted()) return;
+	if (!getContext()) return;
+	// Imported lazily to keep the module graph acyclic: botAmbient reads the
+	// mute state from here, so a top-level import would be a cycle.
+	void import('./botAmbient').then(({ startAmbientMusic }) => {
+		startAmbientMusic();
+	});
+};
+
+/**
+ * The ambient bed, brought in line with a mute change.
+ *
+ * Re-exported as a function rather than a live binding so callers do not have
+ * to know which module owns the loop.
+ */
+export const syncAmbient = (): void => {
+	void import('./botAmbient').then(({ syncAmbientWithMute }) => {
+		syncAmbientWithMute();
+	});
 };
 
 export const EMOTIONS: Emotion[] = ['default', 'happy', 'giggle', 'shocked', 'love', 'dizzy'];

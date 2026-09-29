@@ -6,8 +6,10 @@ import { SplashScreen } from './SplashScreen';
 import { HeroAnimationCard } from './HeroAnimationCard';
 import { TopBar, FloatingCards } from './TopBar';
 import { Reveal, CountUp } from './components/Reveal';
+import { CyberBackgroundCanvas } from './components/CyberBackgroundCanvas';
 import { PlayWithMe } from './pages/PlayWithMe';
-import { playDocuBotSFX } from './utils/botAudio';
+import { primeAudio } from './utils/botAudio';
+import { playLoudDocuBotVoice, NAVIGATION_VOICE_ENABLED } from './utils/botAmbient';
 
 type View = 'landing' | 'auth' | 'studio' | 'about' | 'play';
 type AuthMode = 'login' | 'signup';
@@ -63,6 +65,38 @@ export const Shell: React.FC = () => {
 		window.scrollTo({ top: 0, behavior: 'auto' });
 	}, [view]);
 
+	// The page-opening voice, on every route change.
+	//
+	// The `seen` ref is what stops it firing twice on launch. `booted` flipping
+	// to true re-runs this effect exactly once, at the same moment the splash
+	// hands over and onFirstPaint fires — so without the guard the voice played
+	// twice simultaneously at startup. Measured: 4 oscillators where there should
+	// have been 2.
+	const announcedRoute = React.useRef<string | null>(null);
+	React.useEffect(() => {
+		if (!booted || !NAVIGATION_VOICE_ENABLED) return;
+		if (announcedRoute.current === view) return;
+		announcedRoute.current = view;
+		playLoudDocuBotVoice();
+	}, [view, booted]);
+
+	// Start audio on the first genuine user interaction.
+	//
+	// Browsers will not create or resume an AudioContext outside a gesture, so
+	// this is the only moment the ambient bed can legally begin. `once: true` plus
+	// the capture phase means it fires on the first click, tap or key anywhere,
+	// and never again.
+	React.useEffect(() => {
+		const start = () => primeAudio();
+		const opts = { once: true, capture: true, passive: true } as const;
+		window.addEventListener('pointerdown', start, opts);
+		window.addEventListener('keydown', start, opts);
+		return () => {
+			window.removeEventListener('pointerdown', start, true);
+			window.removeEventListener('keydown', start, true);
+		};
+	}, []);
+
 	React.useEffect(() => {
 		// Config is fetched by App once signed in; here we only need to know who
 		// the visitor is, and whether the server answered at all.
@@ -96,7 +130,9 @@ export const Shell: React.FC = () => {
 
 	return (
 		<div className="shell-root">
-			{/* Over the whole app, and behind everything. */}
+			{/* Behind everything. The canvas comes first, then the blobs and the
+			    floating cards, so the canvas is the most distant layer. */}
+			<CyberBackgroundCanvas />
 			<AmbientBlobs reduce={Boolean(reduce)} />
 			{/* Decorative glass cards drifting behind the content. */}
 			<FloatingCards />
@@ -172,6 +208,13 @@ export const Shell: React.FC = () => {
 					onAbout={() => setView('about')}
 					signedIn={Boolean(user)}
 					onStudio={() => setView('studio')}
+					// The app has finished booting: announce it, once. The route
+					// effect above records this same view, so the two cannot
+					// double up.
+					onFirstPaint={() => {
+						announcedRoute.current = view;
+						if (NAVIGATION_VOICE_ENABLED) playLoudDocuBotVoice();
+					}}
 				/>
 			) : null}
 		</div>
