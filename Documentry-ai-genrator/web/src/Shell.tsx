@@ -8,10 +8,11 @@ import { TopBar, FloatingCards } from './TopBar';
 import { Reveal, CountUp } from './components/Reveal';
 import { CyberBackgroundCanvas } from './components/CyberBackgroundCanvas';
 import { PlayWithMe } from './pages/PlayWithMe';
+import { PdfChat } from './pages/PdfChat';
 import { primeAudio } from './utils/botAudio';
 import { playLoudDocuBotVoice, NAVIGATION_VOICE_ENABLED } from './utils/botAmbient';
 
-type View = 'landing' | 'auth' | 'studio' | 'about' | 'play';
+type View = 'landing' | 'auth' | 'studio' | 'about' | 'play' | 'chat';
 type AuthMode = 'login' | 'signup';
 
 /**
@@ -30,6 +31,7 @@ const VIEW_PATHS: Record<View, string> = {
 	studio: '/dashboard',
 	play: '/play-with-me',
 	about: '/contact',
+	chat: '/chat',
 };
 
 const PATH_VIEWS: Record<string, View> = Object.fromEntries(
@@ -110,6 +112,17 @@ export const Shell: React.FC = () => {
 
 	// The back and forward buttons. This is what makes the history entries
 	// above meaningful rather than decorative.
+	/**
+	 * The auth gate, as a redirect rather than a hidden page.
+	 *
+	 * A signed-out visitor who opens /chat is sent to sign-in. Rendering
+	 * nothing instead would leave them on a URL that shows nothing, which
+	 * is the same dead end as a failed API call they cannot act on.
+	 */
+	React.useEffect(() => {
+		if (booted && view === 'chat' && !user) setView('auth');
+	}, [booted, view, user]);
+
 	React.useEffect(() => {
 		const onPop = () => {
 			const fromPath = viewFromPath(window.location.pathname);
@@ -256,6 +269,8 @@ export const Shell: React.FC = () => {
 							/>
 						) : view === 'play' ? (
 							<PlayWithMe onBack={() => setView(user ? 'studio' : 'landing')} />
+						) : view === 'chat' && user ? (
+							<PdfChat onBack={() => setView('studio')} username={user.username} />
 					) : (
 							<LandingPage
 								signedInAs={user?.username ?? null}
@@ -280,6 +295,7 @@ export const Shell: React.FC = () => {
 					onAbout={() => setView('about')}
 					signedIn={Boolean(user)}
 					onStudio={() => setView('studio')}
+				onChat={() => setView('chat')}
 					// The app has finished booting: announce it, once. The route
 					// effect above records this same view, so the two cannot
 					// double up.

@@ -4,7 +4,7 @@
  * llm.js — Shared AI provider access (script generation + chatbot Q&A).
  *
  * Providers are auto-detected from the environment, in this order:
- *   Gemini -> Grok -> Groq -> OpenAI
+ *   Groq -> Gemini -> Grok -> OpenAI
  *
  * Exports:
  *   getAiProvider()            → provider descriptor or null
@@ -23,24 +23,41 @@ try {
 	// Ignore missing or unreadable .env
 }
 
-/** Current Gemini model ids, newest first. The first one that responds wins. */
+/**
+ * Gemini model ids, best first. Verified live by `npm run check:models`.
+ *
+ * The list this replaced was entirely broken: `gemini-3.8-flash` and
+ * `gemini-flash-latest` both returned 503 "high demand", and `gemini-2.5-pro`
+ * and `gemini-2.5-flash` both returned 404 "no longer available to new users".
+ * Because Gemini is the *first* provider in `getAiProviders()`, every single LLM
+ * call in the app — script generation and chat alike — paid three failed round
+ * trips before reaching Groq. A model id that no longer exists fails at request
+ * time, long after the code has been reviewed and looks correct, which is why
+ * this is a test and not a comment.
+ *
+ * The last two are kept as last resorts despite currently returning 503: an
+ * overloaded model is a better outcome than no provider, and they cost one
+ * attempt.
+ */
 const GEMINI_MODEL_CANDIDATES = [
+	'gemini-3.5-flash',
+	'gemini-3.1-flash-lite',
 	'gemini-3.8-flash',
 	'gemini-flash-latest',
-	'gemini-2.5-pro',
-	'gemini-2.5-flash',
 ];
 
 /**
- * Current Groq model ids that can return chat completions.
- * `llama-3.3-70b-versatile` is listed by /models but returns 404 without access,
- * so it is left last as a harmless extra attempt.
+ * Groq model ids that return chat completions, verified live.
+ *
+ * `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` are both gone from this
+ * key's `/models` list and return 404 "does not exist or you do not have
+ * access". Groq serves only 11 models to this account and chat-capable ones are
+ * just these three.
  */
 const GROQ_MODEL_CANDIDATES = [
 	'qwen/qwen3.8-27b',
 	'openai/gpt-oss-120b',
 	'openai/gpt-oss-20b',
-	'llama-3.3-70b-versatile',
 ];
 
 /** Model ids tried in order when a provider rejects a model as unavailable. */
@@ -57,9 +74,24 @@ function getAiProvider() {
  * Every configured provider, in preference order. chatCompletion walks this list
  * so an overloaded or quota-limited provider (Gemini regularly 503s or returns
  * 429 on the free tier) automatically falls through to the next one available.
+ *
+ * Groq leads, ahead of Gemini. That is a latency decision as much as a cost
+ * one: Groq's inference tier is built for time-to-first-token, and a
+ * documentary script request or a chat answer is dominated by how long the user
+ * waits on it. It also puts a provider with a verified-working model first, so
+ * the common path is one round trip rather than a walk down a broken list.
  */
 function getAiProviders() {
 	const providers = [];
+
+	if (process.env.GROQ_API_KEY) {
+		providers.push({
+			name: 'Groq',
+			apiKey: process.env.GROQ_API_KEY,
+			baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
+			model: process.env.GROQ_MODEL || GROQ_MODEL_CANDIDATES[0],
+		});
+	}
 
 	if (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY) {
 		providers.push({
@@ -68,15 +100,6 @@ function getAiProviders() {
 			baseUrl:
 				'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
 			model: process.env.GEMINI_MODEL || GEMINI_MODEL_CANDIDATES[0],
-		});
-	}
-
-	if (process.env.GROQ_API_KEY) {
-		providers.push({
-			name: 'Groq',
-			apiKey: process.env.GROQ_API_KEY,
-			baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
-			model: process.env.GROQ_MODEL || GROQ_MODEL_CANDIDATES[0],
 		});
 	}
 
@@ -111,6 +134,26 @@ const isModelUnavailable = (status, body) =>
 
 /** Transient upstream failures worth retrying (429 / 5xx / network). */
 const isRetryable = (status) => [408, 409, 425, 429, 500, 502, 503, 504].includes(status);
+
+/**
+ * Whether a failure is about the *model* rather than the *account*.
+ *
+ * This distinction decides whether to try the provider's next model or give up
+ * on the provider entirely, and getting it wrong is expensive in both
+ * directions.
+ *
+ * Gemini returns 503 "This model is currently experiencing high demand" for a
+ * single overloaded model while the rest of the provider is perfectly healthy.
+ * Treating that as a provider failure abandoned the remaining candidates, so a
+ * request that would have succeeded on the second model instead burned a round
+ * trip and fell through to the next provider. A 5xx is therefore treated as
+ * model-specific and the loop continues.
+ *
+ * A 429 is the opposite: it is a key-wide rate limit, so every model on this
+ * provider would fail the same way, and it is better to move straight on. Same
+ * for 401 and 403, which are an invalid or unauthorised key.
+ */
+const isModelScoped = (status) => status >= 500;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -224,12 +267,21 @@ async function chatCompletion({
 				continue;
 			}
 
-			if (isModelUnavailable(response.status, body)) {
-				failures.push(`${provider.name}/${model}: model unavailable`);
+			if (isModelUnavailable(response.status, body) || isModelScoped(response.status)) {
+				// The model is the problem, not the account. Try the next one
+				// rather than abandoning a provider that is otherwise healthy.
+				failures.push(
+					`${provider.name}/${model}: ${
+						isModelScoped(response.status)
+							? `HTTP ${response.status} (model overloaded)`
+							: 'model unavailable'
+					}`,
+				);
 				continue;
 			}
 
-			// A real API error (auth, quota, bad request) for this provider.
+			// A key-wide failure (401, 403, 429, a bad request): every model on
+			// this provider would fail the same way, so move straight on.
 			failures.push(
 				`${provider.name}/${model}: HTTP ${response.status} ${String(body).slice(0, 120)}`,
 			);

@@ -39,9 +39,10 @@ export const TopBar: React.FC<{
 	onAbout: () => void;
 	signedIn: boolean;
 	onStudio: () => void;
+	onChat: () => void;
 	/** Fired once when the bar first appears, i.e. after the splash. */
 	onFirstPaint?: () => void;
-}> = ({ current, onHome, onPlay, onAbout, signedIn, onStudio, onFirstPaint }) => {
+}> = ({ current, onHome, onPlay, onAbout, signedIn, onStudio, onChat, onFirstPaint }) => {
 	const reduce = useReducedMotion();
 	const [muted, setMuted] = React.useState(isMuted());
 	const announced = React.useRef(false);
@@ -106,6 +107,16 @@ export const TopBar: React.FC<{
 					About
 				</button>
 			</div>
+
+			{/* The chat link is post-login only. Not merely hidden for a
+			    signed-out visitor: absent. An empty PDF chat is a worse first
+			    impression than one fewer link, and the server refuses the call
+			    regardless. */}
+			{signedIn ? (
+				<button type="button" className="link" onClick={onChat}>
+					PDF Chat
+				</button>
+			) : null}
 
 			{signedIn ? (
 				<button type="button" className="btn btn-primary btn-sm" onClick={onStudio}>

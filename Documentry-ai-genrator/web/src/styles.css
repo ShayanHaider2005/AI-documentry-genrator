@@ -754,3 +754,333 @@ video {
 	display: block;
 	background: #000;
 }
+
+/* ============================================================ PDF chat page */
+/*
+ * A glassmorphic split view. The translucency is load-bearing rather than
+ * decorative: the ambient background and the particle canvas sit behind both
+ * panes, so the page still looks alive while an answer is being composed. An
+ * opaque panel would hide that.
+ */
+.pdfchat {
+	max-width: 1240px;
+	margin: 0 auto;
+	padding: 96px 24px 48px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.pdfchat-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 20px;
+	flex-wrap: wrap;
+}
+
+.pdfchat-title {
+	margin: 0 0 4px;
+	font-size: 1.9rem;
+	letter-spacing: -0.02em;
+}
+
+.pdfchat-who {
+	margin-left: 12px;
+	font-size: 0.8rem;
+	font-weight: 400;
+	color: var(--muted, #94a3b8);
+}
+
+.pdfchat-sub {
+	margin: 0;
+	max-width: 62ch;
+	color: var(--muted, #94a3b8);
+	line-height: 1.6;
+}
+
+.pdfchat-split {
+	display: grid;
+	grid-template-columns: minmax(300px, 380px) 1fr;
+	gap: 20px;
+	align-items: start;
+}
+
+/* One column on anything narrow. A 320px chat pane beside a 300px document pane
+   is unusable, not merely tight. */
+@media (max-width: 900px) {
+	.pdfchat-split {
+		grid-template-columns: 1fr;
+	}
+	.pdfchat {
+		padding-top: 84px;
+	}
+}
+
+.glass {
+	background: rgba(15, 23, 42, 0.55);
+	backdrop-filter: blur(18px) saturate(140%);
+	-webkit-backdrop-filter: blur(18px) saturate(140%);
+	border: 1px solid rgba(148, 163, 184, 0.16);
+	border-radius: 18px;
+	box-shadow: 0 24px 60px rgba(2, 6, 23, 0.42);
+}
+
+.pdfchat-pane {
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	min-height: 240px;
+}
+
+/* The log is its own scroll container, or the page grows without bound and the
+   composer scrolls out of reach. */
+.pdfchat-log {
+	max-height: calc(100vh - 260px);
+}
+
+.pdfchat-scroll {
+	flex: 1;
+	min-height: 220px;
+	overflow-y: auto;
+	scroll-behavior: smooth;
+	padding-right: 4px;
+}
+
+.pdfchat-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	text-align: center;
+	color: var(--muted, #94a3b8);
+	padding: 40px 16px;
+	line-height: 1.6;
+}
+
+.pdfchat-empty p {
+	margin: 0;
+	max-width: 44ch;
+}
+
+.pdfchat-turn {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin-bottom: 18px;
+}
+
+.pdfchat-q {
+	line-height: 1.5;
+}
+
+.pdfchat-a p {
+	margin: 0 0 10px;
+	line-height: 1.65;
+}
+
+.pdfchat-a p:last-child {
+	margin-bottom: 0;
+}
+
+.pdfchat-fail {
+	color: #fca5a5;
+}
+
+.pdfchat-nosource {
+	margin: 8px 0 0;
+	font-size: 0.82rem;
+	color: #fbbf24;
+}
+
+.pdfchat-provider {
+	margin: 8px 0 0;
+	font-size: 0.76rem;
+	color: var(--muted, #94a3b8);
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.pdfchat-degraded {
+	color: #fbbf24;
+}
+
+.pdfchat-sources {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.pill-source {
+	font-size: 0.76rem;
+	padding: 3px 9px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.pill-chip {
+	cursor: pointer;
+	font-size: 0.82rem;
+	padding: 6px 12px;
+}
+
+.pdfchat-suggest {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.pdfchat-status {
+	min-height: 28px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.pill-busy {
+	color: #93c5fd;
+}
+.pill-ok {
+	color: #86efac;
+}
+.pill-bad {
+	color: #fca5a5;
+}
+
+.pdfchat-manifest summary {
+	cursor: pointer;
+	font-weight: 600;
+	line-height: 1.5;
+}
+
+.pdfchat-manifest .hint {
+	display: block;
+	font-weight: 400;
+	font-size: 0.78rem;
+	margin-top: 2px;
+}
+
+.pdfchat-manifest dl {
+	margin: 12px 0 0;
+	display: grid;
+	gap: 8px;
+}
+
+.pdfchat-manifest dl > div {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 0.86rem;
+}
+
+.pdfchat-manifest dt {
+	color: var(--muted, #94a3b8);
+}
+.pdfchat-manifest dd {
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+}
+
+/* The brief's 1.02 hover and 0.97 press, tighter than the global 1.03/0.96
+   because these two buttons carry the page's whole purpose and a large jump
+   reads as a misclick. */
+.pdfchat-send:hover:not(:disabled) {
+	transform: scale(1.02);
+}
+.pdfchat-send:active:not(:disabled) {
+	transform: scale(0.97);
+}
+.file-drop:hover:not(:disabled) {
+	transform: scale(1.02);
+}
+.file-drop:active:not(:disabled) {
+	transform: scale(0.97);
+}
+
+.file-drop.dragging {
+	border-color: var(--accent, #facc15);
+	background: rgba(250, 204, 21, 0.08);
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.spinner {
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	border: 2px solid rgba(148, 163, 184, 0.3);
+	border-top-color: var(--accent, #facc15);
+	animation: docubot-spin 720ms linear infinite;
+	margin: 0 auto;
+}
+
+@keyframes docubot-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Three dots rather than a spinner: an answer is a reply arriving, not a
+   process running. */
+.typing {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	padding: 4px 0;
+}
+
+.typing i {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: rgba(148, 163, 184, 0.7);
+	animation: docubot-typing 1.1s ease-in-out infinite;
+}
+
+.typing i:nth-child(2) {
+	animation-delay: 0.16s;
+}
+.typing i:nth-child(3) {
+	animation-delay: 0.32s;
+}
+
+@keyframes docubot-typing {
+	0%,
+	60%,
+	100% {
+		opacity: 0.3;
+		transform: translateY(0);
+	}
+	30% {
+		opacity: 1;
+		transform: translateY(-3px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.spinner {
+		animation: none;
+		border-top-color: var(--accent, #facc15);
+	}
+	.typing i {
+		animation: none;
+		opacity: 0.6;
+	}
+	.pdfchat-scroll {
+		scroll-behavior: auto;
+	}
+}

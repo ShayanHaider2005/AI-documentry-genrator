@@ -157,6 +157,48 @@ export class UnauthorisedError extends Error {
 	}
 }
 
+/* ========================================================================== */
+/* PDF chat                                                                   */
+/* ========================================================================== */
+
+/** One page the answer was drawn from, shown as a clickable badge. */
+export interface ChatSource {
+	page: number;
+	title: string;
+	file: string;
+	/** Retrieval score, for diagnostics. Higher is a better match. */
+	score: number;
+	/** What fraction of the question's terms this chunk matched, 0-1. */
+	coverage: number;
+}
+
+/** The converted document. Only the manifest travels; never the page text. */
+export interface OkfManifest {
+	title: string;
+	source: string;
+	pageCount: number;
+	fileCount: number;
+	generated: string;
+}
+
+export interface BundleStatus {
+	ready: boolean;
+	manifest: OkfManifest | null;
+}
+
+export interface ChatAnswer {
+	answer: string;
+	sources: ChatSource[];
+	/** Which provider actually answered, e.g. "Groq". Null when none did. */
+	activeProvider: string | null;
+	model?: string;
+	/** Set when the primary provider failed and a fallback served the answer. */
+	degraded?: string;
+	/** How many chunks are in the index, and how many were used here. */
+	indexed?: number;
+	retrieved?: number;
+}
+
 export const api = {
 	config: () => request<VoiceSampleConfig>('/api/config'),
 
@@ -256,4 +298,22 @@ export const api = {
 	},
 
 	job: (jobId: string) => request<JobStatus>(`/api/job/${jobId}`),
+
+	/* ---- PDF chat --------------------------------------------------------- */
+
+	/** Whether this user has a converted document, and what it is. */
+	chatBundle: () => request<BundleStatus>('/api/chat/bundle'),
+
+	/**
+	 * Convert a PDF to an OKF bundle.
+	 *
+	 * There is no bundle id in the payload, and no way to name one: the server
+	 * scopes the output to the session, so there is nothing for a caller to
+	 * redirect at someone else's files.
+	 */
+	chatConvert: (payload: { fileName: string; dataBase64: string; title?: string }) =>
+		postJson<{ ready: boolean; manifest: OkfManifest }>('/api/chat/convert', payload),
+
+	/** Ask a question. Answered from the user's own document only. */
+	chatQuery: (message: string) => postJson<ChatAnswer>('/api/chat/query', { message }),
 };

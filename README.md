@@ -428,6 +428,9 @@ The server is `server/web.js` (Node's built-in `http`, no runtime dependencies).
 | `POST /api/upload/pdf` | Upload + sanitize a PDF |
 | `POST /api/upload/voice` | Upload an MP3 and clone the voice |
 | `POST /api/chat` | Chatbot Q&A grounded in the uploaded PDF |
+| `POST /api/chat/convert` | Convert a PDF into a per-user OKF bundle |
+| `POST /api/chat/query` | Ask a question; answered from that bundle only |
+| `GET /api/chat/bundle` | Whether this user has a converted document |
 | `POST /api/generate` | Start a generation job |
 | `POST /api/render` | Start an MP4 render job |
 | `GET /api/job/:id` | Job status, logs and result |
@@ -461,12 +464,82 @@ re-runs generation.
 
 ### Isolation
 
-Working sessions keep uploads in `.data/sessions/<id>/` and narration in
-`public/audio/<id>/`, so concurrent visitors never see each other's documents. A video can
-be reopened or shared with `?session=<id>`.
+Everything belonging to a user lives under one directory named for them, and
+nothing is shared:
 
+```
+.data/
+  u_<hash of user id>/
+    <session id>/                 uploaded PDF, cleaned text, dataset.json
+    okf_bundle/                   the converted document (see below)
+    <name>.pdf                    the source PDF for a chat document
+  users.json                      accounts and password hashes
+out/
+  u_<hash of user id>/
+    <session id>.mp4              the rendered video
+```
+
+The directory name is a SHA-256 prefix of the user id rather than the id itself,
+so a user id can never contribute a path traversal character. There is exactly
+one implementation of that naming, in `server/web.js`.
+
+Three rules keep this from leaking:
+
+- **Ownership is checked inside the lookup, not at the call site.**
+  `getSession(id, user)` and the store's `listFor` / `getFor` / `removeFor` all
+  compare the owner, so a new handler cannot forget to.
+- **A foreign id and a missing id both return 404.** A 403 would confirm the id
+  exists.
+- **The data paths are gated too.** `/video/:id` and `/audio/:sessionId>/`
+  require a session *and* ownership. They used to be reachable with no account at
+  all, because the auth gate only wrapped `/api/`.
+
+A video can be reopened with `?session=<id>`; the id alone grants nothing.
 Long work (generation, rendering) runs as background jobs that the UI polls. Uploads are
 sent as base64 JSON rather than multipart, which keeps the server dependency-free.
+
+### PDF chat (`/chat`)
+
+Ask questions about a PDF and get an answer drawn only from that PDF, with the
+pages it used.
+
+**Pipeline.** `POST /api/chat/convert` parses the PDF with `pdf-parse`, writing
+an OKF bundle: `index.md` plus one `page_<n>_<k>.md` concept file per chunk,
+each with YAML frontmatter (`type`, `title`, `description`, `source_page`).
+`POST /api/chat/query` retrieves from that bundle, then synthesises.
+
+**Retrieval is local.** BM25 over the bundle's own chunks, in
+`server/chat/retrieval.js`. No embeddings, no model weights, no network, zero
+API tokens, about 40 KB of RAM.
+
+> The brief asked for LlamaIndex with `BAAI/bge-small-en-v1.5`. The intent —
+> local, token-free retrieval — is right, but `sentence-transformers` plus a
+> torch install is roughly 2 GB of packages and the model is another 130 MB
+> resident, on a machine with 7.8 GB of RAM that OmniVoice already occupies
+> with 3.3 GB. BM25 is weaker on paraphrased questions and comparable on factual
+> lookup. Swapping in LlamaIndex is a change to `rank()` and nothing else.
+
+**Overview questions.** "What is this document about?" reduces to
+`["what","document","about"]` after stopword removal, and no document contains
+"document" as a searchable topic — so retrieval matched nothing and the bot
+answered the most likely first question with "I could not find anything". When
+*every* surviving term is a meta-word, the retrieval query is rebuilt from the
+document's own most characteristic vocabulary. A nonsense question is left alone
+and still abstains.
+
+**Abstention is a feature.** If retrieval matches nothing, the bot says so and
+cites no pages. If the model returns an uncited answer anyway, the server appends
+the retrieved page list rather than shipping an answer the UI cannot
+substantiate.
+
+**Models are verified, not assumed.** `npm run check:models` asks each provider
+whether its candidate models still answer. This matters: the three model ids
+named in the original brief were all unusable — Groq `llama-3.1-8b-instant`
+returns 404, Gemini `gemini-2.5-flash` returns "no longer available to new
+users", and `gemini-3.7-flash` does not exist. The pre-existing candidate list
+had drifted too, and since Gemini was the *first* provider, every LLM call in
+the app was paying three failed round trips before reaching Groq. Groq now
+leads, which is also the lower-latency tier.
 
 ### Guardrails for a public deployment
 

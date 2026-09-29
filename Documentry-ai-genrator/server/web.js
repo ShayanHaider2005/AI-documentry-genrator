@@ -39,6 +39,8 @@ const {
 	DEFAULT_VOICE_LABEL,
 } = require('./tts');
 const { chatCompletion, getAiProvider } = require('./llm');
+const { convertToOkf, readBundle, bundleDir: okfBundleDir } = require('./chat/okf');
+const { answerQuestion } = require('./chat/query');
 const { renderVideo } = require('./render');
 const omnivoice = require('./omnivoice');
 
@@ -208,6 +210,17 @@ const getSession = (id, user) => {
  * in one `rm`. `userId` comes from the session record, never from the URL.
  */
 const sessionDir = (id, userId) => path.join(DATA_DIR, userDirName(userId), id);
+
+/**
+ * Everything belonging to one user: their sessions, their rendered videos and
+ * their converted documents all hang off this one directory.
+ *
+ * Single definition on purpose. Two implementations of the `u_<hash>` naming
+ * that drift apart would put one user's files where the other code expects to
+ * find its own, and the resulting bug is a cross-user data leak that no type
+ * checker would catch.
+ */
+const userDataDir = (userId) => path.join(DATA_DIR, userDirName(userId));
 
 /**
  * The per-user directory name.
@@ -434,7 +447,15 @@ async function handleApi(req, res, url) {
 	const route = url.pathname;
 
 	// Throttle the expensive routes. Cheap reads stay unthrottled.
-	const COSTLY = ['/api/generate', '/api/render', '/api/upload/pdf', '/api/upload/voice', '/api/chat'];
+	const COSTLY = [
+		'/api/generate',
+		'/api/render',
+		'/api/upload/pdf',
+		'/api/upload/voice',
+		'/api/chat',
+		'/api/chat/convert',
+		'/api/chat/query',
+	];
 	if (COSTLY.includes(route)) {
 		const key = `${route}:${req.socket.remoteAddress || 'unknown'}`;
 		if (rateLimited(key)) {
@@ -669,6 +690,120 @@ async function handleApi(req, res, url) {
 		});
 
 		return sendJson(res, 200, { reply: result.text, provider: result.provider });
+	}
+
+	// ── GET /api/chat/bundle ─────────────────────────────────────────────────
+	// Whether this user has a converted document, so the page can restore its
+	// state on reload instead of showing an empty dropzone over a full index.
+	if (route === '/api/chat/bundle' && req.method === 'GET') {
+		const dir = okfBundleDir(userDataDir(req.user.id));
+		const bundle = await readBundle(dir);
+		return sendJson(res, 200, {
+			ready: Boolean(bundle),
+			// The manifest only, never the node text: this is a status endpoint,
+			// and shipping the whole corpus to render a status line would put the
+			// document on the wire for no reason.
+			manifest: bundle
+				? {
+						title: bundle.manifest.title,
+						source: bundle.manifest.source,
+						pageCount: bundle.manifest.pageCount,
+						fileCount: bundle.manifest.fileCount,
+						generated: bundle.manifest.generated,
+					}
+				: null,
+		});
+	}
+
+	// ── POST /api/chat/convert ───────────────────────────────────────────────
+	if (route === '/api/chat/convert' && req.method === 'POST') {
+		const body = await readBody(req);
+		const fileName = safeFileName(body.fileName, 'document.pdf');
+		if (!/\.pdf$/i.test(fileName)) {
+			return sendJson(res, 400, { error: 'Please upload a PDF.' });
+		}
+
+		const buffer = decodeUpload(body.dataBase64);
+		if (!buffer || buffer.length < 5) {
+			return sendJson(res, 400, { error: 'That file was empty.' });
+		}
+		// The magic bytes, not the extension. A rename is trivial and the parser
+		// would otherwise be handed a zip or an image and fail with something
+		// unhelpful.
+		if (buffer.subarray(0, 5).toString('latin1') !== '%PDF-') {
+			return sendJson(res, 400, { error: 'That file is not a PDF.' });
+		}
+
+		// Both the PDF and the bundle live under this user's own directory, and
+		// there is no code path that writes a user-supplied file outside it.
+		//
+		// The PDF sits beside the bundle rather than inside it, because
+		// convertToOkf clears its output directory to avoid leaving orphan
+		// concept files behind — which would have deleted the very file it had
+		// just read. Keeping them apart also means a failed reconversion cannot
+		// destroy the previous working bundle.
+		const userDir = userDataDir(req.user.id);
+		const outDir = okfBundleDir(userDir);
+		await fs.promises.mkdir(userDir, { recursive: true });
+		const sourcePath = path.join(userDir, safeFileName(fileName, 'document.pdf'));
+		await fs.promises.writeFile(sourcePath, buffer);
+
+		try {
+			const manifest = await convertToOkf({
+				pdfPath: sourcePath,
+				outDir,
+				title: String(body.title || '').trim() || undefined,
+				sourceName: fileName,
+			});
+			// A PDF whose pages are all images extracts to nothing, and an empty
+			// bundle would leave the user staring at a chat that says "I have no
+			// document" about a document they can plainly see.
+			if (manifest.fileCount === 0) {
+				await fs.promises.rm(outDir, { recursive: true, force: true });
+				return sendJson(res, 422, {
+					error:
+						'I could not read any text from that PDF. It looks like a scan of images rather than a text document.',
+				});
+			}
+			return sendJson(res, 200, {
+				ready: true,
+				manifest: {
+					title: manifest.title,
+					source: manifest.source,
+					pageCount: manifest.pageCount,
+					fileCount: manifest.fileCount,
+					generated: manifest.generated,
+				},
+			});
+		} catch (err) {
+			// A half-written bundle would be read as authoritative by the query
+			// path, so clear it before reporting the failure. The source PDF is
+			// untouched, so the user can retry without re-uploading.
+			await fs.promises.rm(outDir, { recursive: true, force: true });
+			return sendJson(res, 500, {
+				error: `Could not convert that PDF: ${err.message}`,
+			});
+		}
+	}
+
+	// ── POST /api/chat/query ─────────────────────────────────────────────────
+	if (route === '/api/chat/query' && req.method === 'POST') {
+		const body = await readBody(req);
+		const question = String(body.message || body.question || '').trim();
+		if (!question) return sendJson(res, 400, { error: 'Empty question' });
+		if (question.length > 4000) {
+			return sendJson(res, 400, { error: 'That question is too long.' });
+		}
+
+		// Scoped by the caller, never by anything in the request body. There is no
+		// bundleId parameter, so there is nothing for a caller to point at
+		// someone else's directory.
+		const result = await answerQuestion({
+			bundleDir: okfBundleDir(userDataDir(req.user.id)),
+			question,
+			limit: 5,
+		});
+		return sendJson(res, 200, result);
 	}
 
 	// ── POST /api/generate ─────────────────────────────────────────────────
