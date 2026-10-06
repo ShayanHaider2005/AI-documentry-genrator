@@ -36,6 +36,55 @@ import uuid
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# ---------------------------------------------------------------------------
+# Offline mode for an already-downloaded model.
+#
+# Why this exists. `OmniVoice.from_pretrained` asks the Hugging Face hub which
+# revision to load before it reads anything from disk. When that request hangs
+# rather than failing, the service prints "loading ...", the port opens, /health
+# answers 503 forever, and the process sits at 0% CPU with 4 MB resident. It
+# looks like a slow load. It is not: measured on this machine, the same command
+# hangs indefinitely with the hub reachable, and loads in 94 seconds with
+# HF_HUB_OFFLINE=1.
+#
+# So: if the weights are already on disk, do not talk to the hub at all. If they
+# are not, leave the network alone, because then the download is genuinely
+# needed and this is a first run.
+#
+# An operator can still force either behaviour with HF_HUB_OFFLINE=0 or 1; this
+# only fills in the blank.
+# ---------------------------------------------------------------------------
+def _weights_are_cached(model_id: str) -> bool:
+    """Whether a snapshot for model_id already exists in the hub cache."""
+    try:
+        root = os.environ.get("HUGGINGFACE_HUB_CACHE") or os.environ.get("HF_HOME")
+        root = Path(root) if root else Path.home() / ".cache" / "huggingface" / "hub"
+        folder = "models--" + model_id.replace("/", "--")
+        snapshots = root / folder / "snapshots"
+        if not snapshots.is_dir():
+            return False
+        # A snapshot directory with entries, not an empty one left by an
+        # interrupted download.
+        return any(snapshots.iterdir())
+    except Exception:
+        return False
+
+
+_MODEL_ID = os.environ.get("OMNIVOICE_MODEL", "k2-fsa/OmniVoice")
+if "HF_HUB_OFFLINE" not in os.environ:
+    if _weights_are_cached(_MODEL_ID):
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+        print(
+            f"[omnivoice] {_MODEL_ID} is cached; running offline so the hub "
+            f"cannot stall the load (override with HF_HUB_OFFLINE=0)"
+        )
+    else:
+        print(
+            f"[omnivoice] {_MODEL_ID} is not cached yet; staying online to "
+            f"download it (~3.3 GB, first run only)"
+        )
+
 import numpy as np
 import soundfile as sf
 import torch
