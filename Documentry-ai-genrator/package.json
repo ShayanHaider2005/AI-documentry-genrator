@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "pipeline": "node server/pipeline.js",
-    "studio": "remotion studio src/index.ts",
+    "studio": "npm run studio:props && remotion studio --props=public/input-props.json",
     "preview": "remotion preview src/index.ts",
     "render": "remotion render src/index.ts Documentary out/video.mp4",
     "web:build": "node web/build.js",
@@ -42,7 +42,9 @@
     "check:okf": "node web/check-okf.js",
     "check:chat": "node web/check-chat.js",
     "check:models": "node web/check-model-candidates.js",
-    "check:script-gen": "node web/check-script-gen.js"
+    "check:script-gen": "node web/check-script-gen.js",
+    "studio:props": "node web/sync-studio-props.js",
+    "render:fast": "remotion render src/index.ts Documentary out/fast.mp4 --timeout=120000 --gl=angle --props=public/input-props.json"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.529",

@@ -121,3 +121,10 @@ dry_*.log
 .data/
 /Documentry-ai-genrator/out/
 /Documentry-ai-genrator/node_modules/
+# Remotion Studio scratch props. Written by 
+# Remotion Studio scratch props. Written on demand by npm run studio:props from the
+# most recent render, and gitignored because it holds a parsed document.
+# Deliberately never written by the server: it holds a parsed document and one
+# fixed path would be shared mutable state that two uploads race on.
+/Documentry-ai-genrator/public/input-props.json
+

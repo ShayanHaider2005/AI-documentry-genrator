@@ -19,6 +19,15 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
+
+/** The repo's .gitignore lives one level above the package root. */
+const readIgnore = () => {
+	try {
+		return fs.readFileSync(path.join(ROOT, '..', '.gitignore'), 'utf8');
+	} catch {
+		return '';
+	}
+};
 const BUNDLED = path.join(ROOT, 'src', 'dataset.json');
 const SESSIONS = path.join(ROOT, '.data', 'sessions');
 
@@ -129,6 +138,66 @@ console.log('\n4. the bundled dataset');
 function makeScene(n, text) {
 	return { sceneNumber: n, narratorText: text, title: `S${n}`, durationInFrames: 90, audioPath: `audio/x/scene-${n}.wav` };
 }
+
+/* ---- Studio props sync and the Remotion config -------------------------- */
+console.log('\n5. Studio opens on the latest render');
+const sync = fs.readFileSync(path.join(__dirname, 'sync-studio-props.js'), 'utf8');
+const cfg = fs.readFileSync(path.join(ROOT, 'remotion.config.ts'), 'utf8');
+
+/**
+ * remotion.config.ts without its comments.
+ *
+ * The file documents each rejected option by name, so matching the raw text
+ * finds prose about `setConcurrency(1)` and reads it as a live call. These
+ * checks are about code, so they only look at code.
+ */
+const cfgCode = cfg
+	.replace(/\/\*[\s\S]*?\*\//g, '')
+	.replace(/^\s*\/\/.*$/gm, '')
+	.trim();
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+
+check('there is a sync script', fs.existsSync(path.join(__dirname, 'sync-studio-props.js')));
+check('it finds datasets in the per-user layout, not just the flat one',
+	/entry\.isFile\(\) && entry\.name === 'dataset\.json'/.test(sync) &&
+		/entry\.isDirectory\(\)\) walk\(/.test(sync) &&
+		/depth > 3/.test(sync),
+	'after the isolation change datasets live two levels down');
+check('it writes the object shape, not a bare array',
+	/toProps/.test(sync) && /\{ scenes: dataset \}/.test(sync),
+	'a bare array is the shape that caused the original silent-render bug');
+check('the server never writes it',
+	!fs.readFileSync(path.join(ROOT, 'server', 'web.js'), 'utf8').includes('input-props'),
+	'one fixed path would be shared state two uploads race on');
+check('it is gitignored', /public\/input-props\.json/.test(readIgnore()));
+
+console.log('\n6. Remotion config');
+check('the GL renderer is set to angle',
+	/setChromiumOpenGlRenderer\('angle'\)/.test(cfgCode));
+check('angle is not combined with --disable-gpu',
+	!/disable-gpu/.test(cfgCode),
+	'ANGLE is GPU-backed; asking for both is asking for opposites');
+check('Config.setChromiumOptions is not called, because it does not exist',
+	!/Config\.setChromiumOptions\(/.test(cfgCode),
+	'@remotion/cli 4.0.529 has no arbitrary-args setter');
+check('the timeout is raised above the 30s default',
+	/setTimeoutInMilliseconds\(120000\)/.test(cfgCode));
+check('and the comment says what that option actually guards',
+	/delayRenderTimeoutInMilliseconds/.test(cfg),
+	'it is not a browser-launch timeout, despite the name');
+check('concurrency is not globally pinned to 1',
+	!/Config\.setConcurrency\(1\)/.test(cfgCode),
+	'render.js already passes --concurrency=50%; this would only hobble Studio');
+
+console.log('\n7. npm scripts');
+check('studio syncs first, then opens',
+	/studio:props && remotion studio --props=public\/input-props\.json/.test(pkg.scripts.studio || ''));
+check('render:fast has an entry, a composition and an output',
+	/render src\/index\.ts Documentary \S+\.mp4/.test(pkg.scripts['render:fast'] || ''),
+	'remotion render requires all three');
+check('render:fast passes the timeout and the GL renderer',
+	/--timeout=120000/.test(pkg.scripts['render:fast'] || '') &&
+		/--gl=angle/.test(pkg.scripts['render:fast'] || ''));
 
 console.log(failures === 0 ? '\nAll props-shape checks passed.' : `\n${failures} check(s) failed.`);
 process.exit(failures === 0 ? 0 : 1);
