@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}About DocuBot{% endblock %}
+
+{% block content %}
+<div class="prose lg:prose-xl max-w-none">
+    <h1 class="mb-4 text-3xl font-bold">About DocuBot</h1>
+    <p class="mb-6">
+        DocuBot is an AI-powered documentary generator that transforms PDF lectures
+        into narrated, scene-by-scene videos. It features:
+    </p>
+    <ul class="list-disc list-inside space-y-2 mb-6">
+        <li>PDF text extraction and sanitization</li>
+        <li>AI script generation using multiple LLM providers</li>
+        <li>Voice cloning via OmniVoice (local, zero-shot)</li>
+        <li>Scene-by-scene video generation with Remotion</li>
+        <li>Word-by-word highlighting synchronized with narration</li>
+        <li>Contextual visuals from document diagrams or Pexels photos</li>
+    </ul>
+    <p>
+        The platform offers both a web interface (<code>npm run web</code>) and a
+        headless CLI (<code>npm run pipeline</code>) for generating documentaries
+        from PDFs. Voice cloning runs entirely on your machine using the OmniVoice
+        toolkit, supporting 600+ languages with accent and prosody preservation.
+    </p>
+</div>
+{% endblock %}

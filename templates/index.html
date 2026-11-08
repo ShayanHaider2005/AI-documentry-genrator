@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block title %}DocuBot Documentation{% endblock %}
+
+{% block content %}
+<div class="prose lg:prose-xl max-w-none">
+    {{ content | safe }}
+</div>
+{% endblock %}
