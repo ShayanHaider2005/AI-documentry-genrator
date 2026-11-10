@@ -1,0 +1,144 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<main id="main-content" class="relative z-10">
+    <!-- Page header -->
+    <section class="mb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <h2 class="text-2xl font-bold tracking-tighter">Live Run</h2>
+            <small class="text-fg-secondary/60">Goal: <span id="current-goal" class="font-medium text-primary">{{ goal_preset or '' }}</span></small>
+        </div>
+        
+        <!-- Goal input and controls -->
+        <div class="bg-bg-secondary/50 p-4 rounded-xl backdrop-blur border border-border-color/20">
+            <form id="goal-form" hx-post="/api/run" hx-target="#current-goal" class="grid grid-cols-1 gap-3">
+                <div>
+                    <label class="block text-sm text-fg-secondary mb-1">Custom Goal (optional)</label>
+                    <input type="text" name="goal" id="goal-input" 
+                           placeholder="e.g. Register an account"
+                           class="w-full rounded-lg border border-border-color/50 bg-bg-tertiary p-2 text-sm focus:border-primary focus:outline-none"
+                           value="{{ goal_preset or '' }}">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs text-fg-secondary uppercase tracking-wider mb-1">Algorithm</label>
+                        <select id="algorithm-select" 
+                                hx-post="/api/run"
+                                hx-target="#current-goal"
+                                class="w-full rounded-lg border border-border-color/50 bg-bg-tertiary p-2 text-sm focus:border-primary focus:outline-none"
+                        >
+                            <option value="A*" {% if 'A*' in (goal_preset or '') or not goal_preset %}selected{% endif %}>A*</option>
+                            <option value="BFS">BFS</option>
+                            <option value="DFS">DFS</option>
+                            <option value="UCS">UCS</option>
+                            <option value="Greedy">Greedy</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-fg-secondary uppercase tracking-wider mb-1">Bug Injection</label>
+                        <select id="bug-select" 
+                                class="w-full rounded-lg border border-border-color/50 bg-bg-tertiary p-2 text-sm focus:border-primary focus:outline-none"
+                        >
+                            <option value="">None</option>
+                            <option value="BUG_1" {% if 'BUG_1' in (goal_preset or '') %}selected{% endif %}>BUG_1</option>
+                            <option value="BUG_2" {% if 'BUG_2' in (goal_preset or '') %}selected{% endif %}>BUG_2</option>
+                            <option value="BUG_3" {% if 'BUG_3' in (goal_preset or '') %}selected{% endif %}>BUG_3</option>
+                            <option value="BUG_4" {% if 'BUG_4' in (goal_preset or '') %}selected{% endif %}>BUG_4</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button type="submit" 
+                            class="btn btn-primary flex-1"
+                            hx-indicator="#run-indicator">
+                        <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="12 2 15 22 9 22 12 2"/>
+                        </svg>
+                        Start Run
+                    </button>
+                    <button type="button" 
+                            id="cancel-run"
+                            class="btn btn-outline py-2 px-3 rounded-md text-sm font-medium hover:bg-bg-tertiary transition-colors"
+                            disabled
+                    >
+                        <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                        Cancel
+                    </button>
+                </div>
+            </form>
+            <div id="run-indicator" class="hidden">
+                <svg class="h-4 w-4 mr-2 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Running...
+            </div>
+        </div>
+    </section>
+    
+    <!-- Dual-pane live view -->
+    <section class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <!-- Left: Plan DAG + Step States -->
+        <div class="bg-bg-secondary/50 rounded-xl p-4 md:p-6 backdrop-blur border border-border-color/20" style="height: 500px;">
+            <h3 class="font-medium text-fg-secondary mb-4">Plan DAG & Step States</h3>
+            <div id="plan-dag" class="h-full overflow-y-auto">
+                <!-- Plan DAG will be rendered by HTMX -->
+                <div class="skeleton h-64 w-full rounded-md mb-4" aria-live="polite"></div>
+                <p class="text-xs text-fg-secondary/60 text-center">Loading plan...</p>
+            </div>
+        </div>
+        
+        <!-- Right: Live View -->
+        <div class="bg-bg-secondary/50 rounded-xl p-4 md:p-6 backdrop-blur border border-border-color/20" style="height: 500px;">
+            <h3 class="font-medium text-fg-secondary mb-4">Live Execution</h3>
+            <div id="live-view" class="h-full overflow-hidden">
+                <!-- Live view will be rendered by HTMX -->
+                <div class="skeleton h-48 w-full rounded-md mb-4" aria-live="polite"></div>
+                <p class="text-xs text-fg-secondary/60 text-center">Live view starting...</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Timeline / Progress -->
+    <section class="mt-8 rounded-xl bg-bg-secondary/50 p-4 md:p-6 backdrop-blur border border-border-color/20">
+        <h3 class="font-medium text-fg-secondary mb-3">Execution Timeline</h3>
+        <div id="timeline" class="h-24 overflow-y-auto space-y-2">
+            <!-- Timeline entries will be rendered by HTMX -->
+            <div class="skeleton h-8 w-32 rounded-md" aria-live="polite"></div>
+        </div>
+    </section>
+    
+    <!-- Controls -->
+    <section class="mt-8 flex gap-3">
+        <button id="pause-resume" 
+                class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                disabled
+        >
+            <svg class="h-4 w-4 mr-2" id="pause-icon" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="6" width="18" height="2"/><rect x="3" y="14" width="18" height="2"/>
+            </svg>
+            Pause
+        </button>
+        <button id="re-run" 
+                class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-warning hover:bg-warning/10 transition-colors"
+                disabled
+        >
+            <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12 2 15 22 9 22 12 2"/>
+            </svg>
+            Re-run
+        </button>
+        <button id="re-run-bug" 
+                class="flex-1 py-2 px-4 rounded-md text-sm font-medium text-danger hover:bg-danger/10 transition-colors"
+                disabled
+        >
+            <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12 2 15 22 9 22 12 2"/>
+            </svg>
+            Re-run with Bug
+        </button>
+    </section>
+{% endblock %}

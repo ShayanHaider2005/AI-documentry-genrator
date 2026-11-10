@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#0f172a"/>
+  <circle cx="600" cy="315" r="300" fill="#1e293b"/>
+  <text x="600" y="330" font-family="Inter, sans-serif" font-size="48" fill="#8b5cf6" text-anchor="middle">BrowserPilot</text>
+  <text x="600" y="380" font-family="Inter, sans-serif" font-size="24" fill="#64748b" text-anchor="middle">AI Browser Automation</text>
+</svg>

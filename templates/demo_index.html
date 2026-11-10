@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrowserPilot Demo</title>
+    <script src="https://cdn.tailwindcss.com/latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.5/dist/htmx.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --fg-primary: #f1f5f9;
+            --fg-secondary: #64748b;
+            --accent: #8b5cf6;
+            --border-color: #475569;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg-primary); color: var(--fg-primary); min-height: 100vh; }
+        .bg-gradient-primary { background: linear-gradient(135deg, var(--bg-primary) 0, var(--bg-secondary) 100%); }
+        .accent-gradient { background: linear-gradient(135deg, var(--accent), #a78bfa); }
+        .spotlight { position: relative; }
+        .spotlight::after { content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 0; }
+        .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3); }
+        .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3); }
+        .transition-fast { transition: 150ms cubic-bezier(0.4, 0, 0.2, 1); }
+        .focus-visible:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-primary">
+    <!-- Noise overlay -->
+    <div class="absolute inset-0 pointer-events-none opacity-10" 
+         style="background-image: url('data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E')">
+    </div>
+    
+    <!-- Skip link -->
+    <a href="#main-content" class="sr-only">Skip to main content</a>
+    
+    <!-- Header -->
+    <header class="bg-bg-secondary/80 border-b border-border-color/50 sticky top-0 z-50" 
+            style="background: rgba(30, 41, 59, 0.8) !important;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-md bg-accent flex items-center justify-center">
+                        <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tighter">BrowserPilot Demo</h1>
+                </div>
+                <div class="hidden md:flex items-center gap-4">
+                    <a href="/register" class="text-gray-300 hover:text-white transition-colors">Register</a>
+                    <a href="/login" class="text-gray-300 hover:text-white transition-colors">Login</a>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="pt-20 pb-8">
+        <!-- Hero Section -->
+        <section class="min-h-[80vh] flex items-center justify-center relative">
+            <div class="absolute inset-0 bg-gradient-primary"></div>
+            <div class="spotlight opacity-70"></div>
+            <div class="relative flex flex-col items-center justify-center px-4 max-w-5xl mx-auto text-center z-10">
+                <h1 class="relative text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6"
+                    style="background: linear-gradient(135deg, #f1f5f9 0, #64748b 50%, #0f172a 100%);
+                           -webkit-background-clip: text;
+                           -webkit-text-fill-color: transparent;
+                           background-clip: text;
+                           background-size: 200% 200%;
+                           animation: gradient 8s ease infinite;">
+                    AI-Powered Testing
+                </h1>
+                <p class="relative text-lg sm:text-xl text-fg-secondary mb-8 max-w-2xl">
+                    Test registration, login, and profile workflows with AI-powered browser automation.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 gap-y-0 max-w-md mx-auto">
+                    <a href="/register" class="btn btn-primary btn-lg flex items-center gap-2">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Run Test
+                    </a>
+                    <a href="/register" class="btn btn-outline btn-lg flex items-center gap-2">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                        Register
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Quick Start -->
+        <section class="py-16 bg-bg-secondary/50" style="background: rgba(15, 23, 42, 0.5);">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-12">
+                    <div class="rounded-xl p-6 bg-bg-secondary/50 backdrop-blur border border-border-color/20">
+                        <div class="h-12 w-12 rounded-lg bg-accent/10 flex items-center justify-center mb-4">
+                            <svg class="h-6 w-6 text-accent" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-medium text-accent mb-2">Register an account</h3>
+                        <p class="text-sm text-fg-secondary/60">Create a test account to try the full workflow</p>
+                    </div>
+                    <div class="rounded-xl p-6 bg-bg-secondary/50 backdrop-blur border border-border-color/20">
+                        <div class="h-12 w-12 rounded-lg bg-info/10 flex items-center justify-center mb-4">
+                            <svg class="h-6 w-6 text-info" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-medium text-info mb-2">Log in</h3>
+                        <p class="text-sm text-fg-secondary/60">Access your profile and settings</p>
+                    </div>
+                    <div class="rounded-xl p-6 bg-bg-secondary/50 backdrop-blur border border-border-color/20">
+                        <div class="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center mb-4">
+                            <svg class="h-6 w-6 text-success" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="12 2 15 22 9 22 12 2"/>
+                                <polyline points="22 12 18 12 15 21 10 8 7 9"/>
+                                <line x1="9" y1="21" x2="15" y2="21"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-medium text-success mb-2">View profile</h3>
+                        <p class="text-sm text-fg-secondary/60">See your account details and edit profile</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-bg-secondary/70 border-t border-border-color/50 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-sm text-fg-secondary">
+                <span>BrowserPilot Demo v1.0.0</span>
+                <span>100% free, test automation</span>
+            </div>
+        </div>
+    </footer>
+    
+    <script>lucide.createIcons();</script>
+</body>
+</html>

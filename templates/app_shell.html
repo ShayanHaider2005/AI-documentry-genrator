@@ -1,0 +1,191 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<main id="main-content" class="relative z-10">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-16 w-64 h-full bg-bg-secondary border-r border-border-color/50 shadow-lg transform transition-transform duration-300 ease-in-out sm:translate-x-0 sm:transform-none"
+           aria-label="Main sidebar"
+           hx-get="/api/sidebar-items"
+           hx-trigger="load"
+            >
+        <div class="p-4 sm:p-6 flex flex-col h-full">
+            <!-- Brand -->
+            <div class="mb-6">
+                <svg class="h-6 w-6 text-accent mb-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                <span class="font-semibold tracking-tighter">BrowserPilot</span>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="flex-1">
+                <ul class="space-y-1">
+                    <li>
+                        <a href="/app/overview" 
+                           class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-fg-secondary hover:text-white hover:bg-bg-tertiary transition-colors"
+                           aria-current="page"
+                           hx-get="/api/dashboard-stats"
+                        >
+                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Mission Control
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/app/run"
+                           class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-fg-secondary hover:text-white hover:bg-bg-tertiary transition-colors"
+                        >
+                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="12 2 15 22 9 22 12 2"/>
+                            </svg>
+                            Live Run
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/app/runs" 
+                           class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-fg-secondary hover:text-white hover:bg-bg-tertiary transition-colors"
+                           hx-get="/api/run-history"
+                        >
+                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17 3H5c-1.1 0-2 .9-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-1.9-2-2V7c0-1.1-.9-2-2-2zm-4 16H7V9h10v10zM7 5h2v2H7V5zm4 0h2v2h-2V5zm4 0h1.342c.518 0 1.024.133 1.414.388l3.036 3.036a1 1 0 0 1 .118 1.702l-1.524 3.688a1 1 0 0 1-.894-.5l-3.036-3.036a1 1 0 0 1-.118-1.702L15 5z"/>
+                            </svg>
+                            Run History
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/app/bugs"
+                           class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-fg-secondary hover:text-white hover:bg-bg-tertiary transition-colors"
+                        >
+                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 22c1.1 0 2.2-.4 3.1-.8L20 12l-8-7-8 7-8 7-1.9-5.2C8.4 5.4 9.5 5 12 5c2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5L2 7l-4 5 5 8.1zm-2-8c-5.52 3.18-5.65 3.72-.05 6.08 2.35 1.22 5.32 1.08 6.73.35L12 10l-1.37 3.06c-1.41.7-3.17.38-3.85-.65L2 10c-1.1 0-2.2.4-3.1.8C.63 11.67.5 12.65.5 14s.13 2.33.47 3.53l1.86 5.77c.37.98.96 1.68 1.77 1.89 1.5.32 2.77-.08 3.57-.97L12 18l1.06-2.88c.7-1.08 2.3-1.3 3.38-.68 1.03.63 2.1.93 3.22.64.29-.09.57-.25.78-.5l.19-.38c3.18-2.08 3.28-5.09 1.36-7.95z"/>
+                            </svg>
+                            Bug Reports
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/app/lab"
+                           class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-fg-secondary hover:text-white hover:bg-bg-tertiary transition-colors"
+                        >
+                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="23 7 16 12 23 17 23 7"/>
+                                <polyline points="16 12 12 16 8 12"/>
+                                <line x1="12" y1="2" x2="12" y2="6"/>
+                            </svg>
+                            AI Lab
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/app/benchmark"
+                           class="flex items-center px-3 py-2 rounded-md text-sm font-medium text-fg-secondary hover:text-white hover:bg-bg-tertiary transition-colors"
+                        >
+                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Benchmark
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- Quick actions -->
+            <div class="mt-6 p-4 bg-bg-tertiary rounded-xl border border-border-color/20">
+                <h3 class="text-xs font-medium uppercase tracking-wider text-fg-secondary mb-3">Quick Actions</h3>
+                <div class="space-y-2">
+                    <button class="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                            hx-get="/api/run-preset?goal=Register%20an%20account"
+                            title="Run: Register an account"
+                    >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Register
+                    </button>
+                    <button class="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                            hx-get="/api/run-preset?goal=Full%20checkout"
+                            title="Run: Full checkout"
+                    >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        Checkout
+                    </button>
+                    <button class="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                            hx-get="/api/run-preset?goal=Login"
+                            title="Run: Login"
+                    >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                        </svg>
+                        Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Breadcrumb and content -->
+    <div class="ml-64 sm:ml-0 pt-6 flex flex-col sm:flex-row">
+        <!-- Breadcrumb -->
+        <nav class="bg-bg-secondary/50 rounded-xl p-3 flex items-center gap-2 text-sm text-fg-secondary" aria-label="Breadcrumb">
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="3" x2="19" y2="3"/>
+                <path d="M3 9l9 6 9-6M9 3v9l12-3v-6"/>
+            </svg>
+            <span>BrowserPilot</span>
+            <svg class="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <span>Mission Control</span>
+        </nav>
+        
+        <!-- Main content -->
+        <div class="flex-1 px-4 sm:px-6 lg:px-8 pt-4">
+            {% block app-content %}{% endblock %}
+        </div>
+        
+        <!-- Top bar / actions -->
+        <div class="w-64 sm:w-auto bg-bg-secondary/50 backdrop-blur-xl border-l border-border-color/50 px-4 py-6 sm:hidden">
+            <h3 class="text-xs font-medium uppercase tracking-wider text-fg-secondary mb-3">Actions</h3>
+            <div class="space-y-2">
+                <button class="flex items-center gap-2 py-2 px-3 rounded-md text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+                        hx-get="/api/run-preset?goal=Register%20an%20account"
+                        title="Run: Register an account"
+                >
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Register
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // Initialize sidebar on mobile - add collapse toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.querySelector('aside');
+        const mainContent = document.querySelector('.ml-64, .flex-1');
+        const hamburger = document.createElement('button');
+        
+        hamburger.className = 'md:hidden p-2 rounded-md hover:bg-bg-tertiary';
+        hamburger.innerHTML = '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="6" width="18" height="2"/><rect x="3" y="14" width="18" height="2"/><rect x="3" y="22" width="18" height="2"/></svg>';
+        hamburger.setAttribute('aria-label', 'Open sidebar');
+        
+        document.querySelector('header').parentElement?.insertBefore(hamburger, null);
+        
+        hamburger.addEventListener('click', function() {
+            sidebar.classList.toggle('-translate-x-full');
+            if (mainContent) {
+                mainContent.classList.toggle('ml-64');
+                mainContent.classList.toggle('ml-0');
+            }
+        });
+    });
+</script>
+{% endblock %}

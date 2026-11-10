@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrowserPilot - AI Test Planner</title>
+    <script src="https://cdn.tailwindcss.com/latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.5/dist/htmx.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --fg-primary: #f1f5f9;
+            --fg-secondary: #64748b;
+            --accent: #8b5cf6;
+            --border-color: #475569;
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius: 12px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg-primary); color: var(--fg-primary); }
+        .bg-gradient-primary { background: linear-gradient(135deg, var(--bg-primary) 0, var(--bg-secondary) 100%); }
+        .accent-gradient { background: linear-gradient(135deg, var(--accent), #a78bfa); }
+        .glass { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3); }
+        .transition-fast { transition: 150ms cubic-bezier(0.4, 0, 0.2, 1); }
+        .focus-visible:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        .textarea-resize { resize: vertical; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Skip link -->
+    <a href="#main-content" class="sr-only">Skip to main content</a>
+    
+    <!-- Header -->
+    <header class="bg-bg-secondary/80 border-b border-border-color/50 sticky top-0 z-50" 
+            style="background: rgba(30, 41, 59, 0.8) !important;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-md bg-accent flex items-center justify-center">
+                        <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tighter">BrowserPilot AI Testing</h1>
+                </div>
+                <div class="hidden md:flex items-center gap-4">
+                    <a href="/" class="text-gray-300 hover:text-white transition-colors">Home</a>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="pt-20 pb-8">
+        <div class="max-w-2xl mx-auto px-4 py-12">
+            <!-- Plan Generation Card -->
+            <div class="glass rounded-2xl p-8 backdrop-blur mb-8">
+                <h2 class="text-3xl font-bold tracking-tighter mb-4">Generate Test Plan</h2>
+                
+                <form id="plan-form" hx-post="/plan" hx-target="#plan-result" hx-swap="outerHTML">
+                    <div class="grid grid-cols-1 gap-4 mb-4">
+                        <textarea 
+                            id="goal-input" 
+                            name="goal" 
+                            rows="3" 
+                            class="input-field w-full"
+                            placeholder="Enter testing goal (e.g., 'Test user can register with valid email')
+                            required
+                        ></textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="submit" class="btn-primary flex-1">
+                            <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 5v14M5 12h14"/>
+                            </svg>
+                            Generate Plan
+                        </button>
+                    </div>
+                </form>
+                
+                <div id="plan-result" class="mt-6"></div>
+            </div>
+            
+            <!-- Results Card -->
+            <div class="glass rounded-2xl p-8" id="results-card" style="display: none;">
+                <h2 class="text-3xl font-bold tracking-tighter mb-4">Test Execution Results</h2>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold" id="success-rate">0</div>
+                        <div class="text-sm text-fg-secondary/m60">Success Rate</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold" id="steps-passed">0</div>
+                        <div class="text-sm text-fg-secondary/m60">Steps Passed</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold" id="steps-failed">0</div>
+                        <div class="text-sm text-fg-secondary/m60">Steps Failed</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-3xl font-bold" id="bugs-found">0</div>
+                        <div class="text-sm text-fg-secondary/m60">Bugs Found</div>
+                    </div>
+                </div>
+                
+                <h3 class="text-semibold mb-3">Step Results</h3>
+                <div id="step-results" class="space-y-2" style="max-height: 200px; overflow-y: auto;"></div>
+                
+                <div id="bugs-list" class="mt-4" style="display: none;">
+                    <h4 class="font-medium mb-2">Bugs Detected</h4>
+                    <ul id="bug-items" class="space-y-1 text-sm"></ul>
+                </div>
+                
+                <button onclick="window.print()" class="btn-outline mt-4">
+                    <svg class="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    Print Report
+                </button>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-bg-secondary/70 border-t border-border-color/50 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-sm text-fg-secondary">
+                <span>BrowserPilot AI Testing v1.0.0</span>
+                <span>100% free, evidence-backed reports</span>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Plan form submission
+        document.getElementById('plan-form').addEventListener('submit', function(e) {
+            const goalInput = document.getElementById('goal-input');
+            const goal = goalInput.value.trim();
+            
+            if (!goal) {
+                alert('Please enter a testing goal');
+                e.preventDefault();
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = this.querySelector('button');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<svg class="h-4 w-4 animate-spin mr-2" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 2v10M8 12h6z"/></svg>Generating...';
+            submitBtn.disabled = true;
+            
+            // Submit form via htmx
+            // htmx handles this automatically since form action is /plan
+        });
+        
+        // Handle htmx response swap
+        document.body.addEventListener('htmx:xhr:beforeSwap', function(evt) {
+            // Show results card, hide planning card
+            document.getElementById('results-card').style.display = 'block';
+            document.querySelector('form').style.display = 'none';
+        });
+        
+        // Initialize step results display
+        function updateStepResults(results) {
+            const container = document.getElementById('step-results');
+            container.innerHTML = '';
+            
+            results.forEach((result, idx) => {
+                const statusClass = result.status === 'pass' ? 'text-success' : 'text-danger';
+                const statusText = result.status === 'pass' ? 'Pass' : 'Fail';
+                
+                const div = document.createElement('div');
+                div.innerHTML = `<div class="flex justify-between items-center mb-1">
+                    <span>Step ${result.step}</span>
+                    <span class="${statusClass} font-medium">${statusText}</span>
+                </div>
+                <div class="text-xs text-fg-secondary/60 mt-1">${result.evidence}</div>`;
+                container.appendChild(div);
+            });
+        }
+        
+        // Update UI from htmx response
+        window.updatePlannerUI = function(data) {
+            const plan = data.plan;
+            const report = data.report;
+            
+            // Update step results
+            updateStepResults(report.results);
+            
+            // Update summary stats
+            document.getElementById('success-rate').innerText = report.summary.success_rate;
+            document.getElementById('steps-passed').innerText = report.summary.passed;
+            document.getElementById('steps-failed').innerText = report.summary.failed;
+            document.getElementById('bugs-found').innerText = report.bugs_detected.length;
+            
+            // Show bugs list
+            const bugItems = document.getElementById('bug-items');
+            bugItems.innerHTML = '';
+            report.bugs_detected.forEach(bug => {
+                const li = document.createElement('li');
+                li.innerText = bug;
+                bugItems.appendChild(li);
+            });
+            document.getElementById('bugs-list').style.display = report.bugs_detected.length > 0 ? 'block' : 'none';
+            
+            // Show the results card
+            document.getElementById('results-card').style.display = 'block';
+            document.querySelector('form').style.display = 'none';
+        };
+    </script>
+</body>
+</html>

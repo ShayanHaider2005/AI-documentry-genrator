@@ -1,0 +1,164 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<main id="main-content" class="relative z-10">
+    <!-- KPI Cards Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- Total Runs Card -->
+        <div class="rounded-xl bg-bg-secondary/50 p-4 backdrop-blur border border-border-color/20">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold" id="kpi-total-runs">{{ total_runs }}</div>
+                    <div class="text-sm text-fg-secondary">Total Runs</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pass Rate Card -->
+        <div class="rounded-xl bg-bg-secondary/50 p-4 backdrop-blur border border-border-color/20">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-success" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2v4l10 5-10 5V2z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold" id="kpi-pass-rate">{{ pass_rate }}%</div>
+                    <div class="text-sm text-fg-secondary">Pass Rate</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bugs Found Card -->
+        <div class="rounded-xl bg-bg-secondary/50 p-4 backdrop-blur border border-border-color/20">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-warning" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2c5.52 0 10 4.48 10 10v2h-2v-2c0-5.52-4.48-10-10-10z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold" id="kpi-bugs-found">{{ bugs_found }}</div>
+                    <div class="text-sm text-fg-secondary">Bugs Found</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Avg Duration Card -->
+        <div class="rounded-xl bg-bg-secondary/50 p-4 backdrop-blur border border-border-color/20">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+                    <svg class="h-5 w-5 text-info" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold" id="kpi-avg-duration">2.3 min</div>
+                    <div class="text-sm text-fg-secondary">Avg Duration</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Runs Status Bar Chart -->
+        <div class="rounded-xl bg-bg-secondary/50 p-4 backdrop-blur border border-border-color/20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-medium text-fg-secondary">Run Status Distribution</h2>
+            </div>
+            <div id="status-chart" class="h-64 w-full"></div>
+        </div>
+        
+        <!-- Bug Severity Donut -->
+        <div class="rounded-xl bg-bg-secondary/50 p-4 backdrop-blur border border-border-color/20">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-medium text-fg-secondary">Bug Severity</h2>
+            </div>
+            <div id="severity-chart" class="h-64 w-full"></div>
+        </div>
+    </div>
+    
+    <!-- Recent Runs Table -->
+    <div class="rounded-xl bg-bg-secondary/50 p-4 backdrop-blur border border-border-color/20">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-medium text-fg-secondary">Recent Runs</h2>
+            <a href="/app/run" class="text-sm text-primary hover:underline">Start New Run</a>
+        </div>
+        
+        <div class="overflow-x-auto rounded-lg">
+            <table class="w-full min-w-max">
+                <thead>
+                    <tr class="text-left text-sm text-fg-secondary border-b border-border-color/20">
+                        <th class="py-3 font-medium">Goal</th>
+                        <th class="py-3 font-medium algorithm">Algorithm</th>
+                        <th class="py-3 font-medium">Bug</th>
+                        <th class="py-3 font-medium status">Status</th>
+                        <th class="py-3 font-medium">Started</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for run in recent_runs %}
+                    <tr class="text-sm text-fg-secondary border-b border-border-color/10 hover:bg-bg-tertiary transition-colors">
+                        <td class="py-3 font-medium">{{ run.goal }}</td>
+                        <td class="py-3">{{ run.algorithm }}</td>
+                        <td class="py-3">
+                            {% if run.bug_injection %}
+                                <span class="bg-warning/20 text-warning text-xs rounded px-2 py-0.5">{{ run.bug_injection }}</span>
+                            {% else %}
+                                <span class="text-fg-secondary/60 text-xs">none</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3">
+                            {% if run.status == 'completed' %}
+                                <span class="bg-success/20 text-success text-xs rounded px-2 py-0.5">Completed</span>
+                            {% elif run.status == 'failed' %}
+                                <span class="bg-danger/20 text-danger text-xs rounded px-2 py-0.5">Failed</span>
+                            {% else %}
+                                <span class="bg-warning/20 text-warning text-xs rounded px-2 py-0.5">{{ run.status|capitalize }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 text-fg-secondary/60">{{ run.created_at | datetimeformat }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Quick Start Goal Presets -->
+    <div class="mt-8 rounded-xl bg-bg-secondary/50 p-4 backdrop-blur border border-border-color/20">
+        <h2 class="font-medium text-fg-secondary mb-4">Quick Start Presets</h2>
+        <div class="grid grid-cols-2 gap-2">
+            <button class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                    hx-get="/api/run-preset?goal=Register%20an%20account"
+                    title="Run: Register an account"
+            >
+                Register
+            </button>
+            <button class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                    hx-get="/api/run-preset?goal=Login"
+                    title="Run: Login"
+            >
+                Login
+            </button>
+            <button class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                    hx-get="/api/run-preset?goal=Reset%20password"
+                    title="Run: Reset password"
+            >
+                Reset PW
+            </button>
+            <button class="flex-1 py-2 px-3 rounded-md text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                    hx-get="/api/run-preset?goal=Full%20checkout"
+                    title="Run: Full checkout"
+            >
+                Full Checkout
+            </button>
+        </div>
+    </div>
+{% endblock %}
