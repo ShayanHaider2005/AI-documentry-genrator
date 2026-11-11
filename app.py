@@ -29,6 +29,61 @@ templates = Jinja2Templates(directory="templates")
 # Import and include the test planner module
 from planner import generate_plan, execute_plan
 
+# ══════════════════════════════════════
+# API Routes
+# ══════════════════════════════════════
+
+@app.get("/api/health", include_in_schema=False)
+async def api_health():
+    \"\"\"Health check API.\"\"\"
+    return JSONResponse({"status": "ok", "version": "1.0.0"})
+
+
+@app.post("/api/run-test", include_in_schema=False)
+async def run_test(request: Request):
+    \"\"\"Run a test plan against the demo website.\"\"\"
+    form = await request.form()
+    goal = form.get("goal", "")
+    
+    plan = generate_plan(goal) if goal else None
+    
+    if not plan:
+        return JSONResponse(
+            {"error": "Could not parse goal. Provide a clear natural language goal."},
+            status_code=400,
+        )
+    
+    # Execute the plan
+    report = execute_plan(plan)
+    
+    return JSONResponse({
+        "plan": plan,
+        "report": report,
+    })
+
+
+@app.get("/api/templates/{page_name}", include_in_schema=False)
+async def get_template(request: Request, page_name: str):
+    \"\"\"Serve HTML templates for the frontend.\"\"\"
+    template_map = {
+        "index": "browserpilot.html",
+        "dashboard": "dashboard.html",
+        "live_demo": "live_demo.html",
+    }
+    
+    template = template_map.get(page_name)
+    if not template:
+        return JSONResponse({"error": "Template not found"}, status_code=404)
+    
+    # Read the template file
+    template_path = f"templates/{template}"
+    try:
+        with open(template_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return HTMLResponse(content=content)
+    except FileNotFoundError:
+        return JSONResponse({"error": "Template file not found"}, status_code=404)
+
 
 # ═══════════════════════════════════════
 # Core Routes
